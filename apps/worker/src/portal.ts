@@ -9,8 +9,10 @@ export const SOURCES: Record<SourceKind, { url: string }> = {
 
 /** 포털 게이트웨이 오류(키 오류·한도 초과 등)나 기관 API 오류. 빈 목록으로 해석하면 안 된다. */
 export class PortalError extends Error {
-  constructor(public code: string, message: string) {
+  code: string;
+  constructor(code: string, message: string) {
     super(message);
+    this.code = code;
     this.name = 'PortalError';
   }
 }
@@ -67,12 +69,16 @@ export interface FetchOptions {
   fetchImpl?: (url: string, init?: RequestInit) => Promise<Response>;
 }
 
-/** FullData 한 페이지. 네트워크·5xx·형식 오류는 재시도하고, 포털의 명시적 오류(키·한도)는 바로 던진다. */
-export async function fetchFullDataPage(kind: SourceKind, pageNo: number, numOfRows = 10000, opts: FetchOptions = {}): Promise<Page> {
+/**
+ * 공공데이터포털 API 한 번 호출. 네트워크·5xx·형식 오류는 재시도하고, 포털의 명시적 오류(키·한도)는 바로 던진다.
+ * params에 serviceKey는 넣지 않는다(여기서 환경변수로 붙인다).
+ */
+export async function fetchPortal(baseUrl: string, params: Record<string, string | number>, label: string, opts: FetchOptions = {}): Promise<Page> {
   const key = process.env.DATA_GO_KR_KEY;
   if (!key) throw new Error('DATA_GO_KR_KEY is not set');
   const { retries = 3, timeoutMs = 180_000, retryDelayMs = 5_000, fetchImpl = fetch } = opts;
-  const url = `${SOURCES[kind].url}?serviceKey=${encodeURIComponent(key)}&pageNo=${pageNo}&numOfRows=${numOfRows}`;
+  const query = Object.entries(params).map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&');
+  const url = `${baseUrl}?serviceKey=${encodeURIComponent(key)}&${query}`;
   let lastError: unknown;
   for (let attempt = 0; attempt <= retries; attempt++) {
     if (attempt > 0 && retryDelayMs > 0) await new Promise((r) => setTimeout(r, retryDelayMs * attempt));
@@ -86,5 +92,10 @@ export async function fetchFullDataPage(kind: SourceKind, pageNo: number, numOfR
     }
   }
   const msg = lastError instanceof Error ? lastError.message : String(lastError);
-  throw new Error(redactKey(`${kind} page ${pageNo} failed after ${retries + 1} attempts: ${msg}`));
+  throw new Error(redactKey(`${label} failed after ${retries + 1} attempts: ${msg}`));
+}
+
+/** FullData 한 페이지 */
+export function fetchFullDataPage(kind: SourceKind, pageNo: number, numOfRows = 10000, opts: FetchOptions = {}): Promise<Page> {
+  return fetchPortal(SOURCES[kind].url, { pageNo, numOfRows }, `${kind} page ${pageNo}`, opts);
 }
