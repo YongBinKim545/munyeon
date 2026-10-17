@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<response><header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE.</resultMsg></header><body><items>
+<item><dutyAddr>서울특별시 중구 세종대로 110</dutyAddr><dutyName>테스트심야약국</dutyName><dutyTel1>02-777-0000</dutyTel1><dutyTime1c>0300</dutyTime1c><dutyTime1s>2000</dutyTime1s><dutyTime7c>0300</dutyTime7c><dutyTime7s>2000</dutyTime7s><hpid>C1100005</hpid><rnum>1</rnum><wgs84Lat>37.5665</wgs84Lat><wgs84Lon>126.978</wgs84Lon></item>
+</items><numOfRows>10</numOfRows><pageNo>1</pageNo><totalCount>25435</totalCount></body></response>
