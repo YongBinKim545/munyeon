@@ -1,0 +1,22 @@
+# 의존성 · 빌드 결과
+node_modules/
+.next/
+out/
+dist/
+build/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# 환경 변수 (공공데이터포털 인증키 등). 예시는 .env.example
+.env
+.env.*
+!.env.example
+
+# API 검증 스크립트 출력 (원시 응답 표본)
+scripts/api-verification/out/
+
+# 로컬 도구
+.vercel/
+.DS_Store
+Thumbs.db
