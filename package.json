@@ -1,0 +1,17 @@
+{
+  "name": "munyeon",
+  "private": true,
+  "workspaces": ["packages/*", "apps/*"],
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:migrate": "npm run migrate -w @munyeon/db",
+    "sync": "npm run sync -w @munyeon/worker --"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "typescript": "~5.9.3",
+    "vitest": "^4"
+  }
+}
