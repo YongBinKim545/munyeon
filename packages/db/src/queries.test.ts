@@ -50,6 +50,12 @@ describe('upsertInstitutions', () => {
     expect(await getNearby(sql, 'pharmacy', 'Z1')).toEqual([]);
   });
 
+  test('duplicate ids in one call keep the last row', async () => {
+    expect(await upsertInstitutions(sql, [row({ id: 'DUP', name: '첫번째' }), row({ id: 'DUP', name: '두번째', contentHash: 'h9' })], t1))
+      .toEqual({ inserted: 1, changed: 0, changedIds: [] });
+    expect((await getInstitution(sql, 'pharmacy', 'DUP'))?.name).toBe('두번째');
+  });
+
   test('batches larger than 1000 rows', async () => {
     const rows = Array.from({ length: 1205 }, (_, i) => row({ id: `B${i}`, contentHash: `h${i}` }));
     expect((await upsertInstitutions(sql, rows, t1)).inserted).toBe(1205);

@@ -9,15 +9,17 @@ interface Props {
   page: string;
   /** 거리·동·해당 상황의 시간 같은 한 줄 정보 */
   meta?: string;
+  /** 동 우선 정렬(DongFocus)용 */
+  dong?: string | null;
 }
 
 export function formatDistance(m: number): string {
   return m < 1000 ? `${Math.round(m / 10) * 10}m` : `${(m / 1000).toFixed(1)}km`;
 }
 
-export function InstitutionCard({ item, page, meta }: Props) {
+export function InstitutionCard({ item, page, meta, dong }: Props) {
   return (
-    <li className="card">
+    <li className="card" data-dong={dong ?? undefined}>
       <div className="card__head">
         <Link className="card__name" href={institutionPath(item.kind, item.id)}>
           {item.name}

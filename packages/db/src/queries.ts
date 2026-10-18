@@ -37,6 +37,7 @@ export interface InstitutionSummary {
   category: Category;
   specialty: string | null;
   pediatricName: boolean;
+  dong: string | null;
   lat: number | null;
   lon: number | null;
   distanceM?: number;
@@ -64,8 +65,10 @@ export async function upsertInstitutions(
   let inserted = 0;
   let changed = 0;
   const changedIds: string[] = [];
-  for (let i = 0; i < rows.length; i += UPSERT_BATCH) {
-    const batch = rows.slice(i, i + UPSERT_BATCH).map((r) => ({
+  // 같은 ID가 한 명령에 두 번 들어가면 Postgres가 거부하므로 마지막 행만 남긴다.
+  const unique = [...new Map(rows.map((r) => [r.id, r])).values()];
+  for (let i = 0; i < unique.length; i += UPSERT_BATCH) {
+    const batch = unique.slice(i, i + UPSERT_BATCH).map((r) => ({
       id: r.id, kind: r.kind, name: r.name, div_name: r.divName, addr: r.addr, sido: r.sido,
       sigungu: r.sigungu, tel: r.tel, lat: r.lat, lon: r.lon, hours: r.hours, raw: r.raw,
       content_hash: r.contentHash, has_hours: r.hasHours, category: r.category, specialty: r.specialty,
@@ -117,7 +120,7 @@ export async function deactivateMissing(sql: Sql, kind: Kind, seenIds: string[],
 
 const summaryCols = (sql: Sql) => sql`
   i.id, i.kind, i.name, i.div_name as "divName", i.addr, i.tel, i.hours, i.has_hours as "hasHours",
-  i.category, i.specialty, i.pediatric_name as "pediatricName", i.lat, i.lon`;
+  i.category, i.specialty, i.pediatric_name as "pediatricName", i.dong, i.lat, i.lon`;
 
 export async function getInstitution(sql: Sql, kind: Kind, id: string): Promise<InstitutionRecord | null> {
   const [row] = await sql<InstitutionRecord[]>`

@@ -54,3 +54,11 @@
 
 - Node.js 24, npm 11 (pnpm은 미설치 — 필요하면 corepack으로 활성화)
 - 공공데이터포털 인증키는 `.env.local`의 `DATA_GO_KR_KEY`에 **사용자가 직접** 넣는다(Decoding 키). 저장소에 커밋하지 않는다. 형식은 [.env.example](.env.example) 참고
+
+### 로컬에서 화면 확인 (공공 API·키 없이)
+
+```bash
+node apps/worker/src/dev-db.ts
+```
+
+다른 터미널에서 `apps/web/.env.development.local`에 `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres`를 두고 `npm run dev -w @munyeon/web`. 표본 기관 16곳이 들어간 인메모리 DB(PGlite + PostGIS)를 쓴다. `node scripts/check-routes.mjs`로 응답 코드·noindex를 점검한다.
