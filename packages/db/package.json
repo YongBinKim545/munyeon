@@ -10,7 +10,7 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "migrate": "node --env-file-if-exists=../../.env.local --experimental-strip-types src/migrate-cli.ts"
+    "migrate": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --experimental-strip-types src/migrate-cli.ts"
   },
   "dependencies": {
     "@munyeon/core": "*",

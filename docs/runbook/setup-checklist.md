@@ -3,19 +3,26 @@
 > 작성: 2026-10-18 · Phase 1a 공개(2026-11-20 전후) 전 사용자가 직접 할 일. 계정 생성·결제·로그인·키 입력은 사용자만 한다.
 > **키·비밀번호·접속 문자열은 채팅이나 다른 세션에 붙여 넣지 말고 아래 위치에만 직접 입력하세요.**
 
-## 1. 지금 바로 (10-22까지) — 로컬 실데이터 확인에 필요
+## 1. 지금 (로컬 실데이터 확인)
+
+> 2026-10-18 변경: Supabase 대신 로컬 DB(PGlite, `.pglite/`)로 먼저 확인한다. Supabase·도메인은 배포 단계로 옮겼다.
+
+| # | 할 일 | 어디서 | 상태 |
+|---|---|---|---|
+| 2 | **공공데이터포털 키 입력** | 저장소 루트 `.env`(또는 `.env.local`)에 `DATA_GO_KR_KEY=` + **Decoding 키** | 완료(10-18, probe 성공) |
+| 3 | **특일 정보 API 활용신청** | data.go.kr에서 '한국천문연구원_특일 정보' 활용신청(자동승인, 같은 키 사용). 없으면 기본 공휴일 목록만 씀 | 대기 |
+
+로컬 확인: `node apps/worker/src/dev-db.ts --real` → `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres npm run db:migrate` → `… npm run sync -- all`.
+
+## 1-1. 배포 단계에 (11월 초~중순)
 
 | # | 할 일 | 어디서 | 결과물 |
 |---|---|---|---|
-| 1 | **도메인 `munyeon.kr` 구매** | 가비아·후이즈 등 .kr 등록업체(연 2만 원 안팎). 2026-10-18에 미등록 확인 | 도메인 소유. DNS 설정은 5번 단계에서 |
-| 2 | **공공데이터포털 키를 `.env.local`에 입력** | 저장소 루트에 `.env.local` 파일을 만들고 `DATA_GO_KR_KEY=` 뒤에 **Decoding 키** 입력(.env.example 참고) | 로컬 `npm run sync -- probe` 가능 |
-| 3 | **특일 정보 API 활용신청** | data.go.kr에서 '한국천문연구원_특일 정보' 활용신청(자동승인, 같은 키 사용) | 공휴일 자동 동기화 |
-| 4 | **Supabase 가입, 프로젝트 2개 생성** | supabase.com, 무료 플랜. 이름 `munyeon-dev`, `munyeon-prod`, **Region: Northeast Asia (Seoul)**. DB 비밀번호는 비밀번호 관리자에 저장 | 각 프로젝트 Database → Extensions에서 **`postgis`, `pg_trgm` 켜기** |
-| 5 | **dev 접속 문자열을 `.env.local`에 입력** | Supabase dev → Connect → **Transaction pooler**(포트 6543) URI를 복사해 `DATABASE_URL=` 뒤에 입력 | 로컬 DB 마이그레이션·동기화 가능 |
+| 1 | **도메인 `munyeon.kr` 구매** | 가비아·후이즈 등 .kr 등록업체(연 2만 원 안팎). 이름이 확정이면 일찍 사 둬도 좋다 | 도메인 소유 |
+| 4 | **Supabase 가입, 프로젝트 생성** | supabase.com 무료 플랜, `munyeon-prod`, **Region: Northeast Asia (Seoul)**. Extensions에서 **`postgis`, `pg_trgm` 켜기** | prod DB |
+| 5 | **prod 접속 문자열** | Supabase → Connect → **Transaction pooler**(포트 6543) URI. GitHub Secrets·Vercel 환경변수에만 입력(7·8번) | — |
 
-준비되면 채팅으로 "1~5 끝"이라고만 알려주세요. 그다음 제가 로컬에서 `probe` → 마이그레이션 → 전체 동기화를 돌려 실데이터로 분류표·배지를 확정합니다.
-
-## 2. 웹 구현 중 (11-05까지)
+## 2. 배포 준비 (11-05까지)
 
 | # | 할 일 | 어디서 | 결과물 |
 |---|---|---|---|

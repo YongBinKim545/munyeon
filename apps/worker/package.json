@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "sync": "node --env-file-if-exists=../../.env.local src/cli.ts"
+    "sync": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local src/cli.ts"
   },
-  "dependencies": { "@munyeon/core": "*", "@munyeon/db": "*", "fast-xml-parser": "^5.11.2" }
+  "dependencies": {
+    "@munyeon/core": "*",
+    "@munyeon/db": "*",
+    "fast-xml-parser": "^5.11.2"
+  }
 }

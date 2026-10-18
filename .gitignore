@@ -20,3 +20,9 @@ scripts/api-verification/out/
 .vercel/
 .DS_Store
 Thumbs.db
+
+# 로컬 개발 DB(PGlite) 저장 폴더
+.pglite/
+
+# 워커 probe --save 로 받은 실응답 표본(커밋하지 않음)
+apps/worker/src/__fixtures__/probe-*.json
