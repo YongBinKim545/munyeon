@@ -16,6 +16,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   sync:
+    # 예약 실행은 DB가 준비되어 저장소 변수 SYNC_ENABLED=true를 넣은 뒤부터. 수동 실행(probe 등)은 항상 가능.
+    if: github.event_name == 'workflow_dispatch' || vars.SYNC_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
