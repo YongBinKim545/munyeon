@@ -3,11 +3,14 @@ export interface Region {
   sigungu: string;
 }
 
-const SIDO = new Set([
+/** 시도 이름(구 명칭 강원도·전라북도 포함). 표시 순서는 행정 관례 순 */
+export const SIDO_NAMES: readonly string[] = [
   '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시', '울산광역시',
   '세종특별자치시', '경기도', '강원특별자치도', '강원도', '충청북도', '충청남도', '전북특별자치도',
   '전라북도', '전라남도', '경상북도', '경상남도', '제주특별자치도',
-]);
+];
+
+const SIDO = new Set(SIDO_NAMES);
 
 /** 주소 앞부분에서 시도·시군구를 뽑는다. '수원시 영통구'처럼 시 아래 구는 합친다. */
 export function parseRegion(addr: string): Region | null {

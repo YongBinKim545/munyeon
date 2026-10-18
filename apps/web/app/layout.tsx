@@ -1,0 +1,48 @@
+import { GoogleAnalytics } from '@next/third-parties/google';
+import type { Metadata, Viewport } from 'next';
+import Link from 'next/link';
+import { Header } from '@/components/Header';
+import { SITE_NAME, SITE_URL } from '@/lib/seo';
+import './globals.css';
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: { default: `${SITE_NAME} — 지금 문 연 병원·약국 찾기`, template: `%s | ${SITE_NAME}` },
+  description: '야간·휴일·명절에 지금 문 연 병원·약국을 찾고 원탭으로 전화해 확인하세요. 요일별·공휴일 진료시간 제공.',
+  applicationName: SITE_NAME,
+  formatDetection: { telephone: false },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION,
+    other: process.env.NAVER_SITE_VERIFICATION ? { 'naver-site-verification': process.env.NAVER_SITE_VERIFICATION } : undefined,
+  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f141b' },
+  ],
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
+  return (
+    <html lang="ko">
+      <body>
+        <Header />
+        {children}
+        <footer className="site-footer">
+          <p>데이터 출처: 국립중앙의료원 · 공공데이터포털</p>
+          <p>
+            <Link href="/about">소개</Link>
+            <Link href="/privacy">개인정보처리방침</Link>
+            <Link href="/terms">이용약관</Link>
+          </p>
+        </footer>
+        {gaId ? <GoogleAnalytics gaId={gaId} /> : null}
+      </body>
+    </html>
+  );
+}

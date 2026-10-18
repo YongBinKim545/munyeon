@@ -1,0 +1,163 @@
+/* 차분한 신뢰형(구조·UI/UX 4.1). 색은 상태 의미로만 쓰고, 가장 강한 색은 전화 버튼 하나. */
+:root {
+  --bg: #ffffff;
+  --surface: #f5f7fa;
+  --text: #13213a;
+  --text-sub: #4a5568;
+  --text-muted: #6b7280;
+  --border: #dde3ea;
+  --call: #1747a6;
+  --call-text: #ffffff;
+  --open-bg: #e3f4e8;
+  --open-text: #146c2e;
+  --closed-bg: #eceff3;
+  --closed-text: #3a4250;
+  --unknown-bg: #f1f2f4;
+  --unknown-text: #555d6b;
+  --holiday-bg: #fff1dc;
+  --holiday-text: #8a4b00;
+  --badge-bg: #e8eef9;
+  --badge-text: #1d3f82;
+  --today-bg: #eef3fc;
+  --radius: 10px;
+  --tap: 48px;
+  --fs-body: 16px;
+  --fs-small: 14px;
+  --fs-title: 22px;
+  --font: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', 'Segoe UI', sans-serif;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f141b;
+    --surface: #171e27;
+    --text: #e8edf4;
+    --text-sub: #b7c0cc;
+    --text-muted: #8c96a3;
+    --border: #2a3441;
+    --call: #4c86f0;
+    --call-text: #0b1220;
+    --open-bg: #12351f;
+    --open-text: #8fe0a8;
+    --closed-bg: #222a35;
+    --closed-text: #c6ced9;
+    --unknown-bg: #1f262f;
+    --unknown-text: #aab3bf;
+    --holiday-bg: #3a2a10;
+    --holiday-text: #f4c27a;
+    --badge-bg: #1c2b47;
+    --badge-text: #a9c4f5;
+    --today-bg: #18243a;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+a { color: inherit; }
+h1 { font-size: var(--fs-title); line-height: 1.35; margin: 0.25rem 0; }
+h2 { font-size: 18px; margin: 1.5rem 0 0.5rem; }
+p { margin: 0.25rem 0; }
+
+.container { max-width: 720px; margin: 0 auto; padding: 0 16px 96px; }
+@media (min-width: 1024px) { .container--wide { max-width: 1080px; } }
+
+/* 헤더 */
+.site-header {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--bg); border-bottom: 1px solid var(--border);
+}
+.site-header__inner {
+  max-width: 1080px; margin: 0 auto; padding: 0 16px; height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo { font-weight: 700; font-size: 18px; text-decoration: none; }
+.icon-btn {
+  min-width: var(--tap); min-height: var(--tap); display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: 0; color: var(--text); font-size: 20px; cursor: pointer; text-decoration: none;
+}
+
+.breadcrumbs { font-size: var(--fs-small); color: var(--text-muted); margin: 12px 0 4px; }
+.breadcrumbs ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.breadcrumbs li + li::before { content: '›'; margin-right: 4px; }
+.breadcrumbs a { text-decoration: none; }
+
+/* 버튼 */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: var(--tap); padding: 0 16px; border-radius: var(--radius);
+  font-size: var(--fs-body); font-weight: 600; text-decoration: none; cursor: pointer; border: 0;
+}
+.btn-call { background: var(--call); color: var(--call-text); width: 100%; font-size: 17px; }
+.btn-call--compact { width: auto; flex: 1; font-size: var(--fs-body); }
+.btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.tel-num { font-variant-numeric: tabular-nums; }
+.call-pc { display: flex; flex-direction: column; gap: 8px; }
+.call-pc--compact { flex-direction: row; align-items: center; flex: 1; }
+.tel-big { font-size: 24px; font-weight: 700; text-decoration: none; font-variant-numeric: tabular-nums; }
+.call-pc--compact .tel-big { font-size: 17px; }
+.no-tel { color: var(--text-muted); }
+.actions { display: flex; gap: 8px; margin: 12px 0; }
+.actions > * { flex: 1; }
+
+/* 배지·상태 */
+.badges { display: inline-flex; flex-wrap: wrap; gap: 4px; vertical-align: middle; }
+.badge { display: inline-block; font-size: 13px; padding: 1px 8px; border-radius: 6px; background: var(--badge-bg); color: var(--badge-text); }
+.status { display: block; padding: 8px 12px; border-radius: var(--radius); font-weight: 600; margin: 8px 0; min-height: 40px; }
+.status--open { background: var(--open-bg); color: var(--open-text); }
+.status--closed { background: var(--closed-bg); color: var(--closed-text); }
+.status--unknown { background: var(--unknown-bg); color: var(--unknown-text); }
+.holiday-note { display: block; font-size: var(--fs-small); color: var(--holiday-text); background: var(--holiday-bg); padding: 4px 10px; border-radius: 6px; margin-top: 4px; }
+
+.notice { font-size: var(--fs-small); color: var(--text-sub); background: var(--surface); padding: 10px 12px; border-radius: var(--radius); }
+.muted { color: var(--text-muted); font-size: var(--fs-small); }
+.emergency { font-size: var(--fs-small); color: var(--text-sub); border-top: 1px solid var(--border); padding-top: 12px; margin-top: 24px; }
+
+/* 진료시간표 */
+.hours { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.hours th, .hours td { text-align: left; padding: 8px 4px; border-bottom: 1px solid var(--border); }
+.hours td { text-align: right; }
+.hours tr[data-today='true'] { background: var(--today-bg); }
+.hours .unknown { color: var(--text-muted); }
+
+/* 카드 목록 */
+.cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 0; margin: 0; list-style: none; }
+@media (min-width: 768px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .cards--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.card { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; background: var(--bg); }
+.card__head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.card__name { font-weight: 600; text-decoration: none; }
+.card__meta { font-size: var(--fs-small); color: var(--text-sub); margin: 2px 0 8px; }
+.card .actions { margin: 0; }
+
+.link-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 768px) { .link-list--multi { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; } }
+@media (min-width: 1024px) { .link-list--multi { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.link-list a { display: flex; justify-content: space-between; min-height: var(--tap); align-items: center; border-bottom: 1px solid var(--border); text-decoration: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.chip { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 1px solid var(--border); border-radius: 999px; text-decoration: none; font-size: var(--fs-small); }
+.chip[aria-current='page'] { background: var(--badge-bg); color: var(--badge-text); border-color: transparent; }
+
+/* 기관 상세: 휴대폰은 하단 고정 전화, PC는 두 칸 */
+.detail-grid { display: block; }
+.sticky-call { position: fixed; left: 0; right: 0; bottom: 0; padding: 8px 16px calc(8px + env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid var(--border); z-index: 10; }
+@media (min-width: 768px) { .sticky-call { display: none; } }
+@media (min-width: 1024px) {
+  .detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 32px; align-items: start; }
+  .detail-aside { position: sticky; top: 68px; border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+}
+
+.sheet { position: fixed; inset: auto 0 0 0; background: var(--bg); border-top: 1px solid var(--border); border-radius: 14px 14px 0 0; padding: 16px; z-index: 30; }
+.sheet a { display: flex; min-height: var(--tap); align-items: center; border-bottom: 1px solid var(--border); text-decoration: none; }
+
+.site-footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 16px; font-size: var(--fs-small); color: var(--text-muted); text-align: center; }
+.site-footer a { margin: 0 6px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
