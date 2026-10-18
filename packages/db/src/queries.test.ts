@@ -23,6 +23,7 @@ const row = (over: Partial<InstitutionRow> = {}): InstitutionRow => ({
   sido: '서울특별시', sigungu: '중구', tel: '02-123-4567', lat: 37.5665, lon: 126.978,
   hours: { dutyTime1s: '0900', dutyTime1c: '1800' }, hasHours: true, raw: { hpid: 'C1100001' }, contentHash: 'h1',
   category: 'pharmacy', specialty: null, dong: '태평로1가', pediatricName: false,
+  hasSunday: false, hasHoliday: false, hasNight: false,
   ...over,
 });
 const t1 = new Date('2026-11-01T00:00:00Z');
@@ -65,7 +66,7 @@ describe('upsertInstitutions', () => {
 describe('deactivateMissing', () => {
   test('deactivates unseen of same kind only and reactivates on return', async () => {
     await upsertInstitutions(sql, [row({ id: 'A' }), row({ id: 'B' }), row({ id: 'H', kind: 'hospital' })], t1);
-    expect(await deactivateMissing(sql, 'pharmacy', ['A'], t2)).toBe(1);
+    expect(await deactivateMissing(sql, 'pharmacy', ['A'], t2)).toEqual(['B']);
     expect((await getInstitution(sql, 'pharmacy', 'B'))?.isActive).toBe(false);
     expect((await getInstitution(sql, 'hospital', 'H'))?.isActive).toBe(true);
     expect(await upsertInstitutions(sql, [row({ id: 'B' })], t2)).toEqual({ inserted: 0, changed: 1, changedIds: ['B'] });
@@ -174,10 +175,10 @@ describe('search and regions', () => {
 describe('listLandingCounts', () => {
   test('counts per region, kind and situation like the landing filter', async () => {
     await upsertInstitutions(sql, [
-      row({ id: 'L1', hours: { dutyTime7s: '1000', dutyTime7c: '1400' } }),
-      row({ id: 'L2', hours: { dutyTime8s: '1000', dutyTime8c: '1400', dutyTime3s: '0900', dutyTime3c: '2200' } }),
-      row({ id: 'L3', hours: { dutyTime1s: '2000', dutyTime1c: '0300' } }),
-      row({ id: 'L4', hours: { dutyTime6s: '0900', dutyTime6c: '2300' } }),
+      row({ id: 'L1', hasSunday: true }),
+      row({ id: 'L2', hasHoliday: true, hasNight: true }),
+      row({ id: 'L3', hasNight: true }),
+      row({ id: 'L4' }),
       row({ id: 'L5', kind: 'hospital', category: 'general', hours: {} }),
     ], t1);
     const rows = await listLandingCounts(sql);

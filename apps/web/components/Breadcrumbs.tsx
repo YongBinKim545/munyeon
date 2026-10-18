@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { serializeJsonLd } from '@/lib/jsonld';
 import { SITE_URL } from '@/lib/seo';
 
 export interface Crumb {
@@ -21,7 +22,7 @@ export function Breadcrumbs({ items }: { items: Crumb[] }) {
           <li key={c.href}>{i < all.length - 1 ? <Link href={c.href}>{c.name}</Link> : <span aria-current="page">{c.name}</span>}</li>
         ))}
       </ol>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
     </nav>
   );
 }

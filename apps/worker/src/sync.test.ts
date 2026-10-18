@@ -21,7 +21,7 @@ function makeDeps(total: number, perPage: number, opts: { failPages?: number[]; 
       upserted.push(...rows);
       return { inserted: rows.length, changed: 0, changedIds: [] as string[] };
     }),
-    deactivate: vi.fn(async (_kind: string, _seen: string[], _at: Date) => 3),
+    deactivate: vi.fn(async (_kind: string, _seen: string[], _at: Date) => ['GONE1', 'GONE2', 'GONE3']),
     startRun: vi.fn(async () => 42),
     finishRun: vi.fn(async () => {}),
   } satisfies SyncDeps;
@@ -43,6 +43,7 @@ describe('syncSource', () => {
     expect(deps.deactivate).toHaveBeenCalledTimes(1);
     expect(deps.deactivate.mock.calls[0]![1]).toHaveLength(25);
     expect(res).toMatchObject({ pages: 3, rows: 25, deactivated: 3, failedPages: [] });
+    expect(res.changedIds).toEqual(['GONE1', 'GONE2', 'GONE3']);
     expect(deps.finishRun).toHaveBeenCalledWith(42, expect.objectContaining({ status: 'ok', rows: 25 }));
   });
 
@@ -61,6 +62,26 @@ describe('syncSource', () => {
     expect(deps.deactivate).not.toHaveBeenCalled();
     expect(res.rows).toBe(80);
     expect(deps.finishRun).toHaveBeenCalledWith(42, expect.objectContaining({ status: 'failed' }));
+  });
+
+  test('short middle page counts as failed', async () => {
+    const { deps } = makeDeps(30, 10);
+    const base = deps.fetchPage.getMockImplementation()!;
+    deps.fetchPage.mockImplementation(async (k, pageNo, size) => {
+      const p = await base(k, pageNo, size);
+      return pageNo === 2 ? { ...p, items: p.items.slice(0, 5) } : p;
+    });
+    const res = await syncSource('pharmacy', deps, { pageSize: 10 });
+    expect(res.failedPages).toEqual([2]);
+    expect(deps.deactivate).not.toHaveBeenCalled();
+  });
+
+  test('stops fetching after the deadline and skips deactivation', async () => {
+    const { deps } = makeDeps(30, 10);
+    const res = await syncSource('pharmacy', deps, { pageSize: 10, deadlineAt: Date.now() - 1 });
+    expect(deps.fetchPage).toHaveBeenCalledTimes(1);
+    expect(res.failedPages).toEqual([2, 3]);
+    expect(deps.deactivate).not.toHaveBeenCalled();
   });
 
   test('first page failure records failed run and throws', async () => {

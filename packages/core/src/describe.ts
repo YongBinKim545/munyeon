@@ -1,5 +1,5 @@
 import type { WeeklyHours } from './hours.ts';
-import { addDaysYmd, kstParts } from './kst.ts';
+import { addDaysYmd, kstDate, kstParts } from './kst.ts';
 import { dayCodeFor, getOpenStatus, type StatusContext } from './status.ts';
 
 export type StatusTone = 'open' | 'closed' | 'unknown';
@@ -32,10 +32,23 @@ export function describeStatus(hours: WeeklyHours, at: Date, ctx: StatusContext)
   const s = getOpenStatus(hours, at, ctx);
   const holiday = s.basis === 'holiday';
   if (s.state === 'open' && s.closesAt) {
-    const left = Math.round((s.closesAt.getTime() - at.getTime()) / 60_000);
+    let closesAt = s.closesAt;
+    // 자정에 끝나고 다음 날이 00:00부터 이어지면 끊기지 않은 영업이다(24시간 약국이 밤에 '곧 마감'으로 보이지 않게).
+    const end = kstParts(closesAt);
+    if (end.minute === 0) {
+      const next = hours[dayCodeFor(end.ymd, ctx)];
+      const today = hours[dayCodeFor(kstParts(at).ymd, ctx)];
+      if (next && next.open === 0) {
+        if (next.close >= 1440 && today?.open === 0 && today.close >= 1440) {
+          return { tone: 'open', text: '24시간 영업 (등록 기준)', holiday };
+        }
+        closesAt = kstDate(end.ymd, next.close);
+      }
+    }
+    const left = Math.round((closesAt.getTime() - at.getTime()) / 60_000);
     const text = left <= CLOSING_SOON_MIN
       ? `곧 마감 · ${left}분 남음 (등록 기준)`
-      : `영업 중 · ${koreanTime(s.closesAt)} 마감 (등록 기준)`;
+      : `영업 중 · ${koreanTime(closesAt)} 마감 (등록 기준)`;
     return { tone: 'open', text, holiday };
   }
   if (s.state === 'closed') {

@@ -30,5 +30,19 @@ describe('describeStatus', () => {
   test('holiday flag', () => expect(d(weekday, '2026-12-25T10:00:00')).toEqual({ tone: 'unknown', text: '오늘 정보 없음 — 전화로 확인', holiday: true }));
   test('overnight closes at dawn', () =>
     expect(d({ dutyTime1s: '2000', dutyTime1c: '0300' }, '2026-10-19T23:00:00').text).toBe('영업 중 · 새벽 3시 마감 (등록 기준)'));
-  test('24h', () => expect(d({ dutyTime1s: '0000', dutyTime1c: '2400' }, '2026-10-19T12:00:00').text).toBe('영업 중 · 자정 마감 (등록 기준)'));
+  test('ends at midnight with no next-day continuation', () =>
+    expect(d({ dutyTime1s: '0900', dutyTime1c: '2400' }, '2026-10-19T12:00:00').text).toBe('영업 중 · 자정 마감 (등록 기준)'));
+
+  const allDay: RawHours = Object.fromEntries(
+    [1, 2, 3, 4, 5, 6, 7, 8].flatMap((n) => [[`dutyTime${n}s`, '0000'], [`dutyTime${n}c`, '2400']]),
+  );
+  test('24h place at 23:30 is not closing soon', () =>
+    expect(d(allDay, '2026-10-19T23:30:00')).toEqual({ tone: 'open', text: '24시간 영업 (등록 기준)', holiday: false }));
+  test('24h place at noon', () => expect(d(allDay, '2026-10-19T12:00:00').text).toBe('24시간 영업 (등록 기준)'));
+  test('24h on holiday uses code 8', () => expect(d(allDay, '2026-12-25T23:50:00')).toMatchObject({ text: '24시간 영업 (등록 기준)', holiday: true }));
+  test('24h today but tomorrow unknown closes at midnight', () =>
+    expect(d({ dutyTime1s: '0000', dutyTime1c: '2400' }, '2026-10-19T23:30:00').text).toBe('곧 마감 · 30분 남음 (등록 기준)'));
+  test('midnight close chained to next day early hours', () =>
+    expect(d({ dutyTime1s: '0900', dutyTime1c: '2400', dutyTime2s: '0000', dutyTime2c: '0200' }, '2026-10-19T23:30:00').text)
+      .toBe('영업 중 · 새벽 2시 마감 (등록 기준)'));
 });

@@ -12,6 +12,7 @@ describe('toInstitutionRow', () => {
       id: 'A1100001', kind: 'hospital', name: '테스트소아청소년과의원', divName: '의원',
       sido: '서울특별시', sigungu: '강남구', tel: '02-555-0101', lat: 37.5006, lon: 127.0364, hasHours: true,
       category: 'general', specialty: '소아청소년과', dong: '역삼동', pediatricName: true,
+      hasSunday: false, hasHoliday: true, hasNight: false,
     });
     expect(r.hours).toEqual({
       dutyTime1s: '0900', dutyTime1c: '1800', dutyTime2s: '0900', dutyTime2c: '1800',

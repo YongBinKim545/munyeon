@@ -23,6 +23,9 @@ export interface InstitutionRow {
   specialty: string | null;
   dong: string | null;
   pediatricName: boolean;
+  hasSunday: boolean;
+  hasHoliday: boolean;
+  hasNight: boolean;
 }
 
 export interface InstitutionSummary {
@@ -72,30 +75,37 @@ export async function upsertInstitutions(
       id: r.id, kind: r.kind, name: r.name, div_name: r.divName, addr: r.addr, sido: r.sido,
       sigungu: r.sigungu, tel: r.tel, lat: r.lat, lon: r.lon, hours: r.hours, raw: r.raw,
       content_hash: r.contentHash, has_hours: r.hasHours, category: r.category, specialty: r.specialty,
-      dong: r.dong, pediatric_name: r.pediatricName,
+      dong: r.dong, pediatric_name: r.pediatricName, has_sunday: r.hasSunday, has_holiday: r.hasHoliday,
+      has_night: r.hasNight,
     }));
     const res = await sql<{ id: string; is_insert: boolean }[]>`
       with input as (
         select * from jsonb_to_recordset(${sql.json(batch)}::jsonb) as x(
           id text, kind text, name text, div_name text, addr text, sido text, sigungu text, tel text,
           lat double precision, lon double precision, hours jsonb, raw jsonb, content_hash text, has_hours boolean,
-          category text, specialty text, dong text, pediatric_name boolean)
+          category text, specialty text, dong text, pediatric_name boolean, has_sunday boolean, has_holiday boolean,
+          has_night boolean)
       ), up as (
         insert into institutions as t (id, kind, name, div_name, addr, sido, sigungu, tel, lat, lon, hours, raw,
-          content_hash, has_hours, category, specialty, dong, pediatric_name, first_seen_at, updated_at, is_active)
+          content_hash, has_hours, category, specialty, dong, pediatric_name, has_sunday, has_holiday, has_night,
+          first_seen_at, updated_at, is_active)
         select id, kind, name, div_name, addr, sido, sigungu, tel, lat, lon, hours, raw,
-          content_hash, has_hours, category, specialty, dong, pediatric_name, ${runAt}, ${runAt}, true
+          content_hash, has_hours, category, specialty, dong, pediatric_name, has_sunday, has_holiday, has_night,
+          ${runAt}, ${runAt}, true
         from input
         on conflict (id) do update set
           kind = excluded.kind, name = excluded.name, div_name = excluded.div_name, addr = excluded.addr,
           sido = excluded.sido, sigungu = excluded.sigungu, tel = excluded.tel, lat = excluded.lat,
           lon = excluded.lon, hours = excluded.hours, raw = excluded.raw, content_hash = excluded.content_hash,
           has_hours = excluded.has_hours, category = excluded.category, specialty = excluded.specialty,
-          dong = excluded.dong, pediatric_name = excluded.pediatric_name, updated_at = excluded.updated_at,
+          dong = excluded.dong, pediatric_name = excluded.pediatric_name, has_sunday = excluded.has_sunday,
+          has_holiday = excluded.has_holiday, has_night = excluded.has_night, updated_at = excluded.updated_at,
           is_active = true
         where t.content_hash is distinct from excluded.content_hash or not t.is_active
            or t.category is distinct from excluded.category or t.specialty is distinct from excluded.specialty
            or t.dong is distinct from excluded.dong or t.pediatric_name is distinct from excluded.pediatric_name
+           or t.has_sunday is distinct from excluded.has_sunday or t.has_holiday is distinct from excluded.has_holiday
+           or t.has_night is distinct from excluded.has_night
         returning t.id, (xmax = 0) as is_insert
       )
       select id, is_insert from up`;
@@ -110,12 +120,16 @@ export async function upsertInstitutions(
   return { inserted, changed, changedIds };
 }
 
-/** 이번 전체 동기화에서 보이지 않은 기관을 비활성화한다. 모든 페이지가 성공했을 때만 호출한다. */
-export async function deactivateMissing(sql: Sql, kind: Kind, seenIds: string[], runAt: Date): Promise<number> {
-  const res = await sql`
+/**
+ * 이번 전체 동기화에서 보이지 않은 기관을 비활성화한다. 모든 페이지가 성공했을 때만 호출한다.
+ * 비활성화한 ID를 돌려줘 캐시된 상세 페이지도 갱신하게 한다.
+ */
+export async function deactivateMissing(sql: Sql, kind: Kind, seenIds: string[], runAt: Date): Promise<string[]> {
+  const rows = await sql<{ id: string }[]>`
     update institutions set is_active = false, updated_at = ${runAt}
-    where kind = ${kind} and is_active and not (id = any(${sql.array(seenIds)}::text[]))`;
-  return res.count;
+    where kind = ${kind} and is_active and not (id = any(${sql.array(seenIds)}::text[]))
+    returning id`;
+  return rows.map((r) => r.id);
 }
 
 const summaryCols = (sql: Sql) => sql`
@@ -313,22 +327,15 @@ export interface LandingCount {
 }
 
 /**
- * 사이트맵용: 시군구 × 유형별 지역 랜딩의 기관 수(웹 lib/landing.ts의 matchesSituation과 같은 조건).
- * 야간 = 평일(월~금) 중 하루라도 22:00 이후까지(종료 >= 2200, 또는 자정 넘김 표기 종료 < 시작).
+ * 사이트맵용: 시군구 × 유형별 지역 랜딩의 기관 수. 워커가 core의 situationFlags로 저장한 플래그를 세므로
+ * 웹 랜딩 필터(같은 함수)와 기준이 같다.
  */
 export async function listLandingCounts(sql: Sql): Promise<LandingCount[]> {
-  const night = [1, 2, 3, 4, 5]
-    .map((d) => {
-      const s = `hours->>'dutyTime${d}s'`;
-      const c = `hours->>'dutyTime${d}c'`;
-      return `(${s} ~ '^\\d{4}$' and ${c} ~ '^\\d{4}$' and ((${c})::int >= 2200 or (${c})::int < (${s})::int))`;
-    })
-    .join(' or ');
   return sql<LandingCount[]>`
     select sido, sigungu, kind, count(*)::int as "all",
-      count(*) filter (where hours ? 'dutyTime7s' and hours ? 'dutyTime7c')::int as sunday,
-      count(*) filter (where hours ? 'dutyTime8s' and hours ? 'dutyTime8c')::int as holiday,
-      count(*) filter (where ${sql.unsafe(night)})::int as night
+      count(*) filter (where has_sunday)::int as sunday,
+      count(*) filter (where has_holiday)::int as holiday,
+      count(*) filter (where has_night)::int as night
     from institutions where is_active and sido is not null and sigungu is not null
     group by sido, sigungu, kind order by sido, sigungu, kind`;
 }

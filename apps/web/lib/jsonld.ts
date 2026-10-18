@@ -46,3 +46,8 @@ export function buildInstitutionJsonLd(rec: InstitutionRecord, url: string): obj
     ...(spec.length ? { openingHoursSpecification: spec } : {}),
   };
 }
+
+/** <script type="application/ld+json"> 안에 넣을 문자열. '<'를 이스케이프해 공공 데이터 값이 태그를 닫지 못하게 한다. */
+export function serializeJsonLd(obj: object): string {
+  return JSON.stringify(obj).replace(/</g, '\\u003c');
+}

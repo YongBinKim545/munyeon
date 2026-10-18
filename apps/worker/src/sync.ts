@@ -14,7 +14,7 @@ export interface RunSummary {
 export interface SyncDeps {
   fetchPage(kind: Kind, pageNo: number, pageSize: number): Promise<Page>;
   upsert(rows: InstitutionRow[], runAt: Date): Promise<{ inserted: number; changed: number; changedIds: string[] }>;
-  deactivate(kind: Kind, seenIds: string[], runAt: Date): Promise<number>;
+  deactivate(kind: Kind, seenIds: string[], runAt: Date): Promise<string[]>;
   startRun(source: string, at: Date): Promise<number>;
   finishRun(id: number, r: RunSummary): Promise<void>;
 }
@@ -26,7 +26,7 @@ export interface SyncResult {
   changed: number;
   deactivated: number;
   failedPages: number[];
-  /** 내용이 바뀐 기존 기관(페이지 갱신 요청 대상) */
+  /** 내용이 바뀌었거나 비활성화된 기존 기관(페이지 갱신 요청 대상) */
   changedIds: string[];
 }
 
@@ -42,7 +42,12 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 export async function syncSource(
   kind: Kind,
   deps: SyncDeps,
-  opts: { pageSize?: number; now?: Date } = {},
+  opts: {
+    pageSize?: number;
+    now?: Date;
+    /** 이 시각(epoch ms)이 지나면 남은 페이지는 실패로 두고 멈춘다(작업 시간 초과 방지) */
+    deadlineAt?: number;
+  } = {},
 ): Promise<SyncResult> {
   const pageSize = opts.pageSize ?? 10_000;
   const runAt = opts.now ?? new Date();
@@ -76,8 +81,18 @@ export async function syncSource(
 
   const errors: string[] = [];
   for (let pageNo = 2; pageNo <= result.pages; pageNo++) {
+    if (opts.deadlineAt !== undefined && Date.now() > opts.deadlineAt) {
+      result.failedPages.push(pageNo);
+      errors.push(`page ${pageNo}: skipped after deadline`);
+      continue;
+    }
     try {
-      await ingest(await deps.fetchPage(kind, pageNo, pageSize));
+      const page = await deps.fetchPage(kind, pageNo, pageSize);
+      await ingest(page);
+      // 마지막이 아닌 페이지가 덜 차면 API 이상으로 보고 실패 처리한다(대량 비활성화 방지).
+      if (pageNo < result.pages && page.items.length < pageSize) {
+        throw new Error(`short page: ${page.items.length} < ${pageSize}`);
+      }
     } catch (e) {
       result.failedPages.push(pageNo);
       errors.push(`page ${pageNo}: ${message(e)}`);
@@ -87,7 +102,9 @@ export async function syncSource(
 
   if (result.failedPages.length === 0 && totalCount > 0) {
     if (seen.size >= totalCount * MIN_SEEN_RATIO) {
-      result.deactivated = await deps.deactivate(kind, [...seen], runAt);
+      const gone = await deps.deactivate(kind, [...seen], runAt);
+      result.deactivated = gone.length;
+      result.changedIds.push(...gone); // 캐시된 상세 페이지를 "운영 정보 없음"으로 바꾸게 한다
     } else {
       errors.push(`rows ${seen.size} < ${MIN_SEEN_RATIO * 100}% of totalCount ${totalCount}`);
     }

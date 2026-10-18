@@ -20,12 +20,14 @@ export async function POST(req: Request) {
   if (!authorized(req.headers.get('authorization'))) return new Response(null, { status: 401 });
   let items: { kind?: unknown; id?: unknown }[];
   try {
-    items = ((await req.json()) as { items?: typeof items }).items ?? [];
+    const body = (await req.json()) as { items?: typeof items } | null;
+    if (!body || typeof body !== 'object' || !Array.isArray(body.items)) return new Response(null, { status: 400 });
+    items = body.items;
   } catch {
     return new Response(null, { status: 400 });
   }
   const valid = Array.isArray(items) && items.length <= MAX_ITEMS
-    && items.every((i) => (i.kind === 'pharmacy' || i.kind === 'hospital') && typeof i.id === 'string' && ID_RE.test(i.id));
+    && items.every((i) => !!i && typeof i === 'object' && (i.kind === 'pharmacy' || i.kind === 'hospital') && typeof i.id === 'string' && ID_RE.test(i.id));
   if (!valid) return new Response(null, { status: 400 });
   for (const i of items) revalidatePath(institutionPath(i.kind as Kind, i.id as string));
   return Response.json({ revalidated: items.length });

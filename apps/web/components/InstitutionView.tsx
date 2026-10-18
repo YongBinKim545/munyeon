@@ -1,10 +1,11 @@
 import { DAY_LABELS, formatRange, parseWeeklyHours } from '@munyeon/core';
 import type { InstitutionRecord, InstitutionSummary } from '@munyeon/db';
-import { buildInstitutionJsonLd } from '@/lib/jsonld';
+import { buildInstitutionJsonLd, serializeJsonLd } from '@/lib/jsonld';
 import { KIND_LABEL, regionPath } from '@/lib/seo';
 import { Badges } from './Badges';
 import { Breadcrumbs, type Crumb } from './Breadcrumbs';
 import { CallButton } from './CallButton';
+import { DataStamp } from './DataStamp';
 import { DirectionsButton } from './DirectionsButton';
 import { EmergencyNote } from './EmergencyNote';
 import { InstitutionCard } from './InstitutionCard';
@@ -17,11 +18,6 @@ interface Props {
   holidays: string[];
   lastSyncAt: Date | null;
   url: string;
-}
-
-/** 'YYYY-MM-DD HH:mm' (KST) */
-export function formatKst(d: Date): string {
-  return new Date(d.getTime() + 9 * 3_600_000).toISOString().slice(0, 16).replace('T', ' ');
 }
 
 /** 근처 기관 카드의 한 줄 정보: 일요일·공휴일 운영 여부 */
@@ -83,7 +79,7 @@ export function InstitutionView({ rec, nearby, holidays, lastSyncAt, url }: Prop
 
   return (
     <main className="container container--wide">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildInstitutionJsonLd(rec, url)) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildInstitutionJsonLd(rec, url)) }} />
       <div className="detail-grid">
         <div className="detail-main">
           {header}
@@ -94,7 +90,7 @@ export function InstitutionView({ rec, nearby, holidays, lastSyncAt, url }: Prop
             {lastSyncAt ? (
               <>
                 <br />
-                {`데이터 기준: ${formatKst(lastSyncAt)}`}
+                <DataStamp kind={rec.kind} initial={lastSyncAt.toISOString()} />
               </>
             ) : null}
           </p>

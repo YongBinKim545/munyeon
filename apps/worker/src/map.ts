@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import {
-  categoryOf, DAY_CODES, dongOf, hasAnyHours, isPediatricByName, parseRegion, parseWeeklyHours, specialtyOf, type RawHours,
+  categoryOf, DAY_CODES, dongOf, hasAnyHours, isPediatricByName, parseRegion, parseWeeklyHours, situationFlags, specialtyOf,
+  type RawHours,
 } from '@munyeon/core';
 import type { InstitutionRow, Kind } from '@munyeon/db';
 
@@ -34,6 +35,8 @@ export function toInstitutionRow(kind: Kind, item: Record<string, string>): Inst
   const region = parseRegion(addr);
   const divName = item.dutyDivNam?.trim() || null;
   const category = categoryOf(kind, divName, name);
+  const week = parseWeeklyHours(hours);
+  const flags = situationFlags(week);
   return {
     id, kind, name,
     divName,
@@ -44,12 +47,15 @@ export function toInstitutionRow(kind: Kind, item: Record<string, string>): Inst
     lat: num(item.wgs84Lat),
     lon: num(item.wgs84Lon),
     hours,
-    hasHours: hasAnyHours(parseWeeklyHours(hours)),
+    hasHours: hasAnyHours(week),
     raw,
     contentHash: contentHash(raw),
     category,
     specialty: category === 'general' ? specialtyOf(name) : null,
     dong: dongOf(addr),
     pediatricName: kind === 'hospital' && isPediatricByName(name),
+    hasSunday: flags.sunday,
+    hasHoliday: flags.holiday,
+    hasNight: flags.night,
   };
 }

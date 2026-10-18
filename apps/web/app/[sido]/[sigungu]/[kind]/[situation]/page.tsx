@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { DataStamp } from '@/components/DataStamp';
 import { DongFocus } from '@/components/DongFocus';
 import { EmergencyNote } from '@/components/EmergencyNote';
 import { InstitutionCard } from '@/components/InstitutionCard';
-import { loadRegion, loadRegions, loadRegionStats } from '@/lib/data';
+import { loadLastSync, loadRegion, loadRegions, loadRegionStats } from '@/lib/data';
 import { landingIndexable, matchesSituation, situationTime, splitByCategory } from '@/lib/landing';
 import { KIND_LABEL, parseRegionParams, regionPath, SITUATIONS, type Kind, type Situation } from '@/lib/seo';
 
@@ -52,7 +54,7 @@ export default async function LandingPage({ params }: Props) {
   const d = await load(params);
   if (!d) notFound();
   const { sido, sigungu, kind, situation, main, folded } = d;
-  const [stats, regions] = await Promise.all([loadRegionStats(sido, sigungu, kind), loadRegions()]);
+  const [stats, regions, lastSync] = await Promise.all([loadRegionStats(sido, sigungu, kind), loadRegions(), loadLastSync(kind)]);
   const holidayPct = stats.total ? Math.round((stats.withHoliday / stats.total) * 100) : 0;
   const otherKind: Kind = kind === 'pharmacy' ? 'hospital' : 'pharmacy';
   const siblings = regions.filter((x) => x.sido === sido && x.sigungu !== sigungu);
@@ -79,8 +81,14 @@ export default async function LandingPage({ params }: Props) {
           </Link>
         ))}
       </div>
-      <p className="notice">등록된 정보가 실제와 다를 수 있어요. 방문 전 꼭 전화로 확인하세요.</p>
-      <DongFocus />
+      <p className="notice">
+        등록된 정보가 실제와 다를 수 있어요. 방문 전 꼭 전화로 확인하세요.
+        <br />
+        <DataStamp kind={kind} initial={lastSync?.toISOString() ?? null} />
+      </p>
+      <Suspense fallback={null}>
+        <DongFocus />
+      </Suspense>
 
       {main.length === 0 && folded.length === 0 ? (
         <p>등록 기준으로 해당하는 곳이 없어요. 아래 다른 조건이나 이웃 지역을 확인하세요.</p>

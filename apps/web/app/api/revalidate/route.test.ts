@@ -33,6 +33,8 @@ describe('POST /api/revalidate', () => {
     const many = Array.from({ length: 501 }, (_, i) => ({ kind: 'pharmacy', id: `C${i}` }));
     expect((await post({ items: many }, 'Bearer right-secret')).status).toBe(400);
     expect((await post({ items: [{ kind: 'clinic', id: 'X' }] }, 'Bearer right-secret')).status).toBe(400);
+    expect((await post({ items: [null] }, 'Bearer right-secret')).status).toBe(400);
+    expect((await post(null, 'Bearer right-secret')).status).toBe(400);
   });
 
   test('unset secret refuses everything', async () => {

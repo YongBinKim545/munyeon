@@ -4,6 +4,7 @@
  * 로그에는 건수·소요 시간만 남긴다(인증키·URL은 남기지 않는다).
  */
 import { writeFile } from 'node:fs/promises';
+import { kstParts } from '@munyeon/core';
 import {
   deactivateMissing, finishRun, getLastSyncAt, getSql, refreshNeighborhoods, startRun, upsertHolidays,
   upsertInstitutions, type Kind,
@@ -16,6 +17,10 @@ import { syncSource } from './sync.ts';
 
 const KINDS: Kind[] = ['hospital', 'pharmacy'];
 
+/** 워크플로 제한(40분) 안에 끝내도록 페이지 수집을 멈추는 시각. 남은 페이지는 실패로 기록된다. */
+const SYNC_BUDGET_MS = 25 * 60_000;
+const startedAt = Date.now();
+
 async function runSync(kinds: Kind[]): Promise<boolean> {
   const sql = getSql();
   let ok = true;
@@ -24,12 +29,14 @@ async function runSync(kinds: Kind[]): Promise<boolean> {
     const t0 = Date.now();
     try {
       const r = await syncSource(kind, {
-        fetchPage: (k, pageNo, size) => fetchFullDataPage(k, pageNo, size),
+        // 첫 페이지는 넉넉히, 이후 페이지는 짧게 재시도(전체 시간 상한은 deadlineAt)
+        fetchPage: (k, pageNo, size) =>
+          fetchFullDataPage(k, pageNo, size, pageNo === 1 ? {} : { timeoutMs: 150_000, retries: 2 }),
         upsert: (rows, at) => upsertInstitutions(sql, rows, at),
         deactivate: (k, seen, at) => deactivateMissing(sql, k, seen, at),
         startRun: (source, at) => startRun(sql, source, at),
         finishRun: (id, s) => finishRun(sql, id, s),
-      });
+      }, { deadlineAt: startedAt + SYNC_BUDGET_MS });
       console.log(`${kind}: pages=${r.pages} rows=${r.rows} inserted=${r.inserted} changed=${r.changed} deactivated=${r.deactivated} failedPages=[${r.failedPages}] ${((Date.now() - t0) / 1000).toFixed(1)}s`);
       if (r.failedPages.length) ok = false;
       changed.push(...r.changedIds.map((id) => ({ kind, id })));
@@ -62,7 +69,7 @@ async function runSync(kinds: Kind[]): Promise<boolean> {
 
 async function runHolidays(): Promise<boolean> {
   const sql = getSql();
-  const year = new Date().getUTCFullYear();
+  const year = Number(kstParts(new Date()).ymd.slice(0, 4)); // 1월 1일 새벽(UTC로는 전년도)에도 올해 기준
   try {
     const n = await syncHolidays([year, year + 1], {
       fetchYear: (y) => fetchKasiYear(y),

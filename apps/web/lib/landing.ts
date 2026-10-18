@@ -1,4 +1,4 @@
-import { DAY_LABELS, formatRange, parseWeeklyHours, type RawHours } from '@munyeon/core';
+import { DAY_LABELS, formatRange, parseWeeklyHours, situationFlags, type RawHours } from '@munyeon/core';
 import type { InstitutionSummary } from '@munyeon/db';
 import type { Situation } from './seo';
 
@@ -7,11 +7,7 @@ const WEEKDAYS = [1, 2, 3, 4, 5] as const;
 
 /** 지역 랜딩의 상황 조건(기능 정의서 4.2) */
 export function matchesSituation(hours: RawHours, s: Situation): boolean {
-  if (s === 'all') return true;
-  const w = parseWeeklyHours(hours);
-  if (s === 'sunday') return w[7] !== null;
-  if (s === 'holiday') return w[8] !== null;
-  return WEEKDAYS.some((d) => (w[d]?.close ?? 0) >= NIGHT_CLOSE);
+  return s === 'all' || situationFlags(parseWeeklyHours(hours))[s];
 }
 
 /** 병원 목록은 일반 진료를 먼저, 한의원·치과·기타는 끝에 접는다(D26) */

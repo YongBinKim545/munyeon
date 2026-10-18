@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { makeRecord } from './fixtures';
-import { buildInstitutionJsonLd } from './jsonld';
+import { buildInstitutionJsonLd, serializeJsonLd } from './jsonld';
 
 const url = 'https://munyeon.kr/pharmacy/C1100005';
 
@@ -36,4 +36,10 @@ describe('buildInstitutionJsonLd', () => {
     expect(j.geo).toBeUndefined();
     expect(j.telephone).toBeUndefined();
   });
+});
+
+test('serializeJsonLd cannot close the script tag', () => {
+  const out = serializeJsonLd({ name: '</script><script>alert(1)</script>' });
+  expect(out).not.toContain('</script');
+  expect(JSON.parse(out)).toEqual({ name: '</script><script>alert(1)</script>' });
 });

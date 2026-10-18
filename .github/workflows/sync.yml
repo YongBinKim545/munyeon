@@ -17,7 +17,7 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,10 +32,14 @@ jobs:
           REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
           WEB_BASE_URL: ${{ vars.WEB_BASE_URL }}
           DB_POOL_MAX: '3'
+          # 입력값은 스크립트에 직접 끼워 넣지 않고 환경변수로 넘긴다(명령 주입 방지)
+          EVENT_NAME: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          CMD_INPUT: ${{ inputs.command }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            CMD="${{ inputs.command }}"
-          elif [ "${{ github.event.schedule }}" = "17 18 * * *" ]; then
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            CMD="$CMD_INPUT"
+          elif [ "$SCHEDULE" = "17 18 * * *" ]; then
             CMD=holidays
           else
             CMD=all

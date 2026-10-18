@@ -7,10 +7,13 @@ vi.mock('@munyeon/db', () => ({
   EVENT_TYPES: ['tel_tap', 'tel_copy', 'directions_tap', 'search_select'],
 }));
 
-const { POST } = await import('./route');
+const { POST, RATE_LIMIT, resetRateLimit } = await import('./route');
 const post = (body: string) => POST(new Request('http://localhost/api/events', { method: 'POST', body }));
 
-beforeEach(() => insertEvent.mockClear());
+beforeEach(() => {
+  insertEvent.mockClear();
+  resetRateLimit();
+});
 
 describe('POST /api/events', () => {
   test('stores only type, institution and page', async () => {
@@ -28,6 +31,8 @@ describe('POST /api/events', () => {
     ['bad id', JSON.stringify({ type: 'tel_tap', institutionId: "1'; drop", page: 'detail' })],
     ['bad page', JSON.stringify({ type: 'tel_tap', institutionId: 'A1', page: 'Detail Page!' })],
     ['not json', 'hello'],
+    ['null body', 'null'],
+    ['array body', '[1]'],
   ])('%s → 400', async (_n, body) => {
     expect((await post(body)).status).toBe(400);
     expect(insertEvent).not.toHaveBeenCalled();
@@ -36,4 +41,11 @@ describe('POST /api/events', () => {
   test('body over 1KB → 413', async () => {
     expect((await post('x'.repeat(1025))).status).toBe(413);
   });
+});
+
+test('per-instance rate limit returns 429 without writing', async () => {
+  const ok = JSON.stringify({ type: 'tel_tap', institutionId: 'A1', page: 'detail' });
+  for (let i = 0; i < RATE_LIMIT; i++) expect((await post(ok)).status).toBe(204);
+  expect((await post(ok)).status).toBe(429);
+  expect(insertEvent).toHaveBeenCalledTimes(RATE_LIMIT);
 });
