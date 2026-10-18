@@ -5,7 +5,7 @@
 ## 기준 문서
 
 - 기획의 기준은 [docs/planning/세부계획-병원약국.md](docs/planning/세부계획-병원약국.md)다. 기능 범위·데이터 설계·SEO 설계·KPI는 여기를 따른다.
-- MVP 화면별 동작은 [docs/specs/2026-10-18-mvp-features.md](docs/specs/2026-10-18-mvp-features.md)(기능 정의서)를 따른다.
+- MVP 화면별 동작은 [docs/specs/2026-10-18-mvp-features.md](docs/specs/2026-10-18-mvp-features.md)(기능 정의서), 시스템 구성·캐시·URL·화면 구성은 [docs/specs/2026-10-18-architecture-ux.md](docs/specs/2026-10-18-architecture-ux.md)를 따른다.
 - 확정된 결정은 [docs/DECISIONS.md](docs/DECISIONS.md), 일정과 사용자 결정 대기 항목은 [docs/ROADMAP.md](docs/ROADMAP.md).
 - 결정이 바뀌면 DECISIONS.md에 날짜와 이유를 추가하고, 세부계획의 해당 절도 함께 고친다.
 - `docs/planning/`은 `D:\planning`의 2026-10-18 사본이다. 원본과 어긋나면 이 저장소의 사본을 기준으로 삼고 원본은 참고만 한다.

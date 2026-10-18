@@ -42,6 +42,7 @@
 | [docs/ROADMAP.md](docs/ROADMAP.md) | 마일스톤·마감일, 사용자 결정이 필요한 항목 |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | 지금까지 확정된 결정과 근거 |
 | [docs/specs/2026-10-18-mvp-features.md](docs/specs/2026-10-18-mvp-features.md) | MVP 기능 정의서(화면별 동작·규칙) |
+| [docs/specs/2026-10-18-architecture-ux.md](docs/specs/2026-10-18-architecture-ux.md) | 구조 설계·UI/UX 계획(캐시, URL, 데이터 모델, 화면 구성) |
 | [docs/planning/세부계획-병원약국.md](docs/planning/세부계획-병원약국.md) | 세부 서비스 계획(기능·데이터·SEO·KPI·리스크) — 기획의 기준 문서 |
 | [docs/planning/검토-웹우선-앱프레임워크.md](docs/planning/검토-웹우선-앱프레임워크.md) | 웹 우선·앱 프레임워크 검토 |
 | [docs/planning/API-검증결과.md](docs/planning/API-검증결과.md) | 공공 API 실호출 검증 결과(필드, 공휴일 필터, 자정 넘김 표기 등) |
