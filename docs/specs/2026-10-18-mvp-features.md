@@ -159,7 +159,8 @@
 |---|---|---|
 | `tel_tap` | 전화 버튼 탭 | 1a |
 | `directions_tap` | 길찾기 앱 선택 | 1a |
-| `search_select` | 동네 검색 결과 선택 | 1a |
+| `search_select` | 검색 결과 선택(동네·기관) | 1a |
+| `tel_copy` | PC에서 전화번호 복사 | 1a |
 | `locate_request` / `locate_result` | 위치 권한 요청 / 허용·거부 | 1b |
 | `call_prompt_shown` / `call_response` | 통화 후 질문 노출 / 응답 | 1b |
 
