@@ -3,11 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts",
+    "./migrate": "./src/migrate.ts"
+  },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "migrate": "node --env-file-if-exists=../../.env.local --experimental-strip-types src/migrate-cli.ts"
   },
-  "dependencies": { "@munyeon/core": "*", "postgres": "^3.4.9" },
-  "devDependencies": { "@electric-sql/pglite": "^0.5.10", "@electric-sql/pglite-postgis": "^0.2.10", "@electric-sql/pglite-socket": "*" }
+  "dependencies": {
+    "@munyeon/core": "*",
+    "postgres": "^3.4.9"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.10",
+    "@electric-sql/pglite-postgis": "^0.2.10",
+    "@electric-sql/pglite-socket": "*"
+  }
 }

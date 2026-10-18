@@ -160,4 +160,9 @@ p { margin: 0.25rem 0; }
 
 .site-footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 16px; font-size: var(--fs-small); color: var(--text-muted); text-align: center; }
 .site-footer a { margin: 0 6px; }
+.show-pc { display: none; }
+@media (min-width: 1024px) {
+  .show-pc { display: block; }
+  .hide-pc { display: none; }
+}
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

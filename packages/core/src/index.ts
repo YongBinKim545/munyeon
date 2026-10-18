@@ -6,3 +6,4 @@ export * from './phone.ts';
 export * from './schedule-format.ts';
 export * from './classify.ts';
 export * from './badges.ts';
+export * from './describe.ts';
