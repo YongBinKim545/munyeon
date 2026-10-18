@@ -8,12 +8,12 @@
 | 단계 | 누가 | 명령·작업 | 확인 |
 |---|---|---|---|
 | 1 | 사용자 | 체크리스트 1~5(도메인, `.env.local` 키, 특일 API, Supabase dev·prod + `postgis`·`pg_trgm`, dev 접속 문자열) | — |
-| 2 | Claude | `npm run sync -- probe` (로컬, 소스당 1호출) | 두 소스 `ok`, totalCount 약 79,006 / 25,435 |
-| 3 | Claude | `npm run db:migrate` (dev) → `npm run sync -- all` → `npm run sync -- holidays` | `sync_runs` 두 소스 `ok`, 기관 약 10.4만 행, `neighborhoods` 생성 |
+| 2 | Claude | `npm run sync -- probe` (로컬, 소스당 1호출) | **완료(10-18)**: 79,006 / 25,435 |
+| 3 | Claude | 로컬 DB(`dev-db.ts --real`)에 `npm run sync -- all` | **완료(10-18)**: 실패 페이지 0, 동네 3,285개. 특일 API는 활용신청 후 `holidays` 실행 |
 | 4 | Claude | 실데이터로 종별 값 목록 확인 → `categoryOf` 표 확정, 진료과 배지 표본 200곳 점검 | 분류 누락 0, 배지 오판 비율 기록 |
 | 5 | 사용자 | 체크리스트 6~9(GitHub 공개 저장소, Secrets, Vercel import, GA4) | — |
 | 6 | Claude | `git push` → Vercel 배포, prod에 `DATABASE_URL=… npm run db:migrate` (사용자가 터미널에서 실행하거나 일회성 Actions) | 배포 URL 200 |
-| 7 | Claude | Actions에서 `sync` 수동 실행: `probe` → `all` → `holidays` | 해외 러너에서 1만 행 페이지가 180초 안. 실패 시 D13(국내 VM 이전) 결정 요청 |
+| 7 | Claude·사용자 | Actions `sync` 수동 실행: `probe`(**완료 10-18, 해외 러너 정상 응답**) → `all` → `holidays`. 이어서 저장소 변수 `SYNC_ENABLED=true`로 매시간 실행 시작 | 1만 행 페이지가 150초 안 |
 | 8 | 사용자 | 체크리스트 10(도메인 연결) | `https://munyeon.kr` 200 |
 | 9 | Claude | 공개 점검(2절) | 모두 통과 |
 | 10 | 사용자 | 체크리스트 11~12(서치어드바이저·Search Console 소유 확인, 사이트맵 제출) | 사이트맵 '성공' |

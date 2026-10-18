@@ -55,10 +55,22 @@
 - Node.js 24, npm 11 (pnpm은 미설치 — 필요하면 corepack으로 활성화)
 - 공공데이터포털 인증키는 `.env.local`의 `DATA_GO_KR_KEY`에 **사용자가 직접** 넣는다(Decoding 키). 저장소에 커밋하지 않는다. 형식은 [.env.example](.env.example) 참고
 
-### 로컬에서 화면 확인 (공공 API·키 없이)
+### 로컬에서 확인 (배포 전)
+
+처음 한 번 전국 데이터를 로컬 DB(PGlite + PostGIS, `.pglite/`에 저장)로 받는다. 공공 API 11호출, 1분 안팎.
 
 ```bash
-node apps/worker/src/dev-db.ts
+node apps/worker/src/dev-db.ts --real
 ```
 
-다른 터미널에서 `apps/web/.env.development.local`에 `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres`를 두고 `npm run dev -w @munyeon/web`. 표본 기관 16곳이 들어간 인메모리 DB(PGlite + PostGIS)를 쓴다. `node scripts/check-routes.mjs`로 응답 코드·noindex를 점검한다.
+위 창을 켜 둔 채 다른 터미널에서 `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres npm run sync -- all` 을 실행하고, 끝나면 DB 창을 닫는다.
+
+그다음부터는 한 줄로 DB → 빌드 → 실행(포트 3001, 같은 와이파이의 휴대폰에서도 접속)까지 된다. 접속 주소가 화면에 나오고, `Ctrl + C`로 함께 꺼진다.
+
+```bash
+npm run local
+```
+
+- 빌드 없이 다시 띄우기: `npm run local -- --no-build`
+- 표본 16곳만으로 빠르게 보기: `node apps/worker/src/dev-db.ts`(인메모리) + `npm run dev -w @munyeon/web`
+- 응답 코드·noindex 점검: `node scripts/check-routes.mjs http://localhost:3001`

@@ -26,8 +26,8 @@
 
 | # | 할 일 | 어디서 | 결과물 |
 |---|---|---|---|
-| 6 | **GitHub 계정, 공개 저장소 생성** | github.com. 저장소 이름 예: `munyeon`(Public). 생성 후 저장소 주소를 알려주세요(제가 `git remote` 설정과 push 안내) | 코드 업로드, Actions 사용 |
-| 7 | **GitHub Secrets 입력** | 저장소 → Settings → Secrets and variables → Actions. Secrets: `DATA_GO_KR_KEY`(Decoding 키), `DATABASE_URL`(**prod** Transaction pooler URI), `REVALIDATE_SECRET`(아무 긴 무작위 문자열, 8번에도 같은 값). Variables: `WEB_BASE_URL` = `https://munyeon.kr` | 매시간 동기화 |
+| 6 | **GitHub 공개 저장소** | https://github.com/YongBinKim545/munyeon (Public) | 완료(10-18, main push, CI 통과) |
+| 7 | **GitHub Secrets·Variables 입력** | 저장소 → Settings → Secrets and variables → Actions. Secrets: `DATA_GO_KR_KEY`(**완료**, Actions probe 성공), `DATABASE_URL`(**prod** Transaction pooler URI), `REVALIDATE_SECRET`(아무 긴 무작위 문자열, 8번에도 같은 값). Variables: `WEB_BASE_URL` = `https://munyeon.kr`, 그리고 DB가 준비된 뒤 `SYNC_ENABLED` = `true`(매시간 예약 실행 시작) | 매시간 동기화 |
 | 8 | **Vercel 가입, 저장소 import** | vercel.com, Hobby(무료). GitHub로 로그인 → Add New Project → 6번 저장소 → Root Directory `apps/web`. 환경변수: `DATABASE_URL`(prod pooler), `REVALIDATE_SECRET`(7번과 같은 값), `NEXT_PUBLIC_GA_ID`(9번) | 배포 주소 생성 |
 | 9 | **GA4 속성 생성, 문의 메일 정하기** | analytics.google.com → 속성 만들기 → 웹 스트림 `https://munyeon.kr` | 측정 ID(`G-` 로 시작)와 개인정보처리방침에 적을 문의 메일 — 둘 다 공개 값이라 채팅으로 알려줘도 됩니다. Vercel 환경변수 `NEXT_PUBLIC_GA_ID`, `NEXT_PUBLIC_CONTACT_EMAIL` |
 
