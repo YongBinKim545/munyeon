@@ -301,3 +301,34 @@ export async function getRegionStats(
     from institutions where is_active and sido = ${sido} and sigungu = ${sigungu} and kind = ${kind}`;
   return r ?? { total: 0, withHoliday: 0, withSunday: 0 };
 }
+
+export interface LandingCount {
+  sido: string;
+  sigungu: string;
+  kind: Kind;
+  all: number;
+  sunday: number;
+  holiday: number;
+  night: number;
+}
+
+/**
+ * 사이트맵용: 시군구 × 유형별 지역 랜딩의 기관 수(웹 lib/landing.ts의 matchesSituation과 같은 조건).
+ * 야간 = 평일(월~금) 중 하루라도 22:00 이후까지(종료 >= 2200, 또는 자정 넘김 표기 종료 < 시작).
+ */
+export async function listLandingCounts(sql: Sql): Promise<LandingCount[]> {
+  const night = [1, 2, 3, 4, 5]
+    .map((d) => {
+      const s = `hours->>'dutyTime${d}s'`;
+      const c = `hours->>'dutyTime${d}c'`;
+      return `(${s} ~ '^\\d{4}$' and ${c} ~ '^\\d{4}$' and ((${c})::int >= 2200 or (${c})::int < (${s})::int))`;
+    })
+    .join(' or ');
+  return sql<LandingCount[]>`
+    select sido, sigungu, kind, count(*)::int as "all",
+      count(*) filter (where hours ? 'dutyTime7s' and hours ? 'dutyTime7c')::int as sunday,
+      count(*) filter (where hours ? 'dutyTime8s' and hours ? 'dutyTime8c')::int as holiday,
+      count(*) filter (where ${sql.unsafe(night)})::int as night
+    from institutions where is_active and sido is not null and sigungu is not null
+    group by sido, sigungu, kind order by sido, sigungu, kind`;
+}

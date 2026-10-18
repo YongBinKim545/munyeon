@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import type { Sql } from './client.ts';
 import {
   countSitemapEntries, deactivateMissing, finishRun, getHolidays, getInstitution, getLastSyncAt, getNearby,
-  getRegionStats, insertEvent, listNeighborhoods, listRegion, listRegions, listSido, listSitemapEntries,
+  getRegionStats, insertEvent, listLandingCounts, listNeighborhoods, listRegion, listRegions, listSido, listSitemapEntries,
   refreshNeighborhoods, searchInstitutions, startRun, upsertHolidays, upsertInstitutions, type InstitutionRow,
 } from './queries.ts';
 import { startTestDb } from './test-db.ts';
@@ -168,5 +168,20 @@ describe('search and regions', () => {
     await upsertInstitutions(sql, [row({ id: 'K1', kind: 'hospital', category: 'general', specialty: '소아청소년과', pediatricName: true })], t1);
     const [k] = await listRegion(sql, '서울특별시', '중구', 'hospital');
     expect(k).toMatchObject({ category: 'general', specialty: '소아청소년과', pediatricName: true, lat: 37.5665 });
+  });
+});
+
+describe('listLandingCounts', () => {
+  test('counts per region, kind and situation like the landing filter', async () => {
+    await upsertInstitutions(sql, [
+      row({ id: 'L1', hours: { dutyTime7s: '1000', dutyTime7c: '1400' } }),
+      row({ id: 'L2', hours: { dutyTime8s: '1000', dutyTime8c: '1400', dutyTime3s: '0900', dutyTime3c: '2200' } }),
+      row({ id: 'L3', hours: { dutyTime1s: '2000', dutyTime1c: '0300' } }),
+      row({ id: 'L4', hours: { dutyTime6s: '0900', dutyTime6c: '2300' } }),
+      row({ id: 'L5', kind: 'hospital', category: 'general', hours: {} }),
+    ], t1);
+    const rows = await listLandingCounts(sql);
+    expect(rows).toContainEqual({ sido: '서울특별시', sigungu: '중구', kind: 'pharmacy', all: 4, sunday: 1, holiday: 1, night: 2 });
+    expect(rows).toContainEqual({ sido: '서울특별시', sigungu: '중구', kind: 'hospital', all: 1, sunday: 0, holiday: 0, night: 0 });
   });
 });
