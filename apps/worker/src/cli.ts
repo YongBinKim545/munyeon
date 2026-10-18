@@ -5,10 +5,13 @@
  */
 import { writeFile } from 'node:fs/promises';
 import {
-  deactivateMissing, finishRun, getSql, startRun, upsertHolidays, upsertInstitutions, type Kind,
+  deactivateMissing, finishRun, getLastSyncAt, getSql, refreshNeighborhoods, startRun, upsertHolidays,
+  upsertInstitutions, type Kind,
 } from '@munyeon/db';
+import { assertFresh } from './health.ts';
 import { fetchKasiYear, syncHolidays } from './holidays.ts';
 import { fetchFullDataPage, redactKey } from './portal.ts';
+import { requestRevalidate } from './revalidate.ts';
 import { syncSource } from './sync.ts';
 
 const KINDS: Kind[] = ['hospital', 'pharmacy'];
@@ -16,6 +19,7 @@ const KINDS: Kind[] = ['hospital', 'pharmacy'];
 async function runSync(kinds: Kind[]): Promise<boolean> {
   const sql = getSql();
   let ok = true;
+  const changed: { kind: Kind; id: string }[] = [];
   for (const kind of kinds) {
     const t0 = Date.now();
     try {
@@ -28,10 +32,30 @@ async function runSync(kinds: Kind[]): Promise<boolean> {
       });
       console.log(`${kind}: pages=${r.pages} rows=${r.rows} inserted=${r.inserted} changed=${r.changed} deactivated=${r.deactivated} failedPages=[${r.failedPages}] ${((Date.now() - t0) / 1000).toFixed(1)}s`);
       if (r.failedPages.length) ok = false;
+      changed.push(...r.changedIds.map((id) => ({ kind, id })));
     } catch (e) {
       ok = false;
       console.error(`${kind}: FAILED ${redactKey(e instanceof Error ? e.message : String(e))}`);
     }
+  }
+  try {
+    console.log(`neighborhoods: ${await refreshNeighborhoods(sql)}`);
+  } catch (e) {
+    ok = false;
+    console.error(`neighborhoods: FAILED ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  const baseUrl = process.env.WEB_BASE_URL;
+  const secret = process.env.REVALIDATE_SECRET;
+  if (baseUrl && secret) {
+    console.log(`revalidate: ${await requestRevalidate(changed, { baseUrl, secret })} (${changed.length} changed)`);
+  }
+
+  try {
+    await assertFresh((k) => getLastSyncAt(sql, k));
+  } catch (e) {
+    ok = false;
+    console.error(`health: ${e instanceof Error ? e.message : String(e)}`);
   }
   return ok;
 }

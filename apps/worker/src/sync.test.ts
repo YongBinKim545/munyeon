@@ -19,7 +19,7 @@ function makeDeps(total: number, perPage: number, opts: { failPages?: number[]; 
     }),
     upsert: vi.fn(async (rows: InstitutionRow[], _at: Date) => {
       upserted.push(...rows);
-      return { inserted: rows.length, changed: 0 };
+      return { inserted: rows.length, changed: 0, changedIds: [] as string[] };
     }),
     deactivate: vi.fn(async (_kind: string, _seen: string[], _at: Date) => 3),
     startRun: vi.fn(async () => 42),

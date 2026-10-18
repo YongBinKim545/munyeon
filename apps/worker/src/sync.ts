@@ -13,7 +13,7 @@ export interface RunSummary {
 
 export interface SyncDeps {
   fetchPage(kind: Kind, pageNo: number, pageSize: number): Promise<Page>;
-  upsert(rows: InstitutionRow[], runAt: Date): Promise<{ inserted: number; changed: number }>;
+  upsert(rows: InstitutionRow[], runAt: Date): Promise<{ inserted: number; changed: number; changedIds: string[] }>;
   deactivate(kind: Kind, seenIds: string[], runAt: Date): Promise<number>;
   startRun(source: string, at: Date): Promise<number>;
   finishRun(id: number, r: RunSummary): Promise<void>;
@@ -26,6 +26,8 @@ export interface SyncResult {
   changed: number;
   deactivated: number;
   failedPages: number[];
+  /** 내용이 바뀐 기존 기관(페이지 갱신 요청 대상) */
+  changedIds: string[];
 }
 
 /** 받은 행이 전체 건수의 이 비율 미만이면 비활성화하지 않는다(API 일시 이상 방어). */
@@ -46,7 +48,7 @@ export async function syncSource(
   const runAt = opts.now ?? new Date();
   const runId = await deps.startRun(kind, runAt);
   const seen = new Set<string>();
-  const result: SyncResult = { pages: 0, rows: 0, inserted: 0, changed: 0, deactivated: 0, failedPages: [] };
+  const result: SyncResult = { pages: 0, rows: 0, inserted: 0, changed: 0, deactivated: 0, failedPages: [], changedIds: [] };
 
   const ingest = async (page: Page) => {
     const rows = new Map<string, InstitutionRow>();
@@ -54,7 +56,8 @@ export async function syncSource(
       const row = toInstitutionRow(kind, item);
       if (row) rows.set(row.id, row);
     }
-    const { inserted, changed } = await deps.upsert([...rows.values()], runAt);
+    const { inserted, changed, changedIds } = await deps.upsert([...rows.values()], runAt);
+    result.changedIds.push(...changedIds);
     for (const id of rows.keys()) seen.add(id);
     result.inserted += inserted;
     result.changed += changed;

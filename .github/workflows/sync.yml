@@ -1,0 +1,44 @@
+# 수집 워커: 공공 API → Supabase. 공공 API는 이 워크플로만 호출한다.
+# 실패(동기화 오류, 6시간 이상 미성공)하면 GitHub가 저장소 관리자에게 메일을 보낸다.
+name: sync
+on:
+  schedule:
+    - cron: '7 * * * *'    # 매시 7분: 병의원·약국 FullData
+    - cron: '17 18 * * *'  # 매일 03:17 KST: 특일 API 공휴일
+  workflow_dispatch:
+    inputs:
+      command:
+        description: 'all | hospital | pharmacy | holidays | probe'
+        required: true
+        default: probe
+concurrency:
+  group: sync
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Run worker
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+          WEB_BASE_URL: ${{ vars.WEB_BASE_URL }}
+          DB_POOL_MAX: '3'
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            CMD="${{ inputs.command }}"
+          elif [ "${{ github.event.schedule }}" = "17 18 * * *" ]; then
+            CMD=holidays
+          else
+            CMD=all
+          fi
+          case "$CMD" in all|hospital|pharmacy|holidays|probe) ;; *) echo "unknown command"; exit 1 ;; esac
+          npm run sync -- "$CMD"

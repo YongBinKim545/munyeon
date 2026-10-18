@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
-import { DAY_CODES, hasAnyHours, parseRegion, parseWeeklyHours, type RawHours } from '@munyeon/core';
+import {
+  categoryOf, DAY_CODES, dongOf, hasAnyHours, isPediatricByName, parseRegion, parseWeeklyHours, specialtyOf, type RawHours,
+} from '@munyeon/core';
 import type { InstitutionRow, Kind } from '@munyeon/db';
 
 /** 응답 내 순번(rnum)은 정렬에 따라 바뀌므로 해시와 원문 보관에서 뺀다. */
@@ -30,9 +32,11 @@ export function toInstitutionRow(kind: Kind, item: Record<string, string>): Inst
   }
   const addr = item.dutyAddr?.trim() ?? '';
   const region = parseRegion(addr);
+  const divName = item.dutyDivNam?.trim() || null;
+  const category = categoryOf(kind, divName, name);
   return {
     id, kind, name,
-    divName: item.dutyDivNam?.trim() || null,
+    divName,
     addr,
     sido: region?.sido ?? null,
     sigungu: region?.sigungu ?? null,
@@ -43,5 +47,9 @@ export function toInstitutionRow(kind: Kind, item: Record<string, string>): Inst
     hasHours: hasAnyHours(parseWeeklyHours(hours)),
     raw,
     contentHash: contentHash(raw),
+    category,
+    specialty: category === 'general' ? specialtyOf(name) : null,
+    dong: dongOf(addr),
+    pediatricName: kind === 'hospital' && isPediatricByName(name),
   };
 }

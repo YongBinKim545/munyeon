@@ -1,4 +1,4 @@
-import type { RawHours } from '@munyeon/core';
+import type { Category, RawHours } from '@munyeon/core';
 import type { Sql } from './client.ts';
 
 export type Kind = 'hospital' | 'pharmacy';
@@ -19,6 +19,10 @@ export interface InstitutionRow {
   hasHours: boolean;
   raw: Record<string, string>;
   contentHash: string;
+  category: Category;
+  specialty: string | null;
+  dong: string | null;
+  pediatricName: boolean;
 }
 
 export interface InstitutionSummary {
@@ -30,14 +34,17 @@ export interface InstitutionSummary {
   tel: string | null;
   hours: RawHours;
   hasHours: boolean;
+  category: Category;
+  specialty: string | null;
+  pediatricName: boolean;
+  lat: number | null;
+  lon: number | null;
   distanceM?: number;
 }
 
 export interface InstitutionRecord extends InstitutionSummary {
   sido: string | null;
   sigungu: string | null;
-  lat: number | null;
-  lon: number | null;
   hasGeom: boolean;
   isActive: boolean;
   updatedAt: Date;
@@ -53,41 +60,51 @@ export async function upsertInstitutions(
   sql: Sql,
   rows: InstitutionRow[],
   runAt: Date,
-): Promise<{ inserted: number; changed: number }> {
+): Promise<{ inserted: number; changed: number; changedIds: string[] }> {
   let inserted = 0;
   let changed = 0;
+  const changedIds: string[] = [];
   for (let i = 0; i < rows.length; i += UPSERT_BATCH) {
     const batch = rows.slice(i, i + UPSERT_BATCH).map((r) => ({
       id: r.id, kind: r.kind, name: r.name, div_name: r.divName, addr: r.addr, sido: r.sido,
       sigungu: r.sigungu, tel: r.tel, lat: r.lat, lon: r.lon, hours: r.hours, raw: r.raw,
-      content_hash: r.contentHash, has_hours: r.hasHours,
+      content_hash: r.contentHash, has_hours: r.hasHours, category: r.category, specialty: r.specialty,
+      dong: r.dong, pediatric_name: r.pediatricName,
     }));
-    const [res] = await sql<{ inserted: number; changed: number }[]>`
+    const res = await sql<{ id: string; is_insert: boolean }[]>`
       with input as (
         select * from jsonb_to_recordset(${sql.json(batch)}::jsonb) as x(
           id text, kind text, name text, div_name text, addr text, sido text, sigungu text, tel text,
-          lat double precision, lon double precision, hours jsonb, raw jsonb, content_hash text, has_hours boolean)
+          lat double precision, lon double precision, hours jsonb, raw jsonb, content_hash text, has_hours boolean,
+          category text, specialty text, dong text, pediatric_name boolean)
       ), up as (
         insert into institutions as t (id, kind, name, div_name, addr, sido, sigungu, tel, lat, lon, hours, raw,
-          content_hash, has_hours, first_seen_at, updated_at, is_active)
+          content_hash, has_hours, category, specialty, dong, pediatric_name, first_seen_at, updated_at, is_active)
         select id, kind, name, div_name, addr, sido, sigungu, tel, lat, lon, hours, raw,
-          content_hash, has_hours, ${runAt}, ${runAt}, true
+          content_hash, has_hours, category, specialty, dong, pediatric_name, ${runAt}, ${runAt}, true
         from input
         on conflict (id) do update set
           kind = excluded.kind, name = excluded.name, div_name = excluded.div_name, addr = excluded.addr,
           sido = excluded.sido, sigungu = excluded.sigungu, tel = excluded.tel, lat = excluded.lat,
           lon = excluded.lon, hours = excluded.hours, raw = excluded.raw, content_hash = excluded.content_hash,
-          has_hours = excluded.has_hours, updated_at = excluded.updated_at, is_active = true
+          has_hours = excluded.has_hours, category = excluded.category, specialty = excluded.specialty,
+          dong = excluded.dong, pediatric_name = excluded.pediatric_name, updated_at = excluded.updated_at,
+          is_active = true
         where t.content_hash is distinct from excluded.content_hash or not t.is_active
-        returning (xmax = 0) as is_insert
+           or t.category is distinct from excluded.category or t.specialty is distinct from excluded.specialty
+           or t.dong is distinct from excluded.dong or t.pediatric_name is distinct from excluded.pediatric_name
+        returning t.id, (xmax = 0) as is_insert
       )
-      select count(*) filter (where is_insert)::int as inserted,
-             count(*) filter (where not is_insert)::int as changed
-      from up`;
-    inserted += res?.inserted ?? 0;
-    changed += res?.changed ?? 0;
+      select id, is_insert from up`;
+    for (const r of res) {
+      if (r.is_insert) inserted++;
+      else {
+        changed++;
+        changedIds.push(r.id);
+      }
+    }
   }
-  return { inserted, changed };
+  return { inserted, changed, changedIds };
 }
 
 /** 이번 전체 동기화에서 보이지 않은 기관을 비활성화한다. 모든 페이지가 성공했을 때만 호출한다. */
@@ -99,11 +116,12 @@ export async function deactivateMissing(sql: Sql, kind: Kind, seenIds: string[],
 }
 
 const summaryCols = (sql: Sql) => sql`
-  i.id, i.kind, i.name, i.div_name as "divName", i.addr, i.tel, i.hours, i.has_hours as "hasHours"`;
+  i.id, i.kind, i.name, i.div_name as "divName", i.addr, i.tel, i.hours, i.has_hours as "hasHours",
+  i.category, i.specialty, i.pediatric_name as "pediatricName", i.lat, i.lon`;
 
 export async function getInstitution(sql: Sql, kind: Kind, id: string): Promise<InstitutionRecord | null> {
   const [row] = await sql<InstitutionRecord[]>`
-    select ${summaryCols(sql)}, i.sido, i.sigungu, i.lat, i.lon, (i.geom is not null) as "hasGeom",
+    select ${summaryCols(sql)}, i.sido, i.sigungu, (i.geom is not null) as "hasGeom",
            i.is_active as "isActive", i.updated_at as "updatedAt"
     from institutions i where i.id = ${id} and i.kind = ${kind}`;
   return row ?? null;
@@ -177,7 +195,8 @@ export async function upsertHolidays(sql: Sql, rows: { ymd: string; name: string
   return res.count;
 }
 
-export type EventType = 'tel_tap' | 'call_119_open';
+export const EVENT_TYPES = ['tel_tap', 'tel_copy', 'directions_tap', 'search_select'] as const;
+export type EventType = (typeof EVENT_TYPES)[number];
 
 /** IP·UA·좌표는 받지도 저장하지도 않는다. 시각은 DB 기본값(분 단위)으로만 남는다. */
 export async function insertEvent(sql: Sql, e: { type: EventType; institutionId: string | null; page: string }): Promise<void> {
@@ -206,4 +225,76 @@ export async function getLastSyncAt(sql: Sql, source: Kind): Promise<Date | null
   const [r] = await sql<{ at: Date | null }[]>`
     select max(finished_at) as at from sync_runs where source = ${source} and status = 'ok'`;
   return r?.at ?? null;
+}
+
+export interface SearchHit extends InstitutionSummary {
+  sido: string | null;
+  sigungu: string | null;
+}
+
+/** 기관 이름 부분일치(pg_trgm 색인). 앞부분 일치를 먼저, 그다음 이름순. 와일드카드는 글자로 취급한다. */
+export async function searchInstitutions(sql: Sql, q: string, limit = 10): Promise<SearchHit[]> {
+  const term = q.trim().replace(/[\\%_]/g, (c) => `\\${c}`);
+  if (!term) return [];
+  return sql<SearchHit[]>`
+    select ${summaryCols(sql)}, i.sido, i.sigungu from institutions i
+    where i.is_active and i.name ilike ${'%' + term + '%'}
+    order by (i.name ilike ${term + '%'}) desc, length(i.name), i.name
+    limit ${limit}`;
+}
+
+/** 동네 목록을 다시 계산한다(동기화 끝마다). 반환값은 행 수. */
+export async function refreshNeighborhoods(sql: Sql): Promise<number> {
+  return sql.begin(async (tx) => {
+    await tx`delete from neighborhoods`;
+    const res = await tx`
+      insert into neighborhoods (name, sido, sigungu, lat, lon, n)
+      select name, sido, sigungu,
+             percentile_cont(0.5) within group (order by lat), percentile_cont(0.5) within group (order by lon), count(*)
+      from (
+        select dong as name, sido, sigungu, lat, lon from institutions
+        where is_active and dong is not null and sido is not null and sigungu is not null
+        union all
+        select sigungu as name, sido, sigungu, lat, lon from institutions
+        where is_active and sido is not null and sigungu is not null
+      ) x
+      group by name, sido, sigungu`;
+    return res.count;
+  });
+}
+
+export interface Neighborhood {
+  name: string;
+  sido: string;
+  sigungu: string;
+  lat: number | null;
+  lon: number | null;
+}
+
+export async function listNeighborhoods(sql: Sql): Promise<Neighborhood[]> {
+  const rows = await sql<Neighborhood[]>`
+    select name, sido, sigungu, round(lat::numeric, 4)::float8 as lat, round(lon::numeric, 4)::float8 as lon
+    from neighborhoods order by name, sido, sigungu`;
+  return rows.map((r) => ({ ...r }));
+}
+
+export async function listSido(sql: Sql): Promise<{ sido: string; hospital: number; pharmacy: number }[]> {
+  return sql<{ sido: string; hospital: number; pharmacy: number }[]>`
+    select sido,
+      count(*) filter (where kind = 'hospital')::int as hospital,
+      count(*) filter (where kind = 'pharmacy')::int as pharmacy
+    from institutions where is_active and sido is not null
+    group by sido order by sido`;
+}
+
+/** 지역 요약 수치: 전체 기관 수, 공휴일·일요일 진료시간 등록 수 */
+export async function getRegionStats(
+  sql: Sql, sido: string, sigungu: string, kind: Kind,
+): Promise<{ total: number; withHoliday: number; withSunday: number }> {
+  const [r] = await sql<{ total: number; withHoliday: number; withSunday: number }[]>`
+    select count(*)::int as total,
+      count(*) filter (where hours ? 'dutyTime8s')::int as "withHoliday",
+      count(*) filter (where hours ? 'dutyTime7s')::int as "withSunday"
+    from institutions where is_active and sido = ${sido} and sigungu = ${sigungu} and kind = ${kind}`;
+  return r ?? { total: 0, withHoliday: 0, withSunday: 0 };
 }

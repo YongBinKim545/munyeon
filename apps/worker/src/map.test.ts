@@ -11,6 +11,7 @@ describe('toInstitutionRow', () => {
     expect(r).toMatchObject({
       id: 'A1100001', kind: 'hospital', name: '테스트소아청소년과의원', divName: '의원',
       sido: '서울특별시', sigungu: '강남구', tel: '02-555-0101', lat: 37.5006, lon: 127.0364, hasHours: true,
+      category: 'general', specialty: '소아청소년과', dong: '역삼동', pediatricName: true,
     });
     expect(r.hours).toEqual({
       dutyTime1s: '0900', dutyTime1c: '1800', dutyTime2s: '0900', dutyTime2c: '1800',
@@ -19,6 +20,7 @@ describe('toInstitutionRow', () => {
     expect(r.raw.rnum).toBeUndefined();
   });
   test('si+gu region', () => expect(toInstitutionRow('hospital', items[1]!)?.sigungu).toBe('수원시 영통구'));
+  test('oriental category', () => expect(toInstitutionRow('hospital', items[2]!)).toMatchObject({ category: 'oriental', specialty: null, dong: null }));
   test('no coords and no hours', () => {
     const r = toInstitutionRow('hospital', items[2]!)!;
     expect(r.lat).toBeNull();

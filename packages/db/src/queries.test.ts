@@ -2,8 +2,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import type { Sql } from './client.ts';
 import {
   countSitemapEntries, deactivateMissing, finishRun, getHolidays, getInstitution, getLastSyncAt, getNearby,
-  insertEvent, listRegion, listRegions, listSitemapEntries, startRun, upsertHolidays, upsertInstitutions,
-  type InstitutionRow,
+  getRegionStats, insertEvent, listNeighborhoods, listRegion, listRegions, listSido, listSitemapEntries,
+  refreshNeighborhoods, searchInstitutions, startRun, upsertHolidays, upsertInstitutions, type InstitutionRow,
 } from './queries.ts';
 import { startTestDb } from './test-db.ts';
 
@@ -22,6 +22,7 @@ const row = (over: Partial<InstitutionRow> = {}): InstitutionRow => ({
   id: 'C1100001', kind: 'pharmacy', name: '시청약국', divName: null, addr: '서울특별시 중구 세종대로 110',
   sido: '서울특별시', sigungu: '중구', tel: '02-123-4567', lat: 37.5665, lon: 126.978,
   hours: { dutyTime1s: '0900', dutyTime1c: '1800' }, hasHours: true, raw: { hpid: 'C1100001' }, contentHash: 'h1',
+  category: 'pharmacy', specialty: null, dong: '태평로1가', pediatricName: false,
   ...over,
 });
 const t1 = new Date('2026-11-01T00:00:00Z');
@@ -29,14 +30,14 @@ const t2 = new Date('2026-11-01T01:00:00Z');
 
 describe('upsertInstitutions', () => {
   test('insert then unchanged is a no-op', async () => {
-    expect(await upsertInstitutions(sql, [row()], t1)).toEqual({ inserted: 1, changed: 0 });
-    expect(await upsertInstitutions(sql, [row()], t2)).toEqual({ inserted: 0, changed: 0 });
+    expect(await upsertInstitutions(sql, [row()], t1)).toEqual({ inserted: 1, changed: 0, changedIds: [] });
+    expect(await upsertInstitutions(sql, [row()], t2)).toEqual({ inserted: 0, changed: 0, changedIds: [] });
     expect((await getInstitution(sql, 'pharmacy', 'C1100001'))?.updatedAt).toEqual(t1);
   });
 
   test('hash change updates row and updated_at', async () => {
     await upsertInstitutions(sql, [row()], t1);
-    expect(await upsertInstitutions(sql, [row({ contentHash: 'h2', name: '새약국' })], t2)).toEqual({ inserted: 0, changed: 1 });
+    expect(await upsertInstitutions(sql, [row({ contentHash: 'h2', name: '새약국' })], t2)).toEqual({ inserted: 0, changed: 1, changedIds: ['C1100001'] });
     const rec = await getInstitution(sql, 'pharmacy', 'C1100001');
     expect(rec?.name).toBe('새약국');
     expect(rec?.updatedAt).toEqual(t2);
@@ -61,7 +62,7 @@ describe('deactivateMissing', () => {
     expect(await deactivateMissing(sql, 'pharmacy', ['A'], t2)).toBe(1);
     expect((await getInstitution(sql, 'pharmacy', 'B'))?.isActive).toBe(false);
     expect((await getInstitution(sql, 'hospital', 'H'))?.isActive).toBe(true);
-    expect(await upsertInstitutions(sql, [row({ id: 'B' })], t2)).toEqual({ inserted: 0, changed: 1 });
+    expect(await upsertInstitutions(sql, [row({ id: 'B' })], t2)).toEqual({ inserted: 0, changed: 1, changedIds: ['B'] });
     expect((await getInstitution(sql, 'pharmacy', 'B'))?.isActive).toBe(true);
   });
 });
@@ -112,5 +113,54 @@ describe('reads', () => {
     expect(await getLastSyncAt(sql, 'pharmacy')).toBeNull();
     await finishRun(sql, id, { status: 'ok', pages: 3, rows: 10, changed: 1, deactivated: 0 });
     expect(await getLastSyncAt(sql, 'pharmacy')).toBeInstanceOf(Date);
+  });
+});
+
+describe('search and regions', () => {
+  test('searchInstitutions matches name parts, active only, max limit', async () => {
+    await upsertInstitutions(sql, [
+      row({ id: 'S1', name: '시청온누리약국' }),
+      row({ id: 'S2', name: '서울시청약국' }),
+      row({ id: 'S3', name: '시청앞약국' }),
+      row({ id: 'X1', name: '다른약국' }),
+    ], t1);
+    await deactivateMissing(sql, 'pharmacy', ['S1', 'S2', 'X1'], t2);
+    const hits = await searchInstitutions(sql, '시청', 10);
+    expect(hits.map((h) => h.id).sort()).toEqual(['S1', 'S2']);
+    expect(hits[0]).toMatchObject({ sido: '서울특별시', sigungu: '중구', category: 'pharmacy' });
+    expect(await searchInstitutions(sql, '시청', 1)).toHaveLength(1);
+  });
+
+  test('search treats LIKE wildcards literally', async () => {
+    await upsertInstitutions(sql, [row({ id: 'W1', name: '백퍼센트약국' })], t1);
+    expect(await searchInstitutions(sql, '%%', 10)).toEqual([]);
+  });
+
+  test('refreshNeighborhoods builds dong and sigungu rows', async () => {
+    await upsertInstitutions(sql, [
+      row({ id: 'N1', dong: '역삼동', sigungu: '강남구', lat: 37.50, lon: 127.03 }),
+      row({ id: 'N2', dong: '역삼동', sigungu: '강남구', lat: 37.52, lon: 127.05 }),
+      row({ id: 'N3', dong: null, sigungu: '강남구', lat: 37.51, lon: 127.04 }),
+    ], t1);
+    expect(await refreshNeighborhoods(sql)).toBe(2);
+    const list = await listNeighborhoods(sql);
+    expect(list).toContainEqual({ name: '역삼동', sido: '서울특별시', sigungu: '강남구', lat: 37.51, lon: 127.04 });
+    expect(list.find((n) => n.name === '강남구')).toBeTruthy();
+  });
+
+  test('listSido and getRegionStats', async () => {
+    await upsertInstitutions(sql, [
+      row({ id: 'R1', hours: { dutyTime7s: '1000', dutyTime7c: '1400', dutyTime8s: '1000', dutyTime8c: '1400' } }),
+      row({ id: 'R2' }),
+      row({ id: 'R3', kind: 'hospital', category: 'general' }),
+    ], t1);
+    expect(await listSido(sql)).toEqual([{ sido: '서울특별시', hospital: 1, pharmacy: 2 }]);
+    expect(await getRegionStats(sql, '서울특별시', '중구', 'pharmacy')).toEqual({ total: 2, withHoliday: 1, withSunday: 1 });
+  });
+
+  test('summaries carry badge fields', async () => {
+    await upsertInstitutions(sql, [row({ id: 'K1', kind: 'hospital', category: 'general', specialty: '소아청소년과', pediatricName: true })], t1);
+    const [k] = await listRegion(sql, '서울특별시', '중구', 'hospital');
+    expect(k).toMatchObject({ category: 'general', specialty: '소아청소년과', pediatricName: true, lat: 37.5665 });
   });
 });
