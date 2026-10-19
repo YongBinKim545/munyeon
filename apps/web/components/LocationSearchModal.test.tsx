@@ -45,8 +45,18 @@ describe('LocationSearchModal', () => {
     const back = vi.spyOn(history, 'back').mockImplementation(() => {});
     await open();
     fireEvent.click(screen.getByRole('button', { name: '닫기' }));
-    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    fireEvent.keyDown(document.body, { key: 'Escape' });
     expect(back).toHaveBeenCalledTimes(2);
+  });
+
+  test('Tab stays inside the modal', async () => {
+    await open();
+    const close = screen.getByRole('button', { name: '닫기' });
+    close.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(document.activeElement).toBe(screen.getByRole('searchbox'));
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(close);
   });
 
   test('picking a neighborhood passes its area after history goes back', async () => {

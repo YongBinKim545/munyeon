@@ -24,13 +24,15 @@ interface Current {
 interface Anchor {
   id: string;
   top: number;
+  /** 이 기준을 잡을 때 화면에 있던 목록. 그 목록이 바뀔 때만 보정한다 */
+  forItems: unknown;
 }
 
-function findAnchor(list: HTMLElement | null): Anchor | null {
+function findAnchor(list: HTMLElement | null, forItems: unknown): Anchor | null {
   if (!list || window.scrollY <= 0) return null; // 맨 위를 보고 있으면 보정하지 않는다
   for (const el of list.querySelectorAll<HTMLElement>('[data-id]')) {
     const top = el.getBoundingClientRect().top;
-    if (top >= 0) return { id: el.dataset.id ?? '', top };
+    if (top >= 0) return { id: el.dataset.id ?? '', top, forItems };
   }
   return null;
 }
@@ -53,23 +55,25 @@ export function MainScreen({ fetchJson }: { fetchJson?: FetchJson }) {
   const cache = useRef<Record<Kind, CellCache>>({ pharmacy: new Map(), hospital: new Map() });
   const listRef = useRef<HTMLDivElement>(null);
   const anchor = useRef<Anchor | null>(null);
-  const currentRef = useRef<Current | null>(null);
-  useEffect(() => {
-    currentRef.current = current;
-  }, [current]);
+  const shownItems = useRef<unknown>(null);
+  /** 위치 요청 번호. 사용자가 지역을 고르거나 다시 요청하면 늘어나, 그 전 요청의 결과는 버린다 */
+  const locateReq = useRef(0);
 
   /** 목록을 바꾸기 직전에 보고 있는 카드를 기억해 둔다 */
   const withAnchor = useCallback((fn: () => void) => {
-    anchor.current = findAnchor(listRef.current);
+    anchor.current = findAnchor(listRef.current, shownItems.current);
     fn();
   }, []);
 
   const startFromLocation = useCallback((manual: boolean) => {
+    const req = ++locateReq.current;
     void locate(undefined, (pos) => {
       // 권한 창을 늦게 허용했으면, 그사이 사용자가 지역을 고르지 않은 경우에만 현재 위치로 바꾼다
-      if (currentRef.current?.source !== 'manual') setCurrent({ center: pos, label: null, source: 'gps' });
+      if (req === locateReq.current) setCurrent({ center: pos, label: null, source: 'gps' });
     }).then((r) => {
       track(r.ok ? 'locate_ok' : 'locate_fail', null, 'home');
+      // 기다리는 사이 사용자가 지역을 골랐으면 그 선택을 덮지 않는다
+      if (req !== locateReq.current) return;
       setDenied(!r.ok && r.reason === 'denied');
       if (r.ok) {
         setCurrent({ center: { lat: r.lat, lon: r.lon }, label: null, source: 'gps' });
@@ -88,8 +92,15 @@ export function MainScreen({ fetchJson }: { fetchJson?: FetchJson }) {
     setRecent(readRecentAreas());
     void fetchMeta().then((m) => setHolidays(new Set(m?.holidays ?? [])));
     startFromLocation(false);
-    const id = setInterval(() => withAnchor(() => setNow(new Date())), 60_000);
-    return () => clearInterval(id);
+    const tick = () => withAnchor(() => setNow(new Date()));
+    const id = setInterval(tick, 60_000);
+    // 백그라운드에 있던 탭이 다시 보이면 시각을 바로 갱신한다
+    const onVisible = () => document.visibilityState === 'visible' && tick();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [startFromLocation, withAnchor]);
 
   // 지역·유형이 바뀌면 1km → 3km → (부족하면 10·25km) 차례로 받는다(D36)
@@ -116,6 +127,13 @@ export function MainScreen({ fetchJson }: { fetchJson?: FetchJson }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadKey, holidays, fetchJson, withAnchor]);
 
+  // 지역·유형이 바뀌면 새 목록을 맨 위에서 보여준다
+  const prevLoadKey = useRef(loadKey);
+  useEffect(() => {
+    if (prevLoadKey.current !== loadKey && current) window.scrollTo(0, 0);
+    prevLoadKey.current = loadKey;
+  }, [loadKey, current]);
+
   // 지금 지역·유형의 데이터만 쓴다(바뀐 직후에는 '찾는 중')
   const view = data?.key === loadKey ? data : null;
   // 현재 위치의 지역 이름은 받은 데이터에서 가장 가까운 기관으로 붙인다(외부 주소 API 없음)
@@ -133,8 +151,10 @@ export function MainScreen({ fetchJson }: { fetchJson?: FetchJson }) {
   // 보던 카드의 화면 위치가 그대로 남도록 스크롤을 보정한다(사파리는 자동 보정이 없다)
   useLayoutEffect(() => {
     const a = anchor.current;
+    const prev = shownItems.current;
     anchor.current = null;
-    if (!a || !listRef.current) return;
+    shownItems.current = items;
+    if (!a || a.forItems !== prev || !listRef.current) return;
     const el = [...listRef.current.querySelectorAll<HTMLElement>('[data-id]')].find((x) => x.dataset.id === a.id);
     if (!el) return;
     const diff = el.getBoundingClientRect().top - a.top;
@@ -142,6 +162,7 @@ export function MainScreen({ fetchJson }: { fetchJson?: FetchJson }) {
   }, [items]);
 
   const pickArea = (a: Area) => {
+    locateReq.current += 1;
     setRecent(pushRecentArea(a));
     setDenied(false);
     setCurrent({ center: { lat: a.lat, lon: a.lon }, label: a.label, source: 'manual' });

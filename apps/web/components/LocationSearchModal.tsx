@@ -39,6 +39,7 @@ export function LocationSearchModal({ onPick, onClose }: Props) {
   const [q, setQ] = useState('');
   const [list, setList] = useState<NeighborhoodItem[] | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const picked = useRef<Area | null>(null);
   const closeRef = useRef(onClose);
   const pickRef = useRef(onPick);
@@ -55,10 +56,35 @@ export function LocationSearchModal({ onPick, onClose }: Props) {
       if (a) pickRef.current(a);
       closeRef.current();
     };
+    // Esc는 포커스 위치와 관계없이 닫고, Tab은 모달 안에서만 돈다(aria-modal)
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        history.back();
+        return;
+      }
+      if (e.key !== 'Tab' || !dialogRef.current) return;
+      const f = [...dialogRef.current.querySelectorAll<HTMLElement>('input, button, a[href]')];
+      const first = f[0];
+      const last = f[f.length - 1];
+      if (!first || !last) return;
+      const inside = dialogRef.current.contains(document.activeElement);
+      if (e.shiftKey && (document.activeElement === first || !inside)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (document.activeElement === last || !inside)) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     window.addEventListener('popstate', onPop);
+    document.addEventListener('keydown', onKey);
     inputRef.current?.focus();
     void loadNeighborhoods().then(setList);
-    return () => window.removeEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      document.removeEventListener('keydown', onKey);
+    };
   }, []);
 
   const term = normalizeQuery(q);
@@ -71,15 +97,7 @@ export function LocationSearchModal({ onPick, onClose }: Props) {
 
   return (
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && close()}>
-      <div
-        className="modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label="위치 검색"
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') close();
-        }}
-      >
+      <div ref={dialogRef} className="modal" role="dialog" aria-modal="true" aria-label="위치 검색">
         <div className="modal__head">
           <label className="sr-only" htmlFor="area-q">
             동네 이름

@@ -69,6 +69,27 @@ describe('MainScreen', () => {
     expect(screen.getByRole('button', { name: /중구 태평로1가/ })).toBeTruthy();
   });
 
+  test('a manual area pick is not overridden by a pending location result', async () => {
+    let resolveGeo!: (p: GeolocationPosition) => void;
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: { getCurrentPosition: (ok: PositionCallback) => { resolveGeo = ok; } },
+    });
+    localStorage.setItem('munyeon:areas', JSON.stringify([{ label: '마포구 망원동', lat: 37.556, lon: 126.905 }]));
+    const s = server([], []);
+    await act(async () => {
+      render(<MainScreen fetchJson={s.fetchJson} />);
+    });
+    fireEvent.click(screen.getByRole('button', { name: /위치 찾는 중/ }));
+    fireEvent.click(screen.getByRole('button', { name: '마포구 망원동' }));
+    await flush();
+    await act(async () => {
+      resolveGeo({ coords: { latitude: center.lat, longitude: center.lon } } as GeolocationPosition);
+    });
+    await flush();
+    expect(screen.getByRole('button', { name: /마포구 망원동/ })).toBeTruthy();
+  });
+
   test('late arrivals keep order and anchor', async () => {
     const s = server(
       [

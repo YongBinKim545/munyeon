@@ -50,7 +50,7 @@ export function gridKey(c: GridCell, level: GridLevel = 'coarse'): string {
 
 /** 격자 번호 → 칸. 형식이 틀리거나 한국 범위 밖이면 null. */
 export function parseGridKey(key: string): (GridCell & { level: GridLevel }) | null {
-  const m = /^(f?)(\d{3,4})_(\d{4,5})$/.exec(key);
+  const m = /^(f?)([1-9]\d{2,3})_([1-9]\d{3,4})$/.exec(key); // 앞자리 0은 같은 칸의 다른 주소가 되므로 거부
   if (!m) return null;
   const level: GridLevel = m[1] ? 'fine' : 'coarse';
   const gy = Number(m[2]);
