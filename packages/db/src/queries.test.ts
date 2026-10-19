@@ -208,7 +208,7 @@ describe('grid', () => {
   });
 
   test('db grid columns match core gridOf on cell edges', async () => {
-    const pts = [[37.53, 126.952], [37.575, 127.008], [33.0, 124.0], [38.99999, 131.99999], [37.5637, 126.9838]];
+    const pts: [number, number][] = [[37.53, 126.952], [37.575, 127.008], [33.0, 124.0], [38.99999, 131.99999], [37.5637, 126.9838]];
     await upsertInstitutions(sql, pts.map(([lat, lon], i) => row({ id: 'E' + i, lat, lon })), t1);
     const got = await sql<{ id: string; gy: number; gx: number }[]>`select id, grid_y as gy, grid_x as gx from institutions order by id`;
     expect(got.map((g) => ({ gy: g.gy, gx: g.gx }))).toEqual(pts.map(([lat, lon]) => gridOf(lat, lon)));
@@ -225,8 +225,8 @@ describe('grid', () => {
     ], t1);
     const hits = await searchInstitutions(sql, '온누리', 20, { lat: 37.5637, lon: 126.9838 });
     expect(hits.map((h) => h.id)).toEqual(['C', 'M', 'F', 'X']);
-    expect(hits[0].distanceM).toBe(0);
-    expect(hits[1].distanceM).toBeGreaterThan(500);
-    expect(hits[3].distanceM).toBeUndefined();
+    expect(hits[0]?.distanceM).toBe(0);
+    expect(hits[1]?.distanceM).toBeGreaterThan(500);
+    expect(hits[3]?.distanceM).toBeUndefined();
   });
 });
