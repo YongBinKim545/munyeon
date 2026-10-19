@@ -20,11 +20,11 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function open() {
+async function open(recent = [{ label: '강남구 신사동', lat: 37.52, lon: 127.02 }]) {
   const onPick = vi.fn();
   const onClose = vi.fn();
   await act(async () => {
-    render(<LocationSearchModal onPick={onPick} onClose={onClose} />);
+    render(<LocationSearchModal recent={recent} onPick={onPick} onClose={onClose} />);
   });
   return { onPick, onClose };
 }
@@ -51,12 +51,13 @@ describe('LocationSearchModal', () => {
 
   test('Tab stays inside the modal', async () => {
     await open();
-    const close = screen.getByRole('button', { name: '닫기' });
-    close.focus();
+    const buttons = screen.getByRole('dialog').querySelectorAll('button');
+    const last = buttons[buttons.length - 1] as HTMLElement; // 최근 지역의 마지막 버튼
+    last.focus();
     fireEvent.keyDown(document, { key: 'Tab' });
     expect(document.activeElement).toBe(screen.getByRole('searchbox'));
     fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
-    expect(document.activeElement).toBe(close);
+    expect(document.activeElement).toBe(last);
   });
 
   test('picking a neighborhood passes its area after history goes back', async () => {
@@ -68,6 +69,19 @@ describe('LocationSearchModal', () => {
     });
     expect(onPick).toHaveBeenCalledWith({ label: '부산 중구 중앙동', lat: 35.104, lon: 129.036 });
     expect(onClose).toHaveBeenCalled();
+  });
+
+  test('recent areas show while the search box is empty', async () => {
+    vi.spyOn(history, 'back').mockImplementation(() => window.dispatchEvent(new PopStateEvent('popstate')));
+    const { onPick } = await open();
+    expect(screen.getByRole('region', { name: '최근 지역' })).toBeTruthy();
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: '망' } });
+    expect(screen.queryByRole('region', { name: '최근 지역' })).toBeNull();
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: '' } });
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: '강남구 신사동' }));
+    });
+    expect(onPick).toHaveBeenCalledWith({ label: '강남구 신사동', lat: 37.52, lon: 127.02 });
   });
 
   test('neighborhoods without coordinates are not offered', async () => {

@@ -8,13 +8,10 @@ afterEach(cleanup);
 const props = (over = {}) => ({
   areaLabel: '마포구 망원동',
   pcLocationNote: false,
-  locateDenied: false,
-  recent: [{ label: '중구 명동', lat: 37.56, lon: 126.98 }, { label: '강남구 역삼동', lat: 37.5, lon: 127.03 }],
   kind: 'pharmacy' as const,
   mode: 'open' as const,
   onKind: vi.fn(),
   onMode: vi.fn(),
-  onPickArea: vi.fn(),
   onCurrentLocation: vi.fn(),
   onOpenLocationSearch: vi.fn(),
   ...over,
@@ -30,27 +27,34 @@ describe('MainHeader', () => {
     expect(screen.getByRole('link', { name: '검색' }).getAttribute('href')).toBe('/search');
   });
 
-  test('area menu order: location search, current location, recent areas', () => {
+  test('area name is text; the find-location button opens current location / location search', () => {
     render(<MainHeader {...props()} />);
-    fireEvent.click(screen.getByRole('button', { name: /마포구 망원동/ }));
-    const items = screen.getByRole('list', { name: '지역 선택' }).querySelectorAll('button');
-    expect([...items].map((b) => b.textContent)).toEqual(['위치 검색', '현재 위치', '중구 명동', '강남구 역삼동']);
+    expect(screen.getByText('마포구 망원동').closest('button')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /위치 찾기/ }));
+    const items = screen.getByRole('list', { name: '위치 찾기' }).querySelectorAll('button');
+    expect([...items].map((b) => b.textContent?.trim())).toEqual(['현재 위치', '위치 검색']);
   });
 
-  test('menu actions', () => {
+  test('menu actions close the menu', () => {
     const p = props();
     render(<MainHeader {...p} />);
-    const open = () => fireEvent.click(screen.getByRole('button', { name: /마포구 망원동/ }));
+    const open = () => fireEvent.click(screen.getByRole('button', { name: /위치 찾기/ }));
     open();
-    fireEvent.click(screen.getByRole('button', { name: '위치 검색' }));
+    fireEvent.click(screen.getByRole('button', { name: /위치 검색/ }));
     expect(p.onOpenLocationSearch).toHaveBeenCalled();
-    expect(screen.queryByRole('list', { name: '지역 선택' })).toBeNull();
+    expect(screen.queryByRole('list', { name: '위치 찾기' })).toBeNull();
     open();
-    fireEvent.click(screen.getByRole('button', { name: '현재 위치' }));
+    fireEvent.click(screen.getByRole('button', { name: /현재 위치/ }));
     expect(p.onCurrentLocation).toHaveBeenCalled();
-    open();
-    fireEvent.click(screen.getByRole('button', { name: '강남구 역삼동' }));
-    expect(p.onPickArea).toHaveBeenCalledWith(p.recent[1]);
+  });
+
+  test('Escape closes the menu and returns focus to the button', () => {
+    render(<MainHeader {...props()} />);
+    const btn = screen.getByRole('button', { name: /위치 찾기/ });
+    fireEvent.click(btn);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('list', { name: '위치 찾기' })).toBeNull();
+    expect(document.activeElement).toBe(btn);
   });
 
   test('kind and mode changes', () => {
@@ -62,9 +66,9 @@ describe('MainHeader', () => {
     expect(p.onMode).toHaveBeenCalledWith('all');
   });
 
-  test('locating and denied notes', () => {
-    render(<MainHeader {...props({ areaLabel: null, locateDenied: true })} />);
+  test('locating placeholder, no permission warning line', () => {
+    render(<MainHeader {...props({ areaLabel: null })} />);
     expect(screen.getByText('위치 찾는 중…')).toBeTruthy();
-    expect(screen.getByText(/위치 권한이 꺼져 있어요/)).toBeTruthy();
+    expect(screen.queryByText(/위치 권한이 꺼져 있어요/)).toBeNull();
   });
 });

@@ -2,13 +2,14 @@
 
 import { kstParts, type LatLon } from '@munyeon/core';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { locate, startArea, type AreaSource } from '@/lib/locate';
+import { geoPermission, locate, startArea, type AreaSource } from '@/lib/locate';
 import { fetchMeta } from '@/lib/meta';
 import { areaLabel, buildView, loadNearby, type CellCache, type FetchJson } from '@/lib/nearby';
 import type { GridEntry } from '@/lib/grid';
 import { pushRecentArea, readKind, readRecentAreas, saveKind, saveLastCenter, type Area } from '@/lib/prefs';
 import type { Kind } from '@/lib/seo';
 import { track } from '@/lib/track';
+import { LocationGuideModal, type GuideReason } from './LocationGuideModal';
 import { LocationSearchModal } from './LocationSearchModal';
 import { MainHeader } from './MainHeader';
 import { MainList } from './MainList';
@@ -38,7 +39,8 @@ function findAnchor(list: HTMLElement | null, forItems: unknown): Anchor | null 
 }
 
 /**
- * 메인 = 현재 위치 기준 목록(D31·D32·D34·D36). 목록과 지역 이름은 브라우저에서만 그린다.
+ * 메인 = 현재 위치 기준 목록(D31·D32·D34·D36·D38). 목록과 지역 이름은 브라우저에서만 그린다.
+ * 위치 권한은 [현재 위치]를 눌렀을 때만 묻는다. 이미 허용한 브라우저는 들어올 때 자동으로 현재 위치를 쓴다.
  * 늦게 온 데이터도 순서 규칙대로 제자리에 넣고, 보고 있는 카드는 화면에서 움직이지 않게 스크롤을 보정한다.
  */
 export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetchJson?: FetchJson; holidays?: string[] }) {
@@ -46,7 +48,7 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
   const [mode, setMode] = useState<'open' | 'all'>('open');
   const [recent, setRecent] = useState<Area[]>([]);
   const [current, setCurrent] = useState<Current | null>(null);
-  const [denied, setDenied] = useState(false);
+  const [guide, setGuide] = useState<GuideReason | null>(null);
   // 공휴일은 메인 HTML에 담겨 온다(따로 받다가 실패해 평일로 판정하는 일이 없게). /api/meta가 오면 최신 목록으로 바꾼다.
   const [holidays, setHolidays] = useState<ReadonlySet<string>>(() => new Set(initialHolidays));
   const [data, setData] = useState<{ key: string; entries: GridEntry[]; radiusKm: number; done: boolean; failed: number } | null>(null);
@@ -67,26 +69,39 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
     fn();
   }, []);
 
-  const startFromLocation = useCallback((manual: boolean) => {
+  const applyGps = useCallback((lat: number, lon: number) => {
+    setCurrent({ center: { lat, lon }, label: null, source: 'gps' });
+    setPcNote(window.matchMedia?.('(pointer: fine) and (hover: hover)').matches ?? false);
+  }, []);
+
+  /** [현재 위치]: 아직 정하지 않았으면 브라우저 권한 창, 거부·실패면 안내 모달(D38) */
+  const requestLocation = useCallback(() => {
     const req = ++locateReq.current;
-    void locate(undefined, (pos) => {
-      // 권한 창을 늦게 허용했으면, 그사이 사용자가 지역을 고르지 않은 경우에만 현재 위치로 바꾼다
-      if (req === locateReq.current) setCurrent({ center: pos, label: null, source: 'gps' });
-    }).then((r) => {
+    void locate().then((r) => {
       track(r.ok ? 'locate_ok' : 'locate_fail', null, 'home');
       // 기다리는 사이 사용자가 지역을 골랐으면 그 선택을 덮지 않는다
       if (req !== locateReq.current) return;
-      setDenied(!r.ok && r.reason === 'denied');
-      if (r.ok) {
-        setCurrent({ center: { lat: r.lat, lon: r.lon }, label: null, source: 'gps' });
-        setPcNote(window.matchMedia?.('(pointer: fine) and (hover: hover)').matches ?? false);
-      } else if (!manual) {
-        setCurrent(startArea(r, readRecentAreas()));
-      }
+      if (r.ok) applyGps(r.lat, r.lon);
+      else setGuide(r.reason === 'denied' ? 'denied' : 'unavailable');
     });
-  }, []);
+  }, [applyGps]);
 
-  // 처음: 저장된 유형·최근 지역, 공휴일 목록, 현재 위치(D34)
+  /** 들어올 때: 이미 허용한 브라우저만 현재 위치(권한 창 없음), 아니면 최근 지역 → 명동(D38) */
+  const chooseStartArea = useCallback(() => {
+    const req = ++locateReq.current;
+    const fallback = () => req === locateReq.current && setCurrent(startArea({ ok: false, reason: 'denied' }, readRecentAreas()));
+    void geoPermission().then((state) => {
+      if (req !== locateReq.current) return;
+      if (state !== 'granted') return fallback();
+      void locate().then((r) => {
+        if (req !== locateReq.current) return;
+        if (r.ok) applyGps(r.lat, r.lon);
+        else fallback();
+      });
+    });
+  }, [applyGps]);
+
+  // 처음: 저장된 유형·최근 지역, 공휴일 목록, 시작 지역(D34·D38)
   useEffect(() => {
     // 저장값은 브라우저에만 있으므로 하이드레이션 뒤에 읽는다(서버 HTML과 첫 렌더를 맞춘다)
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -95,7 +110,7 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
     void fetchMeta().then((m) => {
       if (m) setHolidays(new Set(m.holidays)); // 실패하면 HTML에 담겨 온 목록을 그대로 쓴다
     });
-    startFromLocation(false);
+    chooseStartArea();
     const tick = () => withAnchor(() => setNow(new Date()));
     const id = setInterval(tick, 60_000);
     // 백그라운드에 있던 탭이 다시 보이면 시각을 바로 갱신한다
@@ -105,7 +120,7 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
       clearInterval(id);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [startFromLocation, withAnchor]);
+  }, [chooseStartArea, withAnchor]);
 
   // 지역·유형이 바뀌면 1km → 3km → (부족하면 10·25km) 차례로 받는다(D36)
   const centerKey = current ? `${current.center.lat},${current.center.lon}` : '';
@@ -168,7 +183,6 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
   const pickArea = (a: Area) => {
     locateReq.current += 1;
     setRecent(pushRecentArea(a));
-    setDenied(false);
     setCurrent({ center: { lat: a.lat, lon: a.lon }, label: a.label, source: 'manual' });
   };
 
@@ -177,8 +191,6 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
       <MainHeader
         areaLabel={label}
         pcLocationNote={pcNote && current?.source === 'gps'}
-        locateDenied={denied}
-        recent={recent}
         kind={kind}
         mode={mode}
         onKind={(k) => {
@@ -186,8 +198,7 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
           setKind(k);
         }}
         onMode={setMode}
-        onPickArea={pickArea}
-        onCurrentLocation={() => startFromLocation(true)}
+        onCurrentLocation={requestLocation}
         onOpenLocationSearch={() => setModalOpen(true)}
       />
       <div ref={listRef}>
@@ -209,10 +220,22 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
       </div>
       {modalOpen ? (
         <LocationSearchModal
+          recent={recent}
           onPick={pickArea}
           onClose={() => {
             setModalOpen(false);
             document.getElementById('area-button')?.focus();
+          }}
+        />
+      ) : null}
+      {guide ? (
+        <LocationGuideModal
+          reason={guide}
+          onClosed={(action) => {
+            setGuide(null);
+            if (action === 'retry') requestLocation();
+            else if (action === 'search') setModalOpen(true);
+            else document.getElementById('area-button')?.focus();
           }}
         />
       ) : null}

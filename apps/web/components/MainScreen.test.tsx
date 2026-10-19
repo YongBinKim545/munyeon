@@ -10,16 +10,29 @@ const center = { lat: 37.5637, lon: 126.9838 };
 const near = (km: number) => ({ lat: center.lat + km / 111.32, lon: center.lon });
 const OPEN = { dutyTime1s: '0900', dutyTime1c: '2300' };
 const SOON = { dutyTime1s: '2100', dutyTime1c: '2300' };
+let permission: PermissionState = 'granted';
+let geoCalls = 0;
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date('2026-10-19T20:00:00+09:00')); // 월요일 20시
   navigator.sendBeacon = vi.fn(() => true);
   globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ holidays: [], lastSync: { hospital: null, pharmacy: null } }))) as typeof fetch;
+  permission = 'granted';
+  geoCalls = 0;
+  Object.defineProperty(navigator, 'permissions', { configurable: true, value: { query: async () => ({ state: permission }) } });
   Object.defineProperty(navigator, 'geolocation', {
     configurable: true,
-    value: { getCurrentPosition: (ok: PositionCallback) => ok({ coords: { latitude: center.lat, longitude: center.lon } } as GeolocationPosition) },
+    value: {
+      getCurrentPosition: (ok: PositionCallback, err: PositionErrorCallback) => {
+        geoCalls += 1;
+        if (permission === 'denied') err({ code: 1 } as GeolocationPositionError);
+        else ok({ coords: { latitude: center.lat, longitude: center.lon } } as GeolocationPosition);
+      },
+    },
   });
+  // 모달은 history.back()으로 닫히므로, 테스트에서는 바로 popstate를 보낸다
+  vi.spyOn(history, 'back').mockImplementation(() => window.dispatchEvent(new PopStateEvent('popstate')));
   window.matchMedia = vi.fn(() => ({ matches: false, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
   localStorage.clear();
 });
@@ -55,7 +68,7 @@ describe('MainScreen', () => {
     expect(html).toContain('가까운 곳을 찾고 있어요');
   });
 
-  test('starts at current location with remembered kind and status always open-only', async () => {
+  test('already-granted browsers start at current location with remembered kind and status always open-only', async () => {
     localStorage.setItem('munyeon:kind', 'hospital');
     const s = server([makeRecord({ id: 'A', kind: 'hospital', category: 'general', hours: OPEN, ...near(0.2) })], []);
     await act(async () => {
@@ -66,7 +79,49 @@ describe('MainScreen', () => {
     expect(screen.getByRole('combobox', { name: '상태' })).toHaveProperty('value', 'open');
     expect(s.urls[0]).toMatch(/^\/api\/grid\/hospital\/f\d+_\d+$/);
     expect(ids()).toEqual(['A']);
-    expect(screen.getByRole('button', { name: /중구 태평로1가/ })).toBeTruthy();
+    expect(screen.getByText('중구 태평로1가')).toBeTruthy();
+  });
+
+  test('without granted permission it does not ask on entry and starts at the recent area or myeongdong', async () => {
+    permission = 'prompt';
+    const s = server([], []);
+    await act(async () => {
+      render(<MainScreen fetchJson={s.fetchJson} />);
+    });
+    await flush();
+    expect(geoCalls).toBe(0);
+    expect(screen.getByText('중구 명동')).toBeTruthy();
+    expect(screen.queryByText(/위치 권한이 꺼져 있어요/)).toBeNull();
+    cleanup();
+    localStorage.setItem('munyeon:areas', JSON.stringify([{ label: '강남구 신사동', lat: 37.52, lon: 127.02 }]));
+    await act(async () => {
+      render(<MainScreen fetchJson={s.fetchJson} />);
+    });
+    await flush();
+    expect(screen.getByText('강남구 신사동')).toBeTruthy();
+  });
+
+  test('find-location menu: current location asks, denied shows the guide, guide can open location search', async () => {
+    permission = 'prompt';
+    const s = server([], []);
+    await act(async () => {
+      render(<MainScreen fetchJson={s.fetchJson} />);
+    });
+    await flush();
+    const menu = () => screen.getByRole('list', { name: '위치 찾기' }).querySelectorAll('button');
+    fireEvent.click(screen.getByRole('button', { name: /위치 찾기/ }));
+    expect([...menu()].map((b) => b.textContent?.trim())).toEqual(['현재 위치', '위치 검색']);
+    permission = 'denied';
+    fireEvent.click(screen.getByRole('button', { name: /현재 위치/ }));
+    await flush();
+    expect(geoCalls).toBe(1);
+    expect(screen.getByRole('dialog', { name: '위치 권한이 꺼져 있어요' })).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /위치 검색으로 찾기/ }));
+    });
+    await flush();
+    expect(screen.queryByRole('dialog', { name: '위치 권한이 꺼져 있어요' })).toBeNull();
+    expect(screen.getByRole('dialog', { name: '위치 검색' })).toBeTruthy();
   });
 
   test('a manual area pick is not overridden by a pending location result', async () => {
@@ -80,14 +135,21 @@ describe('MainScreen', () => {
     await act(async () => {
       render(<MainScreen fetchJson={s.fetchJson} />);
     });
-    fireEvent.click(screen.getByRole('button', { name: /위치 찾는 중/ }));
-    fireEvent.click(screen.getByRole('button', { name: '마포구 망원동' }));
+    // 권한 상태 조회는 끝났지만 위치는 아직 오지 않았다. 그사이 위치 검색 모달의 최근 지역을 고른다
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: /위치 찾기/ }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /위치 검색/ }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '마포구 망원동' }));
+    });
     await flush();
     await act(async () => {
       resolveGeo({ coords: { latitude: center.lat, longitude: center.lon } } as GeolocationPosition);
     });
     await flush();
-    expect(screen.getByRole('button', { name: /마포구 망원동/ })).toBeTruthy();
+    expect(screen.getByText('마포구 망원동')).toBeTruthy();
   });
 
   test('holidays come with the page HTML, so a failed meta request still shows holiday rules', async () => {

@@ -1,10 +1,12 @@
 'use client';
 
+import { X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatArea } from '@/lib/nearby';
 import type { Area } from '@/lib/prefs';
 import { decodeNeighborhoods, matchNeighborhoods, MIN_QUERY, normalizeQuery, type NeighborhoodItem, type NeighborhoodPayload } from '@/lib/search';
 import { track } from '@/lib/track';
+import { useModal } from '@/lib/useModal';
 
 let neighborhoodsPending: Promise<NeighborhoodItem[]> | null = null;
 
@@ -26,65 +28,28 @@ export function areaOfNeighborhood(n: NeighborhoodItem): Area | null {
 }
 
 interface Props {
+  /** 최근 고른 지역(최대 3개). 검색창이 비어 있을 때 보여준다(D38) */
+  recent: Area[];
   onPick: (a: Area) => void;
   onClose: () => void;
 }
 
 /**
- * 위치 검색 모달(D33). 휴대폰은 화면 전체, 태블릿·PC는 가운데.
- * 열 때 브라우저 기록에 한 칸을 넣어 휴대폰 뒤로 가기가 모달만 닫게 한다.
- * 닫기 버튼·Esc·선택은 history.back()으로 그 한 칸을 되돌리고, popstate에서 닫는다.
+ * 위치 검색 모달(D33·D38). 휴대폰은 화면 전체, 태블릿·PC는 가운데.
+ * 뒤로 가기·Esc·Tab 동작은 useModal. 고른 지역은 모달이 닫힌 뒤(popstate) onPick으로 넘긴다.
  */
-export function LocationSearchModal({ onPick, onClose }: Props) {
+export function LocationSearchModal({ recent, onPick, onClose }: Props) {
   const [q, setQ] = useState('');
   const [list, setList] = useState<NeighborhoodItem[] | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const picked = useRef<Area | null>(null);
-  const closeRef = useRef(onClose);
-  const pickRef = useRef(onPick);
-  useEffect(() => {
-    closeRef.current = onClose;
-    pickRef.current = onPick;
-  }, [onClose, onPick]);
+  const { dialogRef, close } = useModal<Area>('location', (picked) => {
+    if (picked) onPick(picked);
+    onClose();
+  });
 
   useEffect(() => {
-    // 개발 모드의 effect 두 번 실행에도 기록이 한 칸만 늘게 한다
-    if ((history.state as { modal?: string } | null)?.modal !== 'location') history.pushState({ modal: 'location' }, '');
-    const onPop = () => {
-      const a = picked.current;
-      if (a) pickRef.current(a);
-      closeRef.current();
-    };
-    // Esc는 포커스 위치와 관계없이 닫고, Tab은 모달 안에서만 돈다(aria-modal)
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        history.back();
-        return;
-      }
-      if (e.key !== 'Tab' || !dialogRef.current) return;
-      const f = [...dialogRef.current.querySelectorAll<HTMLElement>('input, button, a[href]')];
-      const first = f[0];
-      const last = f[f.length - 1];
-      if (!first || !last) return;
-      const inside = dialogRef.current.contains(document.activeElement);
-      if (e.shiftKey && (document.activeElement === first || !inside)) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && (document.activeElement === last || !inside)) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-    window.addEventListener('popstate', onPop);
-    document.addEventListener('keydown', onKey);
     inputRef.current?.focus();
     void loadNeighborhoods().then(setList);
-    return () => {
-      window.removeEventListener('popstate', onPop);
-      document.removeEventListener('keydown', onKey);
-    };
   }, []);
 
   const term = normalizeQuery(q);
@@ -92,8 +57,6 @@ export function LocationSearchModal({ onPick, onClose }: Props) {
     () => (list ? matchNeighborhoods(list, term, 20).filter((n) => n.lat !== null && n.lon !== null) : []),
     [list, term],
   );
-
-  const close = () => history.back();
 
   return (
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && close()}>
@@ -112,10 +75,24 @@ export function LocationSearchModal({ onPick, onClose }: Props) {
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
-          <button type="button" className="btn btn-secondary" onClick={close}>
-            닫기
+          <button type="button" className="btn btn-secondary" onClick={() => close()}>
+            <X aria-hidden="true" size={18} /> 닫기
           </button>
         </div>
+        {term.length === 0 && recent.length > 0 ? (
+          <section aria-label="최근 지역">
+            <h2 className="search__title">최근 지역</h2>
+            <ul className="search__list">
+              {recent.map((a) => (
+                <li key={a.label}>
+                  <button type="button" className="row-btn" onClick={() => close(a)}>
+                    {a.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
         {term.length >= MIN_QUERY && list && results.length === 0 ? <p className="muted">찾는 동네가 없어요</p> : null}
         <ul className="search__list">
           {results.map((n) => {
@@ -126,9 +103,8 @@ export function LocationSearchModal({ onPick, onClose }: Props) {
                   type="button"
                   className="row-btn"
                   onClick={() => {
-                    picked.current = area;
                     track('search_select', null, 'location');
-                    close();
+                    if (area) close(area);
                   }}
                 >
                   {n.name} <span className="muted">· {n.isSigungu ? n.sido : `${n.sido} ${n.sigungu}`}</span>

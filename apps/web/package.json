@@ -10,22 +10,23 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "next": "16.4.2",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
     "@munyeon/core": "*",
     "@munyeon/db": "*",
-    "@next/third-parties": "16.4.2"
+    "@next/third-parties": "16.4.2",
+    "lucide-react": "^1.59.0",
+    "next": "16.4.2",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@testing-library/react": "^16",
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^5",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
-    "typescript": "^5",
-    "@testing-library/react": "^16",
     "jsdom": "^26",
-    "@vitejs/plugin-react": "^5"
+    "typescript": "^5"
   }
 }

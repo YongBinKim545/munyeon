@@ -48,6 +48,19 @@ export function locate(timeoutMs = LOCATE_TIMEOUT_MS, onLate?: (pos: { lat: numb
   });
 }
 
+/**
+ * 위치 권한 상태를 창 없이 확인한다(D38: 이미 허용한 브라우저만 들어올 때 자동으로 현재 위치).
+ * 확인할 수 없는 브라우저는 'unknown' — 이때는 자동으로 묻지 않는다.
+ */
+export async function geoPermission(): Promise<PermissionState | 'unknown'> {
+  try {
+    const p = await navigator.permissions?.query({ name: 'geolocation' as PermissionName });
+    return p?.state ?? 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
 export type AreaSource = 'gps' | 'recent' | 'default';
 
 /** 시작 지점: 현재 위치 → 최근 지역 → 명동(D34). gps일 때 이름은 목록 데이터를 받은 뒤 붙인다. */
