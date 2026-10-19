@@ -10,7 +10,7 @@
 | # | 할 일 | 어디서 | 상태 |
 |---|---|---|---|
 | 2 | **공공데이터포털 키 입력** | 저장소 루트 `.env`(또는 `.env.local`)에 `DATA_GO_KR_KEY=` + **Decoding 키** | 완료(10-18, probe 성공) |
-| 3 | **특일 정보 API 활용신청** | data.go.kr에서 '한국천문연구원_특일 정보' 활용신청(자동승인, 같은 키 사용). 없으면 기본 공휴일 목록만 씀 | 대기 |
+| 3 | **특일 정보 API 활용신청** | data.go.kr에서 '한국천문연구원_특일 정보' 활용신청(자동승인, 같은 키 사용). 없으면 기본 공휴일 목록만 씀 | 완료(10-19, 로컬에서 2026·2027년 46일 수신) |
 
 로컬 확인: `node apps/worker/src/dev-db.ts --real` → `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres npm run db:migrate` → `… npm run sync -- all`.
 

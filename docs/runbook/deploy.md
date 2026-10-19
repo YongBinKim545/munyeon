@@ -9,7 +9,7 @@
 |---|---|---|---|
 | 1 | 사용자 | 체크리스트 1~5(도메인, `.env.local` 키, 특일 API, Supabase dev·prod + `postgis`·`pg_trgm`, dev 접속 문자열) | — |
 | 2 | Claude | `npm run sync -- probe` (로컬, 소스당 1호출) | **완료(10-18)**: 79,006 / 25,435 |
-| 3 | Claude | 로컬 DB(`dev-db.ts --real`)에 `npm run sync -- all` | **완료(10-18)**: 실패 페이지 0, 동네 3,285개. 특일 API는 활용신청 후 `holidays` 실행 |
+| 3 | Claude | 로컬 DB(`dev-db.ts --real`)에 `npm run sync -- all` | **완료(10-18)**: 실패 페이지 0, 동네 3,285개. `holidays`도 완료(10-19): 2026·2027년 46일, 설 2027-02-06~09 확인 |
 | 4 | Claude | 실데이터로 종별 값 목록 확인 → `categoryOf` 표 확정, 진료과 배지 표본 200곳 점검 | 분류 누락 0, 배지 오판 비율 기록 |
 | 5 | 사용자 | 체크리스트 6~9(GitHub 공개 저장소, Secrets, Vercel import, GA4) | — |
 | 6 | Claude | `git push` → Vercel 배포, prod에 `DATABASE_URL=… npm run db:migrate` (사용자가 터미널에서 실행하거나 일회성 Actions) | 배포 URL 200 |
