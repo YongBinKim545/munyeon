@@ -1,5 +1,6 @@
 'use client';
 
+import { Navigation } from 'lucide-react';
 import { useState } from 'react';
 import { track } from '@/lib/track';
 
@@ -36,7 +37,7 @@ export function DirectionsButton({ institutionId, name, addr, lat, lon, page, co
   return (
     <>
       <button type="button" className={compact ? 'btn btn-secondary btn-call--compact' : 'btn btn-secondary'} onClick={() => setOpen(true)}>
-        길찾기
+        <Navigation aria-hidden="true" size={16} /> 길찾기
       </button>
       {open ? (
         <div className="sheet" role="dialog" aria-label="길찾기 앱 선택">

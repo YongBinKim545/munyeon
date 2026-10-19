@@ -1,5 +1,6 @@
 'use client';
 
+import { Search } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -17,7 +18,7 @@ export function Header() {
         </Link>
         {isMain ? null : (
           <Link href="/search" className="icon-btn" aria-label="병원·약국 이름 검색">
-            <span aria-hidden="true">⌕</span>
+            <Search aria-hidden="true" size={22} />
           </Link>
         )}
       </div>

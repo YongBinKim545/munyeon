@@ -1,6 +1,7 @@
 'use client';
 
 import { toTelHref } from '@munyeon/core';
+import { Copy, Phone } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { track } from '@/lib/track';
 
@@ -47,7 +48,7 @@ export function CallButton({ tel, institutionId, page, compact }: Props) {
             }
           }}
         >
-          {copied ? '복사했어요' : '번호 복사'}
+          <Copy aria-hidden="true" size={16} /> {copied ? '복사했어요' : '번호 복사'}
         </button>
       </div>
     );
@@ -59,7 +60,7 @@ export function CallButton({ tel, institutionId, page, compact }: Props) {
       href={href}
       onClick={() => track('tel_tap', institutionId, page)}
     >
-      <span aria-hidden="true">☎</span> 전화하기{compact ? '' : <span className="tel-num"> {tel}</span>}
+      <Phone aria-hidden="true" size={18} /> 전화하기{compact ? '' : <span className="tel-num"> {tel}</span>}
     </a>
   );
 }

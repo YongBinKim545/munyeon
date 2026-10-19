@@ -189,11 +189,6 @@ p { margin: 0.25rem 0; }
 .site-header--static { position: static; }
 .main-header { display: flex; flex-direction: column; gap: 8px; padding: 12px 0 8px; }
 .area { position: relative; }
-.area__button {
-  display: inline-flex; align-items: center; gap: 4px; min-height: var(--tap); padding: 0 4px;
-  background: none; border: 0; color: var(--text); font: inherit; font-size: 18px; font-weight: 700; cursor: pointer;
-}
-.area__label { max-width: 70vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .area__menu {
   position: absolute; z-index: 25; top: calc(var(--tap) + 2px); left: 0; min-width: 220px; margin: 0; padding: 4px 0; list-style: none;
   background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 6px 20px rgb(0 0 0 / 12%);
@@ -250,3 +245,28 @@ p { margin: 0.25rem 0; }
 .load-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; margin: 4px 0 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
 .load-error p { margin: 0; font-weight: 600; }
 .load-error--partial p { font-weight: 400; font-size: var(--fs-small); }
+
+/* 아이콘(D39): lucide SVG는 글자색(currentColor)을 따른다 */
+.btn svg, .icon-btn svg, .area__menu svg, .scroll-top svg { flex-shrink: 0; }
+.scroll-top { display: inline-flex; align-items: center; gap: 4px; }
+.area__menu button { display: flex; align-items: center; gap: 8px; }
+
+/* 지역 줄(D38): 📍 지역 이름(글자) + [위치 찾기 ▾] */
+.area { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.area__label { display: flex; align-items: center; gap: 4px; margin: 0; min-width: 0; font-size: 18px; font-weight: 700; }
+.area__label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.area__pin { color: var(--call); flex-shrink: 0; }
+.area__find { flex-shrink: 0; padding: 0 12px; }
+.area__menu { left: auto; right: 0; }
+
+/* 유형·상태 선택: 브라우저 기본 화살표 대신 아이콘 */
+.select-wrap { position: relative; display: flex; }
+.select-wrap .select { width: 100%; appearance: none; -webkit-appearance: none; padding-right: 32px; }
+.select-wrap__icon { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-sub); }
+
+/* 위치 권한 안내 모달 */
+.modal--guide h2 { margin: 0 0 8px; font-size: 18px; }
+.guide-steps { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 10px; }
+.guide-steps li { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: var(--radius); background: var(--surface); font-size: var(--fs-small); }
+.guide-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+@media (min-width: 768px) { .guide-actions { flex-direction: row; } .guide-actions > * { flex: 1; } }

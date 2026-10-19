@@ -1,6 +1,7 @@
 'use client';
 
 import { distanceM, gridKey, gridOf, toTelHref } from '@munyeon/core';
+import { Phone } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -105,7 +106,7 @@ export function NameSearch() {
               </Link>
               {tel ? (
                 <a className="icon-btn" href={tel} aria-label={`${h.name} 전화`} onClick={() => track('tel_tap', h.id, 'search')}>
-                  ☎
+                  <Phone aria-hidden="true" size={20} />
                 </a>
               ) : null}
             </li>

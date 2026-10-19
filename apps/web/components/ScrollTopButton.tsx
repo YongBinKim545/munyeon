@@ -1,5 +1,6 @@
 'use client';
 
+import { ArrowUp } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 /**
@@ -32,7 +33,7 @@ export function ScrollTopButton() {
         setShow(false);
       }}
     >
-      ↑ 맨 위로
+      <ArrowUp aria-hidden="true" size={16} /> 맨 위로
     </button>
   );
 }
