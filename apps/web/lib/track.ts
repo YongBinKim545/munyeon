@@ -1,6 +1,6 @@
 'use client';
 
-export type TrackType = 'tel_tap' | 'tel_copy' | 'directions_tap' | 'search_select';
+export type TrackType = 'tel_tap' | 'tel_copy' | 'directions_tap' | 'search_select' | 'locate_ok' | 'locate_fail' | 'show_all';
 
 declare global {
   interface Window {

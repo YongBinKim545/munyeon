@@ -5,7 +5,8 @@ const searchInstitutions = vi.fn();
 vi.mock('@munyeon/db', () => ({ getSql: () => ({}), searchInstitutions: (...a: unknown[]) => searchInstitutions(...a) }));
 
 const { GET } = await import('./route');
-const call = (q: string) => GET(new Request(`http://localhost/api/search?q=${encodeURIComponent(q)}`));
+const call = (q: string, g?: string) =>
+  GET(new Request(`http://localhost/api/search?q=${encodeURIComponent(q)}${g === undefined ? '' : `&g=${g}`}`));
 
 beforeEach(() => searchInstitutions.mockReset());
 
@@ -21,9 +22,17 @@ describe('GET /api/search', () => {
     const res = await call(' 시청 ');
     expect(res.status).toBe(200);
     expect(res.headers.get('Cache-Control')).toBe('public, s-maxage=86400, stale-while-revalidate=3600');
-    expect(searchInstitutions).toHaveBeenCalledWith({}, '시청', 10);
+    expect(searchInstitutions).toHaveBeenCalledWith({}, '시청', 20);
     expect(await res.json()).toEqual({
-      items: [{ id: 'C1', kind: 'pharmacy', name: '시청약국', sido: '서울특별시', sigungu: '중구', tel: '02-777-0001', badge: '약국' }],
+      items: [{ id: 'C1', kind: 'pharmacy', name: '시청약국', sido: '서울특별시', sigungu: '중구', tel: '02-777-0001', lat: 37.567, lon: 126.979, badge: '약국' }],
     });
+  });
+
+  test('g orders by that cell center; bad g is ignored', async () => {
+    searchInstitutions.mockResolvedValue([]);
+    await call('시청', '834_2267');
+    expect(searchInstitutions).toHaveBeenLastCalledWith({}, '시청', 20, { lat: 834.5 * 0.045, lon: 2267.5 * 0.056 });
+    await call('시청', '37.56_126.98');
+    expect(searchInstitutions).toHaveBeenLastCalledWith({}, '시청', 20);
   });
 });

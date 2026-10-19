@@ -212,7 +212,7 @@ export async function upsertHolidays(sql: Sql, rows: { ymd: string; name: string
   return res.count;
 }
 
-export const EVENT_TYPES = ['tel_tap', 'tel_copy', 'directions_tap', 'search_select'] as const;
+export const EVENT_TYPES = ['tel_tap', 'tel_copy', 'directions_tap', 'search_select', 'locate_ok', 'locate_fail', 'show_all'] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 
 /** IP·UA·좌표는 받지도 저장하지도 않는다. 시각은 DB 기본값(분 단위)으로만 남는다. */

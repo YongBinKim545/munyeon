@@ -4,7 +4,7 @@ const insertEvent = vi.fn(async () => {});
 vi.mock('@munyeon/db', () => ({
   getSql: () => ({}),
   insertEvent: (...a: unknown[]) => insertEvent(...(a as [])),
-  EVENT_TYPES: ['tel_tap', 'tel_copy', 'directions_tap', 'search_select'],
+  EVENT_TYPES: ['tel_tap', 'tel_copy', 'directions_tap', 'search_select', 'locate_ok', 'locate_fail', 'show_all'],
 }));
 
 const { POST, RATE_LIMIT, resetRateLimit } = await import('./route');
@@ -24,6 +24,9 @@ describe('POST /api/events', () => {
 
   test('null institution is allowed (search)', async () => {
     expect((await post(JSON.stringify({ type: 'search_select', institutionId: null, page: 'search' }))).status).toBe(204);
+    for (const type of ['locate_ok', 'locate_fail', 'show_all']) {
+      expect((await post(JSON.stringify({ type, institutionId: null, page: 'home' }))).status).toBe(204);
+    }
   });
 
   test.each([
