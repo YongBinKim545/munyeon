@@ -4,8 +4,33 @@
     {
       "name": "web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "-w", "@munyeon/web", "--", "--port", "3000"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "-w",
+        "@munyeon/web",
+        "--",
+        "--port",
+        "3000"
+      ],
       "port": 3000
+    },
+    {
+      "name": "web-sample",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "-w",
+        "@munyeon/web",
+        "--",
+        "--port",
+        "3002"
+      ],
+      "port": 3002,
+      "env": {
+        "DATABASE_URL": "postgres://postgres:postgres@127.0.0.1:54330/postgres"
+      }
     }
   ]
 }

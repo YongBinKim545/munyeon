@@ -27,6 +27,6 @@ describe('matchNeighborhoods', () => {
 describe('encode/decode', () => {
   test('round trip keeps sido and sigungu', () => {
     const [n] = decodeNeighborhoods(encodeNeighborhoods([{ name: '역삼동', sido: '서울특별시', sigungu: '강남구', lat: 37.5, lon: 127 }]));
-    expect(n).toEqual({ name: '역삼동', sido: '서울특별시', sigungu: '강남구', isSigungu: false });
+    expect(n).toEqual({ name: '역삼동', sido: '서울특별시', sigungu: '강남구', isSigungu: false, lat: 37.5, lon: 127 });
   });
 });

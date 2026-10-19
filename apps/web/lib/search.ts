@@ -1,9 +1,9 @@
 import type { Neighborhood } from '@munyeon/db';
 
-/** 동네 목록 JSON(압축 전송용): 시도는 번호로, 행은 [이름, 시도번호, 시군구] */
+/** 동네 목록 JSON(압축 전송용): 시도는 번호로, 행은 [이름, 시도번호, 시군구, 위도, 경도](좌표는 동네 기관 좌표의 중앙값, 없으면 null) */
 export interface NeighborhoodPayload {
   sido: string[];
-  items: [string, number, string][];
+  items: [string, number, string, number | null, number | null][];
 }
 
 export interface NeighborhoodItem {
@@ -12,6 +12,9 @@ export interface NeighborhoodItem {
   sigungu: string;
   /** 시군구 자체 행(이름 = 시군구) */
   isSigungu: boolean;
+  /** 위치 검색에서 고르면 메인 목록의 중심이 된다(D33) */
+  lat: number | null;
+  lon: number | null;
 }
 
 export const MIN_QUERY = 2;
@@ -23,19 +26,19 @@ export function normalizeQuery(q: string): string {
 export function encodeNeighborhoods(list: Neighborhood[]): NeighborhoodPayload {
   const sido: string[] = [];
   const index = new Map<string, number>();
-  const items = list.map((n): [string, number, string] => {
+  const items = list.map((n): [string, number, string, number | null, number | null] => {
     let i = index.get(n.sido);
     if (i === undefined) {
       i = sido.push(n.sido) - 1;
       index.set(n.sido, i);
     }
-    return [n.name, i, n.sigungu];
+    return [n.name, i, n.sigungu, n.lat, n.lon];
   });
   return { sido, items };
 }
 
 export function decodeNeighborhoods(p: NeighborhoodPayload): NeighborhoodItem[] {
-  return p.items.map(([name, i, sigungu]) => ({ name, sido: p.sido[i] ?? '', sigungu, isSigungu: name === sigungu }));
+  return p.items.map(([name, i, sigungu, lat = null, lon = null]) => ({ name, sido: p.sido[i] ?? '', sigungu, isSigungu: name === sigungu, lat, lon }));
 }
 
 /** 브라우저 안 동네 검색(D25): 앞부분 일치 먼저, 그다음 포함, 같은 순위면 짧은 이름 먼저 */

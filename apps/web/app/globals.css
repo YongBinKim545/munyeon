@@ -184,3 +184,64 @@ p { margin: 0.25rem 0; }
   .hide-pc { display: none; }
 }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* 메인(D31·D32): 헤더는 고정하지 않고 목록과 함께 스크롤 */
+.site-header--static { position: static; }
+.main-header { display: flex; flex-direction: column; gap: 8px; padding: 12px 0 8px; }
+.area { position: relative; }
+.area__button {
+  display: inline-flex; align-items: center; gap: 4px; min-height: var(--tap); padding: 0 4px;
+  background: none; border: 0; color: var(--text); font: inherit; font-size: 18px; font-weight: 700; cursor: pointer;
+}
+.area__label { max-width: 70vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.area__menu {
+  position: absolute; z-index: 25; top: calc(var(--tap) + 2px); left: 0; min-width: 220px; margin: 0; padding: 4px 0; list-style: none;
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 6px 20px rgb(0 0 0 / 12%);
+}
+.area__menu button { display: block; width: 100%; min-height: var(--tap); padding: 0 16px; text-align: left; background: none; border: 0; color: var(--text); font: inherit; cursor: pointer; }
+.area__menu li + li { border-top: 1px solid var(--border); }
+.area__note { margin: 0 4px; }
+.filters { display: flex; gap: 8px; }
+.filters > * { flex: 1; }
+.select {
+  min-height: var(--tap); padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); color: var(--text); font: inherit; font-weight: 600;
+}
+.holiday-strip { background: var(--holiday-bg); color: var(--holiday-text); padding: 8px 12px; border-radius: var(--radius); font-size: var(--fs-small); font-weight: 600; margin: 4px 0 8px; }
+.card__status { margin: 0 0 8px; font-size: var(--fs-small); }
+.pill { display: inline-block; padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+.pill--open { background: var(--open-bg); color: var(--open-text); }
+.pill--closed { background: var(--closed-bg); color: var(--closed-text); }
+.pill--unknown { background: var(--unknown-bg); color: var(--unknown-text); }
+.pill--soon { background: var(--badge-bg); color: var(--badge-text); }
+.pill--holiday { background: var(--holiday-bg); color: var(--holiday-text); }
+.list-loading { padding: 24px 0; text-align: center; }
+.list-more { display: flex; justify-content: center; margin: 16px 0 24px; }
+.btn-wide { width: 100%; max-width: 480px; }
+.empty { padding: 16px 0; }
+/* 맨 위로 버튼에 마지막 카드가 가려지지 않게 */
+.main-list { padding-bottom: 8px; }
+.scroll-top {
+  position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 15;
+  min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--bg); color: var(--text); font: inherit; font-size: var(--fs-small); font-weight: 600;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 15%); cursor: pointer;
+}
+
+/* 위치 검색 모달(D33): 휴대폰은 화면 전체, 768px부터 가운데 */
+.modal-backdrop { position: fixed; inset: 0; z-index: 40; background: var(--bg); }
+.modal { height: 100%; overflow-y: auto; padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); background: var(--bg); }
+.modal__head { display: flex; gap: 8px; align-items: center; position: sticky; top: 0; background: var(--bg); padding-bottom: 8px; }
+.modal__head .search__input { flex: 1; }
+.row-btn { display: block; width: 100%; min-height: var(--tap); text-align: left; background: none; border: 0; border-bottom: 1px solid var(--border); color: var(--text); font: inherit; cursor: pointer; }
+@media (min-width: 768px) {
+  .modal-backdrop { background: rgb(0 0 0 / 40%); display: flex; align-items: flex-start; justify-content: center; padding-top: 10vh; }
+  .modal { height: auto; max-height: 70vh; width: 100%; max-width: 560px; border-radius: 14px; padding: 16px; }
+  .main-header { flex-direction: column; }
+  .filters { max-width: 720px; }
+}
+/* 카드의 PC 전화번호가 길면(예: 031-111-2222~3) 넘치지 않게 */
+.card .actions { flex-wrap: wrap; }
+/* PC 카드: 번호 한 줄, 그 아래 [번호 복사] [길찾기] 나란히 */
+.card .call-pc--compact { display: contents; }
+.card .call-pc--compact .tel-big { flex: 1 1 100%; overflow-wrap: anywhere; }

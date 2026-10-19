@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import { SearchBox } from '@/components/SearchBox';
+import { MainScreen } from '@/components/MainScreen';
 import { loadSido } from '@/lib/data';
 import { regionPath } from '@/lib/seo';
 
-// 시도 목록만 서버에서 그린다(1시간 캐시). '내 주변' 버튼은 1b에서 추가한다.
+// 서버 HTML에는 헤더 틀·소개·시도 목록만 넣는다(1시간 캐시). 목록과 영업 상태는 브라우저에서만 그린다(D31·D35).
 export const revalidate = 3600;
 
 export default async function Home() {
@@ -11,11 +11,14 @@ export default async function Home() {
   const sido = process.env.DATABASE_URL ? await loadSido() : [];
   return (
     <main className="container container--wide">
-      <h1>지금 문 연 병원·약국</h1>
-      <p className="muted">야간·휴일에 문 연 병원·약국을 찾고 전화로 확인하세요. 요일별·공휴일 진료시간을 보여드려요.</p>
-      <SearchBox />
+      <h1 className="sr-only">지금 문 연 병원·약국</h1>
+      <MainScreen />
+      <p className="notice">
+        등록된 정보가 실제와 다를 수 있어요. 방문 전 꼭 전화로 확인하세요. 진료시간은 국립중앙의료원 공공데이터를 매시간 반영해요.
+      </p>
       <section>
         <h2>지역으로 찾기</h2>
+        <p className="muted">지금 문 연 병원·약국을 찾고 전화로 확인하세요. 시도를 고르면 시군구별 약국·병원 진료시간을 볼 수 있어요.</p>
         <ul className="link-list link-list--multi">
           {sido.map((s) => (
             <li key={s.sido}>
@@ -29,9 +32,6 @@ export default async function Home() {
           ))}
         </ul>
       </section>
-      <p className="notice">
-        진료시간은 국립중앙의료원 공공데이터를 매시간 반영해요. 등록된 정보가 실제와 다를 수 있으니 방문 전 꼭 전화로 확인하세요.
-      </p>
     </main>
   );
 }

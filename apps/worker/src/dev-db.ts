@@ -42,7 +42,9 @@ function synthetic(): Record<string, string>[] {
 //   DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres npm run sync -- all
 // 로 실데이터를 받는다(공공 API 11호출). 재시작해도 데이터가 남는다.
 const real = process.argv.includes('--real');
-const { sql, url } = await startTestDb(54329, real ? new URL('../../../.pglite/', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1') : undefined);
+// --port=54330: 이미 켜 둔 로컬 DB와 함께 띄울 때
+const port = Number(process.argv.find((a) => a.startsWith('--port='))?.slice(7) ?? 54329);
+const { sql, url } = await startTestDb(port, real ? new URL('../../../.pglite/', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1') : undefined);
 if (real) {
   console.log(`dev db ready (real, persisted in .pglite/): ${url}`);
   await new Promise(() => {}); // 서버 유지
