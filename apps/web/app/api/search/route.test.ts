@@ -32,6 +32,8 @@ describe('GET /api/search', () => {
     searchInstitutions.mockResolvedValue([]);
     await call('시청', '834_2267');
     expect(searchInstitutions).toHaveBeenLastCalledWith({}, '시청', 20, { lat: 834.5 * 0.045, lon: 2267.5 * 0.056 });
+    await call('시청', 'f4173_11337');
+    expect(searchInstitutions).toHaveBeenLastCalledWith({}, '시청', 20);
     await call('시청', '37.56_126.98');
     expect(searchInstitutions).toHaveBeenLastCalledWith({}, '시청', 20);
   });

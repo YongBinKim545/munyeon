@@ -15,7 +15,8 @@ export async function GET(req: Request) {
   if (q.length < MIN_QUERY || q.length > MAX_QUERY) {
     return Response.json({ error: 'q must be 2-30 characters' }, { status: 400 });
   }
-  const cell = parseGridKey(params.get('g') ?? '');
+  const parsed = parseGridKey(params.get('g') ?? '');
+  const cell = parsed?.level === 'coarse' ? parsed : null;
   const hits = cell
     ? await searchInstitutions(getSql(), q, LIMIT, gridCenter(cell))
     : await searchInstitutions(getSql(), q, LIMIT);

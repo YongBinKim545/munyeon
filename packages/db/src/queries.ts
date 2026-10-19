@@ -279,11 +279,17 @@ export interface GridRow extends InstitutionSummary {
   sigungu: string | null;
 }
 
-/** 격자 한 칸의 활성 기관(좌표 있는 곳만), 이름순. 메인 목록의 원본이며 CDN에 1시간 캐시된다. */
-export async function listGridCell(sql: Sql, kind: Kind, gy: number, gx: number): Promise<GridRow[]> {
+/**
+ * 격자 한 칸의 활성 기관(좌표 있는 곳만), 이름순. 메인 목록의 원본이며 CDN에 1시간 캐시된다.
+ * level 'fine'은 약 1km 칸(첫 화면용), 'coarse'는 약 5km 칸.
+ */
+export async function listGridCell(sql: Sql, kind: Kind, gy: number, gx: number, level: 'coarse' | 'fine' = 'coarse'): Promise<GridRow[]> {
+  const cond = level === 'fine'
+    ? sql`i.fgrid_y = ${gy} and i.fgrid_x = ${gx}`
+    : sql`i.grid_y = ${gy} and i.grid_x = ${gx}`;
   return sql<GridRow[]>`
     select ${summaryCols(sql)}, i.sido, i.sigungu from institutions i
-    where i.kind = ${kind} and i.grid_y = ${gy} and i.grid_x = ${gx} and i.is_active
+    where i.kind = ${kind} and ${cond} and i.is_active
     order by i.name, i.id`;
 }
 

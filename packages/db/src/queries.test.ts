@@ -6,7 +6,7 @@ import {
   refreshNeighborhoods, searchInstitutions, startRun, upsertHolidays, upsertInstitutions, type InstitutionRow,
 } from './queries.ts';
 import { startTestDb } from './test-db.ts';
-import { GRID_LAT, GRID_LON, gridOf } from '@munyeon/core';
+import { FINE_GRID_LAT, FINE_GRID_LON, GRID_LAT, GRID_LON, gridOf } from '@munyeon/core';
 
 let sql: Sql;
 let stop: () => Promise<void>;
@@ -205,13 +205,18 @@ describe('grid', () => {
     expect(rows.map((r) => r.id)).toEqual(['G2', 'G1']);
     expect(rows[0]).toMatchObject({ sido: '서울특별시', sigungu: '중구', lat: 37.55, lon: 126.96, category: 'pharmacy' });
     expect((await listGridCell(sql, 'hospital', cell.gy, cell.gx)).map((r) => r.id)).toEqual(['H1']);
+    const fine = gridOf(37.5637, 126.9838, 'fine');
+    expect((await listGridCell(sql, 'pharmacy', fine.gy, fine.gx, 'fine')).map((r) => r.id)).toEqual(['G1']);
   });
 
   test('db grid columns match core gridOf on cell edges', async () => {
     const pts: [number, number][] = [[37.53, 126.952], [37.575, 127.008], [33.0, 124.0], [38.99999, 131.99999], [37.5637, 126.9838]];
     await upsertInstitutions(sql, pts.map(([lat, lon], i) => row({ id: 'E' + i, lat, lon })), t1);
-    const got = await sql<{ id: string; gy: number; gx: number }[]>`select id, grid_y as gy, grid_x as gx from institutions order by id`;
+    const got = await sql<{ id: string; gy: number; gx: number; fy: number; fx: number }[]>`select id, grid_y as gy, grid_x as gx, fgrid_y as fy, fgrid_x as fx from institutions order by id`;
     expect(got.map((g) => ({ gy: g.gy, gx: g.gx }))).toEqual(pts.map(([lat, lon]) => gridOf(lat, lon)));
+    expect(got.map((g) => ({ gy: g.fy, gx: g.fx }))).toEqual(pts.map(([lat, lon]) => gridOf(lat, lon, 'fine')));
+    expect(FINE_GRID_LAT).toBe(0.009);
+    expect(FINE_GRID_LON).toBe(0.0112);
     expect(GRID_LAT).toBe(0.045);
     expect(GRID_LON).toBe(0.056);
   });

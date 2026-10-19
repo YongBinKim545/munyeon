@@ -22,10 +22,16 @@ describe('GET /api/grid/{kind}/{cell}', () => {
     listGridCell.mockResolvedValue([makeRecord()]);
     const res = await call('pharmacy', '834_2267');
     expect(res.status).toBe(200);
-    expect(listGridCell).toHaveBeenCalledWith({}, 'pharmacy', 834, 2267);
+    expect(listGridCell).toHaveBeenCalledWith({}, 'pharmacy', 834, 2267, 'coarse');
     expect(res.headers.get('Cache-Control')).toBe('public, s-maxage=3600, stale-while-revalidate=3600');
     const text = await res.text();
     expect(JSON.parse(text).items).toHaveLength(1);
     expect(text).not.toMatch(/영업 중|곧 영업|곧 마감|전화 확인 필요|영업 종료/);
+  });
+
+  test('fine cell', async () => {
+    listGridCell.mockResolvedValue([]);
+    expect((await call('hospital', 'f4173_11337')).status).toBe(200);
+    expect(listGridCell).toHaveBeenCalledWith({}, 'hospital', 4173, 11337, 'fine');
   });
 });
