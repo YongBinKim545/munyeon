@@ -249,15 +249,42 @@ export interface SearchHit extends InstitutionSummary {
   sigungu: string | null;
 }
 
-/** 기관 이름 부분일치(pg_trgm 색인). 앞부분 일치를 먼저, 그다음 이름순. 와일드카드는 글자로 취급한다. */
-export async function searchInstitutions(sql: Sql, q: string, limit = 10): Promise<SearchHit[]> {
+/**
+ * 기관 이름 부분일치(pg_trgm 색인). 와일드카드는 글자로 취급한다.
+ * near가 없으면 앞부분 일치 → 짧은 이름순, 있으면 그 점에서 가까운 순(좌표 없는 기관은 맨 뒤, distanceM 없음).
+ * near는 브라우저가 보낸 격자 칸의 중심점이다(사용자 좌표가 아니다, D21).
+ */
+export async function searchInstitutions(sql: Sql, q: string, limit = 10, near?: { lat: number; lon: number }): Promise<SearchHit[]> {
   const term = q.trim().replace(/[\\%_]/g, (c) => `\\${c}`);
   if (!term) return [];
-  return sql<SearchHit[]>`
-    select ${summaryCols(sql)}, i.sido, i.sigungu from institutions i
+  if (!near) {
+    return sql<SearchHit[]>`
+      select ${summaryCols(sql)}, i.sido, i.sigungu from institutions i
+      where i.is_active and i.name ilike ${'%' + term + '%'}
+      order by (i.name ilike ${term + '%'}) desc, length(i.name), i.name
+      limit ${limit}`;
+  }
+  const rows = await sql<(SearchHit & { distanceM: number | null })[]>`
+    with p as (select ST_SetSRID(ST_MakePoint(${near.lon}::float8, ${near.lat}::float8), 4326)::geography as g)
+    select ${summaryCols(sql)}, i.sido, i.sigungu, round(ST_Distance(i.geom, p.g))::int as "distanceM"
+    from institutions i, p
     where i.is_active and i.name ilike ${'%' + term + '%'}
-    order by (i.name ilike ${term + '%'}) desc, length(i.name), i.name
+    order by i.geom is null, i.geom <-> p.g, i.name, i.id
     limit ${limit}`;
+  return rows.map(({ distanceM, ...r }) => (distanceM === null ? r : { ...r, distanceM }));
+}
+
+export interface GridRow extends InstitutionSummary {
+  sido: string | null;
+  sigungu: string | null;
+}
+
+/** 격자 한 칸의 활성 기관(좌표 있는 곳만), 이름순. 메인 목록의 원본이며 CDN에 1시간 캐시된다. */
+export async function listGridCell(sql: Sql, kind: Kind, gy: number, gx: number): Promise<GridRow[]> {
+  return sql<GridRow[]>`
+    select ${summaryCols(sql)}, i.sido, i.sigungu from institutions i
+    where i.kind = ${kind} and i.grid_y = ${gy} and i.grid_x = ${gx} and i.is_active
+    order by i.name, i.id`;
 }
 
 /** 동네 목록을 다시 계산한다(동기화 끝마다). 반환값은 행 수. */

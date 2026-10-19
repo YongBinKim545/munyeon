@@ -2,10 +2,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import type { Sql } from './client.ts';
 import {
   countSitemapEntries, deactivateMissing, finishRun, getHolidays, getInstitution, getLastSyncAt, getNearby,
-  getRegionStats, insertEvent, listLandingCounts, listNeighborhoods, listRegion, listRegions, listSido, listSitemapEntries,
+  getRegionStats, insertEvent, listGridCell, listLandingCounts, listNeighborhoods, listRegion, listRegions, listSido, listSitemapEntries,
   refreshNeighborhoods, searchInstitutions, startRun, upsertHolidays, upsertInstitutions, type InstitutionRow,
 } from './queries.ts';
 import { startTestDb } from './test-db.ts';
+import { GRID_LAT, GRID_LON, gridOf } from '@munyeon/core';
 
 let sql: Sql;
 let stop: () => Promise<void>;
@@ -184,5 +185,48 @@ describe('listLandingCounts', () => {
     const rows = await listLandingCounts(sql);
     expect(rows).toContainEqual({ sido: '서울특별시', sigungu: '중구', kind: 'pharmacy', all: 4, sunday: 1, holiday: 1, night: 2 });
     expect(rows).toContainEqual({ sido: '서울특별시', sigungu: '중구', kind: 'hospital', all: 1, sunday: 0, holiday: 0, night: 0 });
+  });
+});
+
+describe('grid', () => {
+  // 명동 칸(834_2267): 위도 37.530~37.575, 경도 126.952~127.008
+  test('listGridCell returns active rows with coordinates in that cell and kind', async () => {
+    await upsertInstitutions(sql, [
+      row({ id: 'G1', name: '나약국', lat: 37.5637, lon: 126.9838 }),
+      row({ id: 'G2', name: '가약국', lat: 37.5500, lon: 126.9600 }),
+      row({ id: 'N1', name: '옆칸약국', lat: 37.5800, lon: 126.9838 }),
+      row({ id: 'H1', kind: 'hospital', category: 'general', name: '명동의원', lat: 37.5637, lon: 126.9838 }),
+      row({ id: 'Z1', name: '좌표없음약국', lat: null, lon: null }),
+      row({ id: 'D1', name: '닫은약국', lat: 37.5637, lon: 126.9838 }),
+    ], t1);
+    await deactivateMissing(sql, 'pharmacy', ['G1', 'G2', 'N1', 'Z1'], t2);
+    const cell = gridOf(37.5637, 126.9838);
+    const rows = await listGridCell(sql, 'pharmacy', cell.gy, cell.gx);
+    expect(rows.map((r) => r.id)).toEqual(['G2', 'G1']);
+    expect(rows[0]).toMatchObject({ sido: '서울특별시', sigungu: '중구', lat: 37.55, lon: 126.96, category: 'pharmacy' });
+    expect((await listGridCell(sql, 'hospital', cell.gy, cell.gx)).map((r) => r.id)).toEqual(['H1']);
+  });
+
+  test('db grid columns match core gridOf on cell edges', async () => {
+    const pts = [[37.53, 126.952], [37.575, 127.008], [33.0, 124.0], [38.99999, 131.99999], [37.5637, 126.9838]];
+    await upsertInstitutions(sql, pts.map(([lat, lon], i) => row({ id: 'E' + i, lat, lon })), t1);
+    const got = await sql<{ id: string; gy: number; gx: number }[]>`select id, grid_y as gy, grid_x as gx from institutions order by id`;
+    expect(got.map((g) => ({ gy: g.gy, gx: g.gx }))).toEqual(pts.map(([lat, lon]) => gridOf(lat, lon)));
+    expect(GRID_LAT).toBe(0.045);
+    expect(GRID_LON).toBe(0.056);
+  });
+
+  test('searchInstitutions near orders by distance and returns distanceM', async () => {
+    await upsertInstitutions(sql, [
+      row({ id: 'F', name: '온누리약국', lat: 37.60, lon: 126.98 }),
+      row({ id: 'M', name: '온누리약국', lat: 37.57, lon: 126.98 }),
+      row({ id: 'C', name: '온누리약국', lat: 37.5637, lon: 126.9838 }),
+      row({ id: 'X', name: '온누리약국', lat: null, lon: null }),
+    ], t1);
+    const hits = await searchInstitutions(sql, '온누리', 20, { lat: 37.5637, lon: 126.9838 });
+    expect(hits.map((h) => h.id)).toEqual(['C', 'M', 'F', 'X']);
+    expect(hits[0].distanceM).toBe(0);
+    expect(hits[1].distanceM).toBeGreaterThan(500);
+    expect(hits[3].distanceM).toBeUndefined();
   });
 });
