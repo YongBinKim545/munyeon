@@ -18,10 +18,13 @@ interface Props {
   /** 아직 더 받는 중(3km 이상) */
   loadingMore: boolean;
   onShowAll: () => void;
+  /** 받지 못한 칸이 있음(있으면 안내와 [다시 시도]) */
+  failed: boolean;
+  onRetry: () => void;
 }
 
 /** 메인 목록(D32): 구역 제목 없이 한 줄, 끝에 [전체 보기]. 지역·유형이 바뀌면 부모가 key로 새로 그린다. */
-export function MainList({ items, mode, now, ctx, holidayToday, loadingMore, onShowAll }: Props) {
+export function MainList({ items, mode, now, ctx, holidayToday, loadingMore, onShowAll, failed, onRetry }: Props) {
   const [limit, setLimit] = useState(PAGE_SIZE);
   const sentinel = useRef<HTMLDivElement>(null);
 
@@ -44,9 +47,29 @@ export function MainList({ items, mode, now, ctx, holidayToday, loadingMore, onS
     );
   }
 
+  // 하나도 받지 못했으면 '문 연 곳 없음'이 아니라 불러오기 실패로 알린다
+  if (failed && total === 0) {
+    return (
+      <div className="load-error" role="alert">
+        <p>목록을 불러오지 못했어요</p>
+        <button type="button" className="btn btn-secondary" onClick={onRetry}>
+          다시 시도
+        </button>
+      </div>
+    );
+  }
+
   const shown = items.slice(0, limit);
   return (
     <section aria-label="가까운 곳 목록">
+      {failed ? (
+        <div className="load-error load-error--partial" role="alert">
+          <p>일부를 불러오지 못했어요</p>
+          <button type="button" className="btn btn-secondary" onClick={onRetry}>
+            다시 시도
+          </button>
+        </div>
+      ) : null}
       {holidayToday ? <p className="holiday-strip">오늘은 공휴일 · 공휴일 진료시간 기준</p> : null}
       {total === 0 && mode === 'open' && !loadingMore ? (
         <div className="empty">

@@ -27,7 +27,7 @@ const ids = () => [...document.querySelectorAll('[data-id]')].map((el) => el.get
 
 function renderList(mode: 'open' | 'all', onShowAll = vi.fn()) {
   const items = buildView(entries, center, 3, now, ctx, mode);
-  return render(<MainList items={items} mode={mode} now={now} ctx={ctx} holidayToday={false} loadingMore={false} onShowAll={onShowAll} />);
+  return render(<MainList items={items} mode={mode} now={now} ctx={ctx} holidayToday={false} loadingMore={false} onShowAll={onShowAll} failed={false} onRetry={vi.fn()} />);
 }
 
 describe('MainList', () => {
@@ -56,7 +56,7 @@ describe('MainList', () => {
   });
 
   test('empty open list shows the message, emergency note and show-all', () => {
-    render(<MainList items={[]} mode="open" now={now} ctx={ctx} holidayToday={false} loadingMore={false} onShowAll={vi.fn()} />);
+    render(<MainList items={[]} mode="open" now={now} ctx={ctx} holidayToday={false} loadingMore={false} onShowAll={vi.fn()} failed={false} onRetry={vi.fn()} />);
     expect(screen.getByText('등록 기준으로 지금 문 연 곳이 없어요')).toBeTruthy();
     expect(screen.getByText(/119에 연락하세요/)).toBeTruthy();
     expect(screen.getByRole('button', { name: '전체 보기' })).toBeTruthy();
@@ -67,7 +67,7 @@ describe('MainList', () => {
     const hctx = { holidays: new Set(['2026-12-25']) };
     const hnow = new Date('2026-12-25T10:00:00+09:00');
     const e = decodeGrid(encodeGrid([makeRecord({ id: 'U', hours: { dutyTime5s: '0900', dutyTime5c: '1800' }, ...at(1) })]), 'pharmacy');
-    render(<MainList items={buildView(e, center, 3, hnow, hctx, 'open')} mode="open" now={hnow} ctx={hctx} holidayToday loadingMore={false} onShowAll={vi.fn()} />);
+    render(<MainList items={buildView(e, center, 3, hnow, hctx, 'open')} mode="open" now={hnow} ctx={hctx} holidayToday loadingMore={false} onShowAll={vi.fn()} failed={false} onRetry={vi.fn()} />);
     expect(screen.getByText('오늘은 공휴일 · 공휴일 진료시간 기준')).toBeTruthy();
     expect(screen.getByText('전화 확인 필요')).toBeTruthy();
     expect(screen.getByText('평소 금요일엔 이 시간 영업')).toBeTruthy();
@@ -76,15 +76,31 @@ describe('MainList', () => {
   test('renders in pages of 50', () => {
     const many = decodeGrid(encodeGrid(Array.from({ length: 120 }, (_, i) =>
       makeRecord({ id: `M${i}`, hours: { dutyTime1s: '0900', dutyTime1c: '2300' }, lat: center.lat + i * 0.0001, lon: center.lon }))), 'pharmacy');
-    render(<MainList items={buildView(many, center, 3, now, ctx, 'open')} mode="open" now={now} ctx={ctx} holidayToday={false} loadingMore={false} onShowAll={vi.fn()} />);
+    render(<MainList items={buildView(many, center, 3, now, ctx, 'open')} mode="open" now={now} ctx={ctx} holidayToday={false} loadingMore={false} onShowAll={vi.fn()} failed={false} onRetry={vi.fn()} />);
     expect(ids()).toHaveLength(PAGE_SIZE);
     expect(screen.queryByRole('button', { name: '전체 보기' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '더 보기' }));
     expect(ids()).toHaveLength(PAGE_SIZE * 2);
   });
 
+  test('all cells failed: load error with retry instead of "nobody open"', () => {
+    const onRetry = vi.fn();
+    render(<MainList items={[]} mode="open" now={now} ctx={ctx} holidayToday={false} loadingMore={false} onShowAll={vi.fn()} failed onRetry={onRetry} />);
+    expect(screen.getByText('목록을 불러오지 못했어요')).toBeTruthy();
+    expect(screen.queryByText('등록 기준으로 지금 문 연 곳이 없어요')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }));
+    expect(onRetry).toHaveBeenCalled();
+  });
+
+  test('some cells failed: list stays with a notice line on top', () => {
+    const items = buildView(entries, center, 3, now, ctx, 'open');
+    render(<MainList items={items} mode="open" now={now} ctx={ctx} holidayToday={false} loadingMore={false} onShowAll={vi.fn()} failed onRetry={vi.fn()} />);
+    expect(screen.getByText('일부를 불러오지 못했어요')).toBeTruthy();
+    expect(ids()).toEqual(['OPEN_NEAR', 'OPEN_FAR', 'SOON']);
+  });
+
   test('loading placeholder has no status text', () => {
-    render(<MainList items={null} mode="open" now={now} ctx={ctx} holidayToday={false} loadingMore={false} onShowAll={vi.fn()} />);
+    render(<MainList items={null} mode="open" now={now} ctx={ctx} holidayToday={false} loadingMore={false} onShowAll={vi.fn()} failed={false} onRetry={vi.fn()} />);
     expect(screen.getByText('가까운 곳을 찾고 있어요…')).toBeTruthy();
   });
 });

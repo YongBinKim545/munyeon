@@ -37,6 +37,13 @@ describe('nextOpening', () => {
   });
 
   test('no hours is null', () => expect(nextOpening(w({}), kst('2026-10-19T20:00:00'), ctx)).toBeNull());
+
+  // 2026-10-19 사용자 결정: 오늘 칸이 비어 있어도(정보 없음) 내일 2시간 안에 열면 '곧 영업'으로 둔다
+  test('today unknown but opens tomorrow within 2 hours is soon', () => {
+    const tueOnly: RawHours = { dutyTime2s: '0000', dutyTime2c: '0900' };
+    expect(nextOpening(w(tueOnly), kst('2026-10-19T22:30:00'), ctx)).toEqual(kst('2026-10-20T00:00:00'));
+    expect(tierOf(w(tueOnly), kst('2026-10-19T22:30:00'), ctx).tier).toBe('soon');
+  });
 });
 
 describe('usualHoursOpen', () => {

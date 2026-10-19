@@ -28,31 +28,43 @@ export const defaultFetchJson: FetchJson = (url) =>
     return r.json() as Promise<GridPayload>;
   });
 
-/** 칸 단위 캐시(종류·칸 번호별). 같은 칸은 다시 받지 않는다. */
-export type CellCache = Map<string, Promise<GridEntry[]>>;
+/** 칸 단위 캐시(종류·칸 번호별). 같은 칸은 다시 받지 않는다. null은 받기 실패(캐시에서 지워 다음에 다시 시도). */
+export type CellCache = Map<string, Promise<GridEntry[] | null>>;
 
 export function cellUrls(kind: Kind, center: LatLon, radiusKm: number, level: GridLevel): string[] {
   return cellsWithin(center, radiusKm, level).map((c) => `/api/grid/${kind}/${gridKey(c, level)}`);
 }
 
-/** URL 목록을 받아(캐시 우선, 동시 6개) 기관을 합친다. 같은 기관은 ID로 한 번만. 실패한 칸은 빈 칸으로 친다. */
-export async function loadCells(kind: Kind, urls: string[], cache: CellCache, fetchJson: FetchJson = defaultFetchJson): Promise<GridEntry[]> {
+/**
+ * URL 목록을 받아(캐시 우선, 동시 6개) 기관을 합친다. 같은 기관은 ID로 한 번만.
+ * 실패한 칸 수를 함께 돌려준다 — 실패를 '문 연 곳 없음'으로 보이지 않게 하려는 것이다.
+ */
+export async function loadCells(
+  kind: Kind,
+  urls: string[],
+  cache: CellCache,
+  fetchJson: FetchJson = defaultFetchJson,
+): Promise<{ entries: GridEntry[]; failed: number }> {
   const queue = urls.filter((u) => !cache.has(u));
   const run = async () => {
     for (let u = queue.shift(); u; u = queue.shift()) {
       const url = u;
-      cache.set(url, fetchJson(url).then((p) => decodeGrid(p, kind)).catch(() => {
+      cache.set(url, fetchJson(url).then((p): GridEntry[] | null => decodeGrid(p, kind)).catch(() => {
         cache.delete(url); // 다음 번에 다시 시도
-        return [];
+        return null;
       }));
       await cache.get(url);
     }
   };
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, queue.length) }, run));
-  const lists = await Promise.all(urls.map((u) => cache.get(u) ?? Promise.resolve([])));
+  const lists = await Promise.all(urls.map((u) => cache.get(u) ?? Promise.resolve(null)));
   const byId = new Map<string, GridEntry>();
-  for (const list of lists) for (const e of list) byId.set(e.id, e);
-  return [...byId.values()];
+  let failed = 0;
+  for (const list of lists) {
+    if (!list) failed += 1;
+    else for (const e of list) byId.set(e.id, e);
+  }
+  return { entries: [...byId.values()], failed };
 }
 
 /** 거리·상태를 계산하고 반경 안만 순서 규칙(D32)대로 정렬한다. */
@@ -75,11 +87,14 @@ export interface NearbyStep {
   entries: GridEntry[];
   radiusKm: number;
   done: boolean;
+  /** 이 단계에서 받지 못한 칸 수(1km 첫 단계는 3km 단계가 다시 덮으므로 0으로 친다) */
+  failed: number;
 }
 
 /**
  * 2단계 불러오기(D36): 1km 칸을 먼저 받아 알리고, 3km를 받아 알리고, 보여줄 곳이 5곳 미만이면 10km·25km로 넓힌다.
  * 서버로는 격자 번호만 간다(좌표 없음). isCurrent()가 false가 되면(지역·유형이 바뀜) 멈춘다.
+ * 칸을 받지 못하면 더 넓히지 않고 멈춘다(실패한 채 넓히면 요청만 늘고, 빈 결과를 '없음'으로 오해하게 된다).
  */
 export async function loadNearby(opts: {
   kind: Kind;
@@ -95,12 +110,12 @@ export async function loadNearby(opts: {
   const current = opts.isCurrent ?? (() => true);
   const first = await loadCells(kind, cellUrls(kind, center, FIRST_RADIUS_KM, 'fine'), cache, fetchJson);
   if (!current()) return;
-  onStep({ entries: first, radiusKm: FIRST_RADIUS_KM, done: false });
+  onStep({ entries: first.entries, radiusKm: FIRST_RADIUS_KM, done: false, failed: 0 });
   for (const [i, r] of RADII_KM.entries()) {
-    const entries = await loadCells(kind, cellUrls(kind, center, r, 'coarse'), cache, fetchJson);
+    const { entries, failed } = await loadCells(kind, cellUrls(kind, center, r, 'coarse'), cache, fetchJson);
     if (!current()) return;
-    const last = i === RADII_KM.length - 1 || visibleCount(entries, center, r, opts.at(), opts.ctx) >= MIN_VISIBLE;
-    onStep({ entries, radiusKm: r, done: last });
+    const last = failed > 0 || i === RADII_KM.length - 1 || visibleCount(entries, center, r, opts.at(), opts.ctx) >= MIN_VISIBLE;
+    onStep({ entries, radiusKm: r, done: last, failed });
     if (last) return;
   }
 }

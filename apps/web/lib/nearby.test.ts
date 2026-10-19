@@ -34,16 +34,16 @@ describe('loadCells', () => {
     const { fetchJson } = server([makeRecord({ id: 'A' })]);
     const cache: CellCache = new Map();
     const urls = ['/api/grid/pharmacy/834_2267', '/api/grid/pharmacy/834_2268'];
-    expect((await loadCells('pharmacy', urls, cache, fetchJson)).map((e) => e.id)).toEqual(['A']);
+    expect((await loadCells('pharmacy', urls, cache, fetchJson)).entries.map((e) => e.id)).toEqual(['A']);
     await loadCells('pharmacy', urls, cache, fetchJson);
     expect(fetchJson).toHaveBeenCalledTimes(2);
   });
 
-  test('a failed cell counts as empty and is retried next time', async () => {
+  test('a failed cell is counted and retried next time', async () => {
     const fetchJson = vi.fn().mockRejectedValueOnce(new Error('503')).mockResolvedValue(encodeGrid([makeRecord({ id: 'B' })]));
     const cache: CellCache = new Map();
-    expect(await loadCells('pharmacy', ['/x'], cache, fetchJson)).toEqual([]);
-    expect((await loadCells('pharmacy', ['/x'], cache, fetchJson)).map((e) => e.id)).toEqual(['B']);
+    expect(await loadCells('pharmacy', ['/x'], cache, fetchJson)).toEqual({ entries: [], failed: 1 });
+    expect(await loadCells('pharmacy', ['/x'], cache, fetchJson)).toMatchObject({ failed: 0, entries: [{ id: 'B' }] });
   });
 });
 
@@ -65,6 +65,16 @@ describe('loadNearby', () => {
     const steps: NearbyStep[] = [];
     await loadNearby({ kind: 'pharmacy', center, at: () => at, ctx, cache: new Map(), fetchJson, onStep: (s) => steps.push(s) });
     expect(steps.map((s) => [s.radiusKm, s.done])).toEqual([[1, false], [3, false], [10, false], [25, true]]);
+  });
+
+  test('stops widening when a 3km cell fails and reports it', async () => {
+    const fetchJson = vi.fn(async (url: string): Promise<GridPayload> => {
+      if (url.endsWith('834_2267')) throw new Error('503');
+      return encodeGrid([]);
+    });
+    const steps: NearbyStep[] = [];
+    await loadNearby({ kind: 'pharmacy', center, at: () => at, ctx, cache: new Map(), fetchJson, onStep: (s) => steps.push(s) });
+    expect(steps.map((s) => [s.radiusKm, s.done, s.failed])).toEqual([[1, false, 0], [3, true, 1]]);
   });
 
   test('stops when no longer current', async () => {

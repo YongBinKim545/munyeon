@@ -90,6 +90,23 @@ describe('MainScreen', () => {
     expect(screen.getByRole('button', { name: /마포구 망원동/ })).toBeTruthy();
   });
 
+  test('holidays come with the page HTML, so a failed meta request still shows holiday rules', async () => {
+    vi.setSystemTime(new Date('2026-12-25T10:00:00+09:00')); // 공휴일(금)
+    globalThis.fetch = vi.fn(async () => new Response('down', { status: 503 })) as typeof fetch;
+    const s = server([], [makeRecord({ id: 'U', hours: { dutyTime5s: '0900', dutyTime5c: '1800' }, ...near(0.3) })]);
+    s.release();
+    // 앞 테스트에서 받아 둔 /api/meta 결과를 지우려고 모듈을 새로 불러온다
+    vi.resetModules();
+    const { MainScreen: Fresh } = await import('./MainScreen');
+    await act(async () => {
+      render(<Fresh fetchJson={s.fetchJson} holidays={['2026-12-25']} />);
+    });
+    await flush();
+    expect(screen.getByText('오늘은 공휴일 · 공휴일 진료시간 기준')).toBeTruthy();
+    expect(screen.getByText('전화 확인 필요')).toBeTruthy();
+    expect(screen.queryByText(/영업 중 ·/)).toBeNull();
+  });
+
   test('late arrivals keep order and anchor', async () => {
     const s = server(
       [

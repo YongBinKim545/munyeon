@@ -41,14 +41,16 @@ function findAnchor(list: HTMLElement | null, forItems: unknown): Anchor | null 
  * 메인 = 현재 위치 기준 목록(D31·D32·D34·D36). 목록과 지역 이름은 브라우저에서만 그린다.
  * 늦게 온 데이터도 순서 규칙대로 제자리에 넣고, 보고 있는 카드는 화면에서 움직이지 않게 스크롤을 보정한다.
  */
-export function MainScreen({ fetchJson }: { fetchJson?: FetchJson }) {
+export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetchJson?: FetchJson; holidays?: string[] }) {
   const [kind, setKind] = useState<Kind>('pharmacy');
   const [mode, setMode] = useState<'open' | 'all'>('open');
   const [recent, setRecent] = useState<Area[]>([]);
   const [current, setCurrent] = useState<Current | null>(null);
   const [denied, setDenied] = useState(false);
-  const [holidays, setHolidays] = useState<ReadonlySet<string> | null>(null);
-  const [data, setData] = useState<{ key: string; entries: GridEntry[]; radiusKm: number; done: boolean } | null>(null);
+  // 공휴일은 메인 HTML에 담겨 온다(따로 받다가 실패해 평일로 판정하는 일이 없게). /api/meta가 오면 최신 목록으로 바꾼다.
+  const [holidays, setHolidays] = useState<ReadonlySet<string>>(() => new Set(initialHolidays));
+  const [data, setData] = useState<{ key: string; entries: GridEntry[]; radiusKm: number; done: boolean; failed: number } | null>(null);
+  const [retry, setRetry] = useState(0);
   const [now, setNow] = useState(() => new Date());
   const [modalOpen, setModalOpen] = useState(false);
   const [pcNote, setPcNote] = useState(false);
@@ -90,7 +92,9 @@ export function MainScreen({ fetchJson }: { fetchJson?: FetchJson }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setKind(readKind());
     setRecent(readRecentAreas());
-    void fetchMeta().then((m) => setHolidays(new Set(m?.holidays ?? [])));
+    void fetchMeta().then((m) => {
+      if (m) setHolidays(new Set(m.holidays)); // 실패하면 HTML에 담겨 온 목록을 그대로 쓴다
+    });
     startFromLocation(false);
     const tick = () => withAnchor(() => setNow(new Date()));
     const id = setInterval(tick, 60_000);
@@ -107,7 +111,7 @@ export function MainScreen({ fetchJson }: { fetchJson?: FetchJson }) {
   const centerKey = current ? `${current.center.lat},${current.center.lon}` : '';
   const loadKey = `${centerKey}|${kind}`;
   useEffect(() => {
-    if (!current || !holidays) return;
+    if (!current) return;
     let alive = true;
     saveLastCenter(current.center);
     void loadNearby({
@@ -125,7 +129,7 @@ export function MainScreen({ fetchJson }: { fetchJson?: FetchJson }) {
     };
     // centerKey가 center를 대신한다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadKey, holidays, fetchJson, withAnchor]);
+  }, [loadKey, holidays, fetchJson, withAnchor, retry]);
 
   // 지역·유형이 바뀌면 새 목록을 맨 위에서 보여준다
   const prevLoadKey = useRef(loadKey);
@@ -142,7 +146,7 @@ export function MainScreen({ fetchJson }: { fetchJson?: FetchJson }) {
     [current, view],
   );
 
-  const ctx = useMemo(() => ({ holidays: holidays ?? new Set<string>() }), [holidays]);
+  const ctx = useMemo(() => ({ holidays }), [holidays]);
   const items = useMemo(
     () => (current && view ? buildView(view.entries, current.center, view.radiusKm, now, ctx, mode) : null),
     [current, view, now, ctx, mode],
@@ -195,6 +199,8 @@ export function MainScreen({ fetchJson }: { fetchJson?: FetchJson }) {
           holidayToday={ctx.holidays.has(kstParts(now).ymd)}
           key={loadKey}
           loadingMore={!!view && !view.done}
+          failed={!!view && view.failed > 0}
+          onRetry={() => setRetry((n) => n + 1)}
           onShowAll={() => {
             track('show_all', null, 'home');
             setMode('all');
