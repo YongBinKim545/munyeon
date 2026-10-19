@@ -73,6 +73,7 @@ npm run local
 
 - 빌드 없이 다시 띄우기: `npm run local -- --no-build`
 - 끌 때는 `Ctrl + C` 한 번. 로컬 DB는 정상적으로 닫힌 뒤 꺼진다(강제로 끄면 `.pglite/`가 손상될 수 있다). 이미 켜져 있으면 두 번째 DB는 데이터 폴더를 열지 않고 멈춘다.
+- 로컬 DB(PGlite)는 세션이 하나라, 연결이 둘 이상 동시에 붙으면 쿼리가 섞인다(`bind message supplies … parameters` 오류). 웹 서버는 연결 하나만 쓰도록 되어 있으니, `npm run sync`처럼 다른 연결을 여는 작업은 웹을 끄고 실행한다. 실서비스 DB(진짜 Postgres)에는 이 제약이 없다.
 - 로컬 DB가 `RuntimeError: Aborted()`로 열리지 않으면 폴더가 손상된 것이다. `.pglite/`를 다른 이름(예: `.pglite.broken-날짜`)으로 바꾸고, 처음 받을 때처럼 `npm run sync -- all`과 `npm run sync -- holidays`로 다시 받는다(공공 API 13호출).
 - 표본 16곳만으로 빠르게 보기: `node apps/worker/src/dev-db.ts`(인메모리) + `npm run dev -w @munyeon/web`
 - 응답 코드·noindex·격자 JSON 점검: `node scripts/check-routes.mjs http://localhost:3001`
