@@ -73,4 +73,6 @@ npm run local
 
 - 빌드 없이 다시 띄우기: `npm run local -- --no-build`
 - 표본 16곳만으로 빠르게 보기: `node apps/worker/src/dev-db.ts`(인메모리) + `npm run dev -w @munyeon/web`
-- 응답 코드·noindex 점검: `node scripts/check-routes.mjs http://localhost:3001`
+- 응답 코드·noindex·격자 JSON 점검: `node scripts/check-routes.mjs http://localhost:3001`
+- **휴대폰의 '현재 위치'는 `https://` 주소에서만 된다.** 같은 와이파이의 `http://192.168.x.x:3001`로는 위치 권한이 막혀 최근 지역 또는 서울 중구 명동으로 시작한다. PC의 `http://localhost:3001`에서는 위치를 쓸 수 있다. 휴대폰 위치 확인은 배포 주소(또는 Vercel 미리보기 주소)에서 한다.
+- 실데이터 DB를 켜 둔 채 표본 DB를 따로 띄우기: `node apps/worker/src/dev-db.ts --port=54330`
