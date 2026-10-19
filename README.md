@@ -72,6 +72,8 @@ npm run local
 ```
 
 - 빌드 없이 다시 띄우기: `npm run local -- --no-build`
+- 끌 때는 `Ctrl + C` 한 번. 로컬 DB는 정상적으로 닫힌 뒤 꺼진다(강제로 끄면 `.pglite/`가 손상될 수 있다). 이미 켜져 있으면 두 번째 DB는 데이터 폴더를 열지 않고 멈춘다.
+- 로컬 DB가 `RuntimeError: Aborted()`로 열리지 않으면 폴더가 손상된 것이다. `.pglite/`를 다른 이름(예: `.pglite.broken-날짜`)으로 바꾸고, 처음 받을 때처럼 `npm run sync -- all`과 `npm run sync -- holidays`로 다시 받는다(공공 API 13호출).
 - 표본 16곳만으로 빠르게 보기: `node apps/worker/src/dev-db.ts`(인메모리) + `npm run dev -w @munyeon/web`
 - 응답 코드·noindex·격자 JSON 점검: `node scripts/check-routes.mjs http://localhost:3001`
 - **휴대폰의 '현재 위치'는 `https://` 주소에서만 된다.** 같은 와이파이의 `http://192.168.x.x:3001`로는 위치 권한이 막혀 최근 지역 또는 서울 중구 명동으로 시작한다. PC의 `http://localhost:3001`에서는 위치를 쓸 수 있다. 휴대폰 위치 확인은 배포 주소(또는 Vercel 미리보기 주소)에서 한다.

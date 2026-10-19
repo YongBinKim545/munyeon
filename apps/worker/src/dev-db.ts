@@ -2,11 +2,13 @@
  * 로컬 화면 확인용 인메모리 DB(PGlite + PostGIS)를 127.0.0.1:54329에 띄우고 표본 데이터를 넣는다.
  * 공공 API를 부르지 않는다. 실데이터는 `.env.local`의 DATABASE_URL로 `npm run sync`를 쓴다.
  *   node apps/worker/src/dev-db.ts   → 다른 터미널에서 DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres npm run dev -w @munyeon/web
+ * 끌 때는 Ctrl+C(또는 npm run local이 보내는 'stop' 메시지). DB를 정상적으로 닫아야 .pglite/가 손상되지 않는다.
  */
 import { readFileSync } from 'node:fs';
 import { finishRun, refreshNeighborhoods, startRun, upsertInstitutions, type InstitutionRow } from '@munyeon/db';
 import { startTestDb } from '@munyeon/db/test-db';
 import { toInstitutionRow } from './map.ts';
+import { isPortFree } from './port.ts';
 import { parsePage } from './portal.ts';
 
 const fx = (n: string) => parsePage(readFileSync(new URL(`./__fixtures__/${n}`, import.meta.url), 'utf8')).items;
@@ -44,7 +46,30 @@ function synthetic(): Record<string, string>[] {
 const real = process.argv.includes('--real');
 // --port=54330: 이미 켜 둔 로컬 DB와 함께 띄울 때
 const port = Number(process.argv.find((a) => a.startsWith('--port='))?.slice(7) ?? 54329);
-const { sql, url } = await startTestDb(port, real ? new URL('../../../.pglite/', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1') : undefined);
+// 포트가 이미 쓰이면 데이터 폴더를 열기 전에 멈춘다(같은 .pglite/를 두 프로세스가 열면 손상된다)
+if (!(await isPortFree(port))) {
+  console.error(`포트 ${port}가 이미 쓰이고 있습니다. 켜져 있는 로컬 DB를 먼저 끄거나 --port=다른번호 로 띄우세요.`);
+  process.exit(1);
+}
+const { sql, url, stop } = await startTestDb(port, real ? new URL('../../../.pglite/', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1') : undefined);
+
+// 정상 종료: Ctrl+C(SIGINT·SIGTERM) 또는 부모 프로세스의 'stop' 메시지. 디스크에 다 쓰고 닫은 뒤 끝낸다.
+let stopping = false;
+async function shutdown(): Promise<void> {
+  if (stopping) return;
+  stopping = true;
+  try {
+    await stop();
+    console.log('dev db closed');
+  } finally {
+    process.exit(0);
+  }
+}
+process.on('SIGINT', () => void shutdown());
+process.on('SIGTERM', () => void shutdown());
+process.on('message', (m) => m === 'stop' && void shutdown());
+process.on('disconnect', () => void shutdown()); // npm run local이 비정상 종료돼 연결이 끊긴 경우
+
 if (real) {
   console.log(`dev db ready (real, persisted in .pglite/): ${url}`);
   await new Promise(() => {}); // 서버 유지
