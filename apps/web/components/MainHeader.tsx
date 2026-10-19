@@ -94,7 +94,7 @@ export function MainHeader(p: Props) {
           <option value="open">영업 중</option>
           <option value="all">전체</option>
         </select>
-        <Link className="btn btn-secondary" href="/search">
+        <Link className="btn btn-secondary" href="/search" prefetch={false}>
           검색
         </Link>
       </div>

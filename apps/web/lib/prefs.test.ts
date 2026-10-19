@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { pushRecentArea, readKind, readLastCenterGrid, readRecentAreas, saveKind, saveLastCenterGrid } from './prefs';
+import { pushRecentArea, readKind, readLastCenter, readRecentAreas, saveKind, saveLastCenter } from './prefs';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -36,9 +36,11 @@ describe('prefs', () => {
     expect(readRecentAreas()).toEqual([]);
   });
 
-  test('last center grid', () => {
-    expect(readLastCenterGrid()).toBeNull();
-    saveLastCenterGrid('834_2267');
-    expect(readLastCenterGrid()).toBe('834_2267');
+  test('last center', () => {
+    expect(readLastCenter()).toBeNull();
+    saveLastCenter({ lat: 37.5637, lon: 126.9838 });
+    expect(readLastCenter()).toEqual({ lat: 37.5637, lon: 126.9838 });
+    localStorage.setItem('munyeon:lastCenter', '{"lat":"x"}');
+    expect(readLastCenter()).toBeNull();
   });
 });

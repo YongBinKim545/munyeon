@@ -14,7 +14,7 @@ export interface Area {
 
 const KIND_KEY = 'munyeon:kind';
 const AREAS_KEY = 'munyeon:areas';
-const GRID_KEY = 'munyeon:lastGrid';
+const CENTER_KEY = 'munyeon:lastCenter';
 export const MAX_RECENT_AREAS = 3;
 
 function read(key: string): string | null {
@@ -62,11 +62,19 @@ export function pushRecentArea(a: Area): Area[] {
   return next;
 }
 
-/** 상호 검색 정렬용으로 메인에서 보던 중심의 약 5km 격자 번호(좌표가 아니다) */
-export function saveLastCenterGrid(key: string): void {
-  write(GRID_KEY, key);
+/**
+ * 메인에서 보던 중심. 상호 검색이 거리 표시에 쓰고, 서버에는 이 점의 약 5km 격자 번호만 보낸다(D21).
+ * 좌표는 이 브라우저에만 남는다.
+ */
+export function saveLastCenter(c: { lat: number; lon: number }): void {
+  write(CENTER_KEY, JSON.stringify({ lat: c.lat, lon: c.lon }));
 }
 
-export function readLastCenterGrid(): string | null {
-  return read(GRID_KEY);
+export function readLastCenter(): { lat: number; lon: number } | null {
+  try {
+    const c = JSON.parse(read(CENTER_KEY) ?? 'null') as { lat?: unknown; lon?: unknown } | null;
+    return c && Number.isFinite(c.lat) && Number.isFinite(c.lon) ? { lat: c.lat as number, lon: c.lon as number } : null;
+  } catch {
+    return null;
+  }
 }

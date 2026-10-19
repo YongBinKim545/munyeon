@@ -1,12 +1,12 @@
 'use client';
 
-import { gridKey, gridOf, kstParts, type LatLon } from '@munyeon/core';
+import { kstParts, type LatLon } from '@munyeon/core';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { locate, startArea, type AreaSource } from '@/lib/locate';
 import { fetchMeta } from '@/lib/meta';
 import { areaLabel, buildView, loadNearby, type CellCache, type FetchJson } from '@/lib/nearby';
 import type { GridEntry } from '@/lib/grid';
-import { pushRecentArea, readKind, readRecentAreas, saveKind, saveLastCenterGrid, type Area } from '@/lib/prefs';
+import { pushRecentArea, readKind, readRecentAreas, saveKind, saveLastCenter, type Area } from '@/lib/prefs';
 import type { Kind } from '@/lib/seo';
 import { track } from '@/lib/track';
 import { LocationSearchModal } from './LocationSearchModal';
@@ -98,7 +98,7 @@ export function MainScreen({ fetchJson }: { fetchJson?: FetchJson }) {
   useEffect(() => {
     if (!current || !holidays) return;
     let alive = true;
-    saveLastCenterGrid(gridKey(gridOf(current.center.lat, current.center.lon)));
+    saveLastCenter(current.center);
     void loadNearby({
       kind,
       center: current.center,
