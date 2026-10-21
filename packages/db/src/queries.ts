@@ -238,7 +238,8 @@ export async function finishRun(
 }
 
 /** 페이지에 표시할 '데이터 기준 시각': 해당 종류의 마지막 성공 동기화 */
-export async function getLastSyncAt(sql: Sql, source: Kind): Promise<Date | null> {
+/** 마지막으로 성공한 수집 시각. source는 기관 종류 또는 'holidays'(D46) */
+export async function getLastSyncAt(sql: Sql, source: Kind | 'holidays'): Promise<Date | null> {
   const [r] = await sql<{ at: Date | null }[]>`
     select max(finished_at) as at from sync_runs where source = ${source} and status = 'ok'`;
   return r?.at ?? null;

@@ -28,3 +28,14 @@ export async function syncHolidays(years: number[], deps: HolidayDeps): Promise<
   for (const y of years) rows.push(...parseKasi((await deps.fetchYear(y)).items));
   return deps.upsert(rows);
 }
+
+/** 공휴일 수집이 이 기간 넘게 한 번도 성공하지 않으면 작업 실패로 알린다(D46) */
+export const HOLIDAY_STALE_MS = 7 * 24 * 3_600_000;
+
+/**
+ * 해외 러너(GitHub Actions)에서 특일 API 연결이 자주 끊긴다(2026-10-21~22 세 번 중 두 번 실패, 국내에서는 정상).
+ * 공휴일은 드물게 바뀌므로, 최근 7일 안에 성공한 적이 있으면 실패해도 경고만 남긴다.
+ */
+export function holidayFailureIsFatal(lastOkAt: Date | null, now: Date): boolean {
+  return !lastOkAt || now.getTime() - lastOkAt.getTime() > HOLIDAY_STALE_MS;
+}

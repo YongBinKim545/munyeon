@@ -10,7 +10,7 @@ import {
   upsertInstitutions, type Kind,
 } from '@munyeon/db';
 import { assertFresh } from './health.ts';
-import { fetchKasiYear, syncHolidays } from './holidays.ts';
+import { fetchKasiYear, holidayFailureIsFatal, syncHolidays } from './holidays.ts';
 import { fetchFullDataPage, redactKey } from './portal.ts';
 import { requestRevalidate } from './revalidate.ts';
 import { syncSource } from './sync.ts';
@@ -67,18 +67,29 @@ async function runSync(kinds: Kind[]): Promise<boolean> {
   return ok;
 }
 
+/** 공휴일 수집. 실행 기록(sync_runs, source='holidays')을 남기고, 최근 7일 안에 성공했으면 실패해도 경고만(D46). */
 async function runHolidays(): Promise<boolean> {
   const sql = getSql();
-  const year = Number(kstParts(new Date()).ymd.slice(0, 4)); // 1월 1일 새벽(UTC로는 전년도)에도 올해 기준
+  const now = new Date();
+  const year = Number(kstParts(now).ymd.slice(0, 4)); // 1월 1일 새벽(UTC로는 전년도)에도 올해 기준
+  const runId = await startRun(sql, 'holidays', now);
   try {
     const n = await syncHolidays([year, year + 1], {
       fetchYear: (y) => fetchKasiYear(y),
       upsert: (rows) => upsertHolidays(sql, rows, 'kasi'),
     });
+    await finishRun(sql, runId, { status: 'ok', pages: 2, rows: n, changed: n, deactivated: 0 });
     console.log(`holidays: upserted=${n} years=${year},${year + 1}`);
     return true;
   } catch (e) {
-    console.error(`holidays: FAILED ${redactKey(e instanceof Error ? e.message : String(e))}`);
+    const msg = redactKey(e instanceof Error ? e.message : String(e));
+    await finishRun(sql, runId, { status: 'failed', pages: 0, rows: 0, changed: 0, deactivated: 0, error: msg });
+    const lastOk = await getLastSyncAt(sql, 'holidays');
+    if (!holidayFailureIsFatal(lastOk, now)) {
+      console.warn(`holidays: WARN ${msg} (마지막 성공 ${lastOk?.toISOString()}, 7일 안이라 실패로 치지 않음)`);
+      return true;
+    }
+    console.error(`holidays: FAILED ${msg} (7일 넘게 성공 기록 없음)`);
     return false;
   }
 }

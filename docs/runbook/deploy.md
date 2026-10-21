@@ -39,7 +39,8 @@ node scripts/check-routes.mjs https://findmedi.co.kr
 
 | 항목 | 주기 | 방법 |
 |---|---|---|
-| 동기화 실패 | 수시 | GitHub Actions 실패 메일(동기화 오류 또는 6시간 이상 미성공) → Actions 로그의 건수·오류 확인 |
+| 동기화 실패 | 수시 | GitHub Actions 실패 메일(동기화 오류 또는 6시간 이상 미성공) → Actions 로그의 건수·오류 확인. 공휴일(`holidays`)은 7일 안에 성공이 있으면 실패해도 `holidays: WARN`만 남고 메일이 오지 않는다(D46) |
+| 예약 실행 간격 | 매일(10월 말까지) | Actions → sync의 schedule 실행 시각과 `/api/meta`의 `lastSync`. 3~5시간 넘게 벌어지는 일이 잦으면 외부 예약 서비스나 국내 VM 이전을 결정(D46) |
 | Vercel 사용량 | 주 1회 | Usage 화면의 Active CPU(한도 월 4시간), Fast Origin Transfer(10GB). 80%에 가까우면 Pro 검토(D13) |
 | Supabase 용량 | 주 1회 | Database size(한도 500MB). 400MB면 Pro 검토 |
 | 색인 현황 | 주 1회 | 서치어드바이저·Search Console 색인 페이지 수(KPI) |
