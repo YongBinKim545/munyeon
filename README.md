@@ -55,7 +55,11 @@
 - Node.js 24, npm 11 (pnpm은 미설치 — 필요하면 corepack으로 활성화)
 - 공공데이터포털 인증키는 `.env.local`의 `DATA_GO_KR_KEY`에 **사용자가 직접** 넣는다(Decoding 키). 저장소에 커밋하지 않는다. 형식은 [.env.example](.env.example) 참고
 
-### 로컬에서 확인 (배포 전)
+### 미리보기 주소에서 확인 (평소)
+
+평소 확인은 Vercel 미리보기 주소에서 한다(2026-10-21부터): https://munyeon-git-feat-main-list-yongbinkim.vercel.app (브랜치마다 `munyeon-git-<브랜치>-yongbinkim.vercel.app`). 브랜치에 push하면 1분 안팎으로 갱신된다. 로그인 보호가 있어 Vercel에 로그인한 브라우저에서 열린다. 휴대폰 위치 권한도 여기서 시험한다(`https`). 로컬 서버는 상시로 켜 두지 않고, push 전 점검할 때만 잠깐 띄운다.
+
+### 로컬에서 확인 (push 전 점검)
 
 기본은 **Supabase dev DB**를 쓴다(2026-10-21부터). `.env.local`에 `munyeon-dev`의 **Session pooler**(포트 5432) 접속 문자열을 `DATABASE_URL`로 **사용자가 직접** 넣는다. 비밀번호 자리의 `[ ]` 괄호는 지우고, 비밀번호에 `@ : / ? # %` 같은 문자가 있으면 URL 인코딩한다.
 
