@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { institutionPath } from '@/lib/seo';
 import { Badges } from './Badges';
 import { CallButton } from './CallButton';
+import { DirectionsButton } from './DirectionsButton';
 
 interface Props {
   item: InstitutionSummary;
@@ -32,6 +33,8 @@ export function InstitutionCard({ item, page, meta, dong }: Props) {
       </div>
       <div className="actions">
         <CallButton tel={item.tel} institutionId={item.id} page={page} compact />
+        {/* 메인 카드처럼 [전화하기] 옆에 [길찾기](D43) */}
+        <DirectionsButton institutionId={item.id} name={item.name} addr={item.addr} lat={item.lat} lon={item.lon} page={page} compact />
       </div>
     </li>
   );

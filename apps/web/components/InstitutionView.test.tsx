@@ -21,6 +21,14 @@ describe('InstitutionView', () => {
     expect(html).not.toContain('tel:119');
   });
 
+  test('nearby cards put directions next to call (D43)', () => {
+    const html = renderToString(<InstitutionView rec={makeRecord()} nearby={[makeSummary()]} {...base} />);
+    const nearby = html.slice(html.indexOf('근처약국') - 300);
+    const actions = nearby.slice(nearby.indexOf('class="actions"'), nearby.indexOf('</li>'));
+    expect(actions).toContain('전화하기');
+    expect(actions).toContain('길찾기');
+  });
+
   test('inactive institution', () => {
     const html = renderToString(<InstitutionView rec={makeRecord({ isActive: false })} nearby={[makeSummary()]} {...base} />);
     expect(html).toContain('현재 운영 정보가 없습니다');

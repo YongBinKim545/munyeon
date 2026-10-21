@@ -4,9 +4,11 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { NameSearch } from './NameSearch';
 
 const replace = vi.fn();
+const back = vi.fn();
+const push = vi.fn();
 let search = new URLSearchParams();
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ replace }),
+  useRouter: () => ({ replace, back, push }),
   usePathname: () => '/search',
   useSearchParams: () => search,
 }));
@@ -19,39 +21,46 @@ const hits = {
 
 let fetchMock: ReturnType<typeof vi.fn>;
 beforeEach(() => {
-  vi.useFakeTimers();
   fetchMock = vi.fn(async () => new Response(JSON.stringify(hits)));
   vi.stubGlobal('fetch', fetchMock);
   navigator.sendBeacon = vi.fn(() => true);
   localStorage.clear();
   search = new URLSearchParams();
   replace.mockReset();
+  back.mockReset();
+  push.mockReset();
 });
 afterEach(() => {
   cleanup();
-  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
+/** 검색어를 넣고 [검색]을 누른다(D43: 입력 중에는 찾지 않는다) */
 async function type(q: string) {
   await act(async () => {
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: q } });
   });
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: '검색' }));
+  });
 }
 const settle = () => act(async () => {
-  await vi.advanceTimersByTimeAsync(300);
+  for (let i = 0; i < 5; i++) await Promise.resolve();
 });
 
 describe('NameSearch', () => {
-  test('one character does not search; two characters search once after 0.3s', async () => {
+  test('typing does not search; one character asks for two; the button searches once', async () => {
     await act(async () => {
       render(<NameSearch />);
     });
+    await act(async () => {
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: '망원' } });
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
     await type('망');
-    await settle();
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByText('두 글자 이상 입력하세요')).toBeTruthy();
     await type('망원');
-    expect(fetchMock).not.toHaveBeenCalled();
     await settle();
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]![0]).toBe(`/api/search?q=${encodeURIComponent('망원')}`);
@@ -85,6 +94,36 @@ describe('NameSearch', () => {
     await settle();
     const names = [...document.querySelectorAll('.search__row > a[href^="/"]')].map((a) => a.textContent?.split(' ')[0]);
     expect(names).toEqual(['가까운약국', '먼약국', '좌표없는약국']);
+  });
+
+  test('shows the loader while searching', async () => {
+    let release!: () => void;
+    fetchMock.mockImplementation(() => new Promise<Response>((r) => (release = () => r(new Response(JSON.stringify(hits))))));
+    await act(async () => {
+      render(<NameSearch />);
+    });
+    await type('망원');
+    expect(screen.getByRole('status').textContent).toContain('찾는 중');
+    await act(async () => {
+      release();
+    });
+    await settle();
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByText('망원온누리약국')).toBeTruthy();
+  });
+
+  test('close goes back when there is an in-app page before, otherwise to the main page', async () => {
+    const nav = await import('@/lib/navHistory');
+    nav.resetNavigation();
+    await act(async () => {
+      render(<NameSearch />);
+    });
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
+    expect(push).toHaveBeenCalledWith('/');
+    nav.noteNavigation('/');
+    nav.noteNavigation('/search');
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
+    expect(back).toHaveBeenCalled();
   });
 
   test('restores the query from the address', async () => {

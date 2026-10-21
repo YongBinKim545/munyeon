@@ -231,8 +231,24 @@ p { margin: 0.25rem 0; }
 /* 위치 검색 모달(D33): 휴대폰은 화면 전체, 768px부터 가운데 */
 .modal-backdrop { position: fixed; inset: 0; z-index: 40; background: var(--bg); }
 .modal { height: 100%; overflow-y: auto; padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); background: var(--bg); }
-.modal__head { display: flex; gap: 8px; align-items: center; position: sticky; top: 0; background: var(--bg); padding-bottom: 8px; }
-.modal__head .search__input { flex: 1; }
+/* 공통 검색 틀(D43): 윗줄 [입력칸][검색], 가운데 결과·로더, 맨 아래 전체 너비 [닫기] */
+.search-panel { display: flex; flex-direction: column; min-height: 100%; }
+.search-panel__head { display: flex; gap: 8px; align-items: center; position: sticky; top: 0; z-index: 1; background: var(--bg); padding-bottom: 8px; }
+.search-panel__head .search__input { flex: 1; min-width: 0; }
+.search-panel__head .btn { flex-shrink: 0; }
+.search-panel__body { flex: 1; }
+/* 모달 아래 여백까지 덮어, 붙어 있는 [닫기] 밑으로 목록이 비치지 않게 한다 */
+.search-panel__foot {
+  position: sticky; bottom: calc(-16px - env(safe-area-inset-bottom)); background: var(--bg);
+  padding: 8px 0 calc(16px + env(safe-area-inset-bottom)); margin: 8px 0 calc(-16px - env(safe-area-inset-bottom));
+}
+/* 이름 검색 행(목업): 1줄 이름, 2줄 종류·구·거리 */
+.search__row .muted { display: block; font-size: var(--fs-small); }
+.search-panel__foot .btn-wide { max-width: none; }
+.search-loading { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 48px 0; color: var(--text-sub); margin: 0; }
+.spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--call); border-radius: 50%; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.5s; } }
 .row-btn { display: block; width: 100%; min-height: var(--tap); text-align: left; background: none; border: 0; border-bottom: 1px solid var(--border); color: var(--text); font: inherit; cursor: pointer; }
 @media (min-width: 768px) {
   .modal-backdrop { background: rgb(0 0 0 / 40%); display: flex; align-items: flex-start; justify-content: center; padding-top: 10vh; }

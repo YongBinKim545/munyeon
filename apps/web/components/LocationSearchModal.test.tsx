@@ -29,6 +29,12 @@ async function open(recent = [{ label: '강남구 신사동', lat: 37.52, lon: 1
   return { onPick, onClose };
 }
 
+/** 검색어를 넣고 [검색]을 누른다(D43: 버튼·엔터로만 찾는다) */
+function search(q: string) {
+  fireEvent.change(screen.getByRole('searchbox'), { target: { value: q } });
+  fireEvent.click(screen.getByRole('button', { name: '검색' }));
+}
+
 describe('LocationSearchModal', () => {
   test('back closes modal only: opening adds one history entry and popstate closes', async () => {
     const before = history.length;
@@ -52,7 +58,7 @@ describe('LocationSearchModal', () => {
   test('Tab stays inside the modal', async () => {
     await open();
     const buttons = screen.getByRole('dialog').querySelectorAll('button');
-    const last = buttons[buttons.length - 1] as HTMLElement; // 최근 지역의 마지막 버튼
+    const last = buttons[buttons.length - 1] as HTMLElement; // 맨 아래 [닫기]
     last.focus();
     fireEvent.keyDown(document, { key: 'Tab' });
     expect(document.activeElement).toBe(screen.getByRole('searchbox'));
@@ -63,7 +69,7 @@ describe('LocationSearchModal', () => {
   test('picking a neighborhood passes its area after history goes back', async () => {
     vi.spyOn(history, 'back').mockImplementation(() => window.dispatchEvent(new PopStateEvent('popstate')));
     const { onPick, onClose } = await open();
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: '중앙' } });
+    search('중앙');
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: /중앙동/ }));
     });
@@ -84,9 +90,33 @@ describe('LocationSearchModal', () => {
     expect(onPick).toHaveBeenCalledWith({ label: '강남구 신사동', lat: 37.52, lon: 127.02 });
   });
 
+  test('typing alone does not search; the search button does', async () => {
+    await open();
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: '망원' } });
+    expect(screen.queryByRole('button', { name: /망원동/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '검색' }));
+    expect(screen.getByRole('button', { name: /망원동/ })).toBeTruthy();
+  });
+
+  test('searching before the neighborhood list arrives shows the loader', async () => {
+    let release!: () => void;
+    globalThis.fetch = vi.fn(() => new Promise<Response>((r) => (release = () => r(new Response(JSON.stringify(payload)))))) as typeof fetch;
+    vi.resetModules();
+    const { LocationSearchModal: Fresh } = await import('./LocationSearchModal');
+    await act(async () => {
+      render(<Fresh recent={[]} onPick={vi.fn()} onClose={vi.fn()} />);
+    });
+    search('망원');
+    expect(screen.getByRole('status').textContent).toContain('찾는 중');
+    await act(async () => {
+      release();
+    });
+    expect(screen.getByRole('button', { name: /망원동/ })).toBeTruthy();
+  });
+
   test('neighborhoods without coordinates are not offered', async () => {
     await open();
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: '좌표없' } });
+    search('좌표없');
     expect(screen.queryByRole('button', { name: /좌표없는동/ })).toBeNull();
     expect(screen.getByText('찾는 동네가 없어요')).toBeTruthy();
   });
