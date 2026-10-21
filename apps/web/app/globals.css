@@ -247,6 +247,9 @@ p { margin: 0.25rem 0; }
 /* 이름 검색 행(목업): 1줄 이름, 2줄 종류·구·거리 */
 .search__row .muted { display: block; font-size: var(--fs-small); }
 .search-panel__foot .btn-wide { max-width: none; }
+/* 키보드가 올라와 있는 동안 [닫기]를 검색창 바로 아래로(D45). 머리줄과 함께 위에 붙는다 */
+.search-panel__close-top { position: sticky; top: 60px; z-index: 1; background: var(--bg); padding-bottom: 8px; }
+.search-panel__close-top .btn-wide { max-width: none; }
 .search-loading { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 48px 0; color: var(--text-sub); margin: 0; }
 .spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--call); border-radius: 50%; animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -299,5 +302,7 @@ p { margin: 0.25rem 0; }
 .skeleton { height: 16px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); animation: skeleton-pulse 1.2s ease-in-out infinite alternate; }
 .skeleton--title { height: 28px; width: 60%; }
 .skeleton--short { width: 40%; }
+/* 미리 보기에 진료시간이 없을 때 시간표 자리(D45) */
+.skeleton--table { height: 240px; }
 @keyframes skeleton-pulse { from { opacity: 1; } to { opacity: 0.5; } }
 @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }

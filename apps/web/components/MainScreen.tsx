@@ -6,7 +6,7 @@ import { geoPermission, locate, startArea, type AreaSource } from '@/lib/locate'
 import { fetchMeta } from '@/lib/meta';
 import { areaLabel, buildView, kindOf, loadNearby, matcherOf, type CellCache, type FetchJson, type ListFilter } from '@/lib/nearby';
 import type { GridEntry } from '@/lib/grid';
-import { pushRecentArea, readFilter, readRecentAreas, saveFilter, saveLastCenter, type Area } from '@/lib/prefs';
+import { pushRecentArea, readFilter, readLastArea, readRecentAreas, saveFilter, saveLastArea, saveLastCenter, type Area } from '@/lib/prefs';
 import type { Kind } from '@/lib/seo';
 import { track } from '@/lib/track';
 import { LocationGuideModal, type GuideReason } from './LocationGuideModal';
@@ -89,10 +89,10 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
     });
   }, [applyGps]);
 
-  /** 들어올 때: 이미 허용한 브라우저만 현재 위치(권한 창 없음), 아니면 최근 지역 → 명동(D38) */
+  /** 들어올 때: 이미 허용한 브라우저만 현재 위치(권한 창 없음), 아니면 마지막으로 보던 지역 → 최근 지역 → 명동(D38·D45) */
   const chooseStartArea = useCallback(() => {
     const req = ++locateReq.current;
-    const fallback = () => req === locateReq.current && setCurrent(startArea({ ok: false, reason: 'denied' }, readRecentAreas()));
+    const fallback = () => req === locateReq.current && setCurrent(startArea({ ok: false, reason: 'denied' }, readRecentAreas(), readLastArea()));
     void geoPermission().then((state) => {
       if (req !== locateReq.current) return;
       if (state !== 'granted') return fallback();
@@ -167,6 +167,11 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
     () => current?.label ?? (current && view?.entries.length ? areaLabel(current.center, view.entries) : null),
     [current, view],
   );
+  // 이름이 정해진 지역은 마지막으로 보던 지역으로 저장해, 새로고침하면 여기서 시작한다(D45).
+  // 기본값(명동)은 사용자가 고른 곳이 아니라 저장하지 않는다(최근 지역이 있으면 그쪽이 먼저).
+  useEffect(() => {
+    if (current && label && current.source !== 'default') saveLastArea({ label, lat: current.center.lat, lon: current.center.lon });
+  }, [current, label]);
 
   const ctx = useMemo(() => ({ holidays }), [holidays]);
   const items = useMemo(

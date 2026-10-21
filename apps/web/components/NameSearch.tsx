@@ -5,6 +5,7 @@ import { Phone } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { rememberPreview } from '@/lib/detailPreview';
 import { hasPreviousPage } from '@/lib/navHistory';
 import { readLastCenter } from '@/lib/prefs';
 import { MIN_QUERY, normalizeQuery } from '@/lib/search';
@@ -102,7 +103,17 @@ export function NameSearch() {
           const tel = h.tel ? toTelHref(h.tel) : null;
           return (
             <li key={h.id} className="search__row">
-              <Link href={institutionPath(h.kind, h.id)} onClick={() => track('search_select', h.id, 'search')}>
+              <Link
+                href={institutionPath(h.kind, h.id)}
+                onClick={() => {
+                  track('search_select', h.id, 'search');
+                  // 상세를 즉시 그릴 수 있게 가진 정보를 넘긴다(진료시간은 없다, D45)
+                  rememberPreview({
+                    kind: h.kind, id: h.id, name: h.name, badge: h.badge, pediatric: false, tel: h.tel, hours: null,
+                    sido: h.sido, sigungu: h.sigungu, area: [h.sido, h.sigungu].filter(Boolean).join(' '), lat: h.lat, lon: h.lon, holidays: [],
+                  });
+                }}
+              >
                 {h.name}{' '}
                 <span className="muted">
                   {[h.badge, h.sigungu, h.distance !== null ? formatDistance(h.distance) : null].filter(Boolean).join(' · ')}

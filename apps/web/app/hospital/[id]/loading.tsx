@@ -1,1 +1,5 @@
-export { DetailLoading as default } from '@/components/DetailLoading';
+import { DetailLoading } from '@/components/DetailLoading';
+
+export default function Loading() {
+  return <DetailLoading kind="hospital" />;
+}

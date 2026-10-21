@@ -101,6 +101,34 @@ describe('MainScreen', () => {
     expect(screen.getByText('강남구 신사동')).toBeTruthy();
   });
 
+  test('refresh without granted permission starts at the area last seen by current location (D45)', async () => {
+    permission = 'prompt';
+    const s = server([makeRecord({ id: 'A', hours: OPEN, ...near(0.2) })], []);
+    await act(async () => {
+      render(<MainScreen fetchJson={s.fetchJson} />);
+    });
+    await flush();
+    expect(screen.getByText('중구 명동')).toBeTruthy();
+    // [현재 위치]로 찾으면 그 지역 이름이 붙고, 마지막으로 보던 지역으로 저장된다
+    permission = 'granted';
+    fireEvent.click(screen.getByRole('button', { name: /위치 찾기/ }));
+    fireEvent.click(screen.getByRole('button', { name: /현재 위치/ }));
+    await flush();
+    expect(screen.getByText('중구 태평로1가')).toBeTruthy();
+    expect(JSON.parse(localStorage.getItem('munyeon:lastArea')!)).toMatchObject({ label: '중구 태평로1가' });
+    expect(localStorage.getItem('munyeon:areas')).toBeNull();
+    // 새로고침: 사파리처럼 권한이 '이번만 허용'이라 다시 묻지 않으면, 명동이 아니라 마지막으로 보던 지역
+    cleanup();
+    permission = 'prompt';
+    geoCalls = 0;
+    await act(async () => {
+      render(<MainScreen fetchJson={s.fetchJson} />);
+    });
+    await flush();
+    expect(geoCalls).toBe(0);
+    expect(screen.getByText('중구 태평로1가')).toBeTruthy();
+  });
+
   test('find-location menu: current location asks, denied shows the guide, guide can open location search', async () => {
     permission = 'prompt';
     const s = server([], []);

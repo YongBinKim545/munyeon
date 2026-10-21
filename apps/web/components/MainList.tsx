@@ -6,8 +6,8 @@ import { MIN_VISIBLE, type ListFilter, type ViewItem } from '@/lib/nearby';
 import { EmergencyNote } from './EmergencyNote';
 import { ListCard } from './ListCard';
 
-/** 한 번에 그리는 카드 수. 끝에 닿으면 이어서 그린다([전체 보기] 뒤 수천 곳 대비). */
-export const PAGE_SIZE = 50;
+/** 처음 그리는 카드 수이자 [더 보기] 한 번에 늘리는 수(D45). 자동으로 이어 붙이지 않아 아래 지역 링크에 닿을 수 있다. */
+export const PAGE_SIZE = 10;
 
 interface Props {
   items: ViewItem[] | null;
@@ -29,18 +29,17 @@ interface Props {
 /** 메인 목록(D32): 구역 제목 없이 한 줄, 끝에 [전체 보기]. 지역·유형이 바뀌면 부모가 key로 새로 그린다. */
 export function MainList({ items, mode, now, ctx, holidayToday, loadingMore, onShowAll, failed, onRetry, filter, onNearbyHospitals }: Props) {
   const [limit, setLimit] = useState(PAGE_SIZE);
-  const sentinel = useRef<HTMLDivElement>(null);
+  /** [더 보기]로 새로 나온 첫 카드. 그 카드의 이름 링크로 포커스를 옮긴다 */
+  const focusFrom = useRef<number | null>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
   const total = items?.length ?? 0;
   useEffect(() => {
-    const el = sentinel.current;
-    if (!el || limit >= total || typeof IntersectionObserver === 'undefined') return;
-    const io = new IntersectionObserver((entries) => {
-      if (entries.some((e) => e.isIntersecting)) setLimit((l) => l + PAGE_SIZE);
-    }, { rootMargin: '600px' });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [limit, total]);
+    const from = focusFrom.current;
+    if (from === null) return;
+    focusFrom.current = null;
+    listRef.current?.querySelectorAll<HTMLElement>('[data-id] .card__name')[from]?.focus();
+  }, [limit]);
 
   if (!items) {
     return (
@@ -85,15 +84,22 @@ export function MainList({ items, mode, now, ctx, holidayToday, loadingMore, onS
           <EmergencyNote />
         </div>
       ) : null}
-      <ul className="cards cards--3 main-list">
+      <ul ref={listRef} className="cards cards--3 main-list">
         {shown.map((item) => (
           <ListCard key={item.id} item={item} now={now} ctx={ctx} />
         ))}
       </ul>
       {limit < total ? (
-        <div ref={sentinel} className="list-more">
-          <button type="button" className="btn btn-secondary" onClick={() => setLimit((l) => l + PAGE_SIZE)}>
-            더 보기
+        <div className="list-more">
+          <button
+            type="button"
+            className="btn btn-secondary btn-wide"
+            onClick={() => {
+              focusFrom.current = limit;
+              setLimit((l) => l + PAGE_SIZE);
+            }}
+          >
+            {Math.min(PAGE_SIZE, total - limit)}곳 더 보기 (남은 {total - limit}곳)
           </button>
         </div>
       ) : null}

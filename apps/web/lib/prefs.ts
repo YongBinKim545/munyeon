@@ -15,6 +15,7 @@ export interface Area {
 const KIND_KEY = 'munyeon:kind';
 const AREAS_KEY = 'munyeon:areas';
 const CENTER_KEY = 'munyeon:lastCenter';
+const LAST_AREA_KEY = 'munyeon:lastArea';
 export const MAX_RECENT_AREAS = 3;
 
 function read(key: string): string | null {
@@ -46,6 +47,23 @@ export function saveFilter(f: ListFilter): void {
 function isArea(a: unknown): a is Area {
   const x = a as Area;
   return !!x && typeof x.label === 'string' && Number.isFinite(x.lat) && Number.isFinite(x.lon);
+}
+
+/**
+ * 마지막으로 보던 지역(D45). 현재 위치로 찾은 곳도 이름이 정해지면 저장해, 새로고침하면 여기서 다시 시작한다.
+ * 위치 검색의 "최근 지역" 목록(직접 고른 곳)과는 따로 둔다. 이 브라우저에만 남는다.
+ */
+export function saveLastArea(a: Area): void {
+  write(LAST_AREA_KEY, JSON.stringify({ label: a.label, lat: a.lat, lon: a.lon }));
+}
+
+export function readLastArea(): Area | null {
+  try {
+    const a = JSON.parse(read(LAST_AREA_KEY) ?? 'null') as unknown;
+    return isArea(a) ? a : null;
+  } catch {
+    return null;
+  }
 }
 
 export function readRecentAreas(): Area[] {

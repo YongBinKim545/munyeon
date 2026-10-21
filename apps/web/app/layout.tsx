@@ -20,6 +20,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  // 안드로이드: 키보드가 열리면 화면이 줄어 맨 아래 [닫기]가 키보드 위로 올라오게 한다(D45, 아이폰은 SearchPanel이 처리)
+  interactiveWidget: 'resizes-content',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
     { media: '(prefers-color-scheme: dark)', color: '#0f141b' },

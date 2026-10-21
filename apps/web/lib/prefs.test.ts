@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { pushRecentArea, readFilter, readLastCenter, readRecentAreas, saveFilter, saveLastCenter } from './prefs';
+import { pushRecentArea, readFilter, readLastArea, readLastCenter, readRecentAreas, saveFilter, saveLastArea, saveLastCenter } from './prefs';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -38,6 +38,15 @@ describe('prefs', () => {
     expect(() => saveFilter('hospital')).not.toThrow();
     expect(() => pushRecentArea(area('x'))).not.toThrow();
     expect(readRecentAreas()).toEqual([]);
+  });
+
+  test('last viewed area (D45)', () => {
+    expect(readLastArea()).toBeNull();
+    saveLastArea({ label: '강서구 화곡동', lat: 37.541, lon: 126.84 });
+    expect(readLastArea()).toEqual({ label: '강서구 화곡동', lat: 37.541, lon: 126.84 });
+    expect(readRecentAreas()).toEqual([]); // 최근 지역 목록에는 넣지 않는다
+    localStorage.setItem('munyeon:lastArea', '{"label":1}');
+    expect(readLastArea()).toBeNull();
   });
 
   test('last center', () => {

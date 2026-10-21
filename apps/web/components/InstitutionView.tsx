@@ -1,5 +1,6 @@
 import { DAY_LABELS, formatRange, parseWeeklyHours } from '@munyeon/core';
-import type { InstitutionRecord, InstitutionSummary } from '@munyeon/db';
+import type { InstitutionRecord, InstitutionSummary, Kind } from '@munyeon/db';
+import type { ReactNode } from 'react';
 import { buildInstitutionJsonLd, serializeJsonLd } from '@/lib/jsonld';
 import { KIND_LABEL, regionPath } from '@/lib/seo';
 import { Badges } from './Badges';
@@ -14,7 +15,8 @@ import { WeeklyTable } from './WeeklyTable';
 
 interface Props {
   rec: InstitutionRecord;
-  nearby: InstitutionSummary[];
+  /** 근처 기관 구역. 서버가 나중에 따로 보내도록(Suspense) 페이지에서 만들어 넘긴다(D45) */
+  nearby: ReactNode;
   holidays: string[];
   lastSyncAt: Date | null;
   url: string;
@@ -24,6 +26,30 @@ interface Props {
 function weekendMeta(item: InstitutionSummary): string {
   const w = parseWeeklyHours(item.hours);
   return `${DAY_LABELS[7]} ${formatRange(w[7])} · ${DAY_LABELS[8]} ${formatRange(w[8])}`;
+}
+
+/** 근처 기관 목록. 없으면 그리지 않는다. */
+export function NearbyList({ kind, items }: { kind: Kind; items: InstitutionSummary[] }) {
+  if (items.length === 0) return null;
+  return (
+    <section>
+      <h2>근처 {KIND_LABEL[kind]}</h2>
+      <ul className="cards">
+        {items.map((n) => (
+          <InstitutionCard key={n.id} item={n} page="detail_nearby" meta={weekendMeta(n)} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** 근처 기관을 받는 동안의 자리(D45) */
+export function NearbyPending({ kind }: { kind: Kind }) {
+  return (
+    <p className="muted" role="status">
+      근처 {KIND_LABEL[kind]} 찾는 중…
+    </p>
+  );
 }
 
 /** 기관 상세(기능 정의서 4.1). 서버 컴포넌트이며 현재 상태는 LiveStatus만 계산한다. */
@@ -36,17 +62,7 @@ export function InstitutionView({ rec, nearby, holidays, lastSyncAt, url }: Prop
   }
   crumbs.push({ name: rec.name, href: url.replace(/^https?:\/\/[^/]+/, '') });
 
-  const nearbySection =
-    rec.hasGeom && nearby.length > 0 ? (
-      <section>
-        <h2>근처 {KIND_LABEL[rec.kind]}</h2>
-        <ul className="cards">
-          {nearby.map((n) => (
-            <InstitutionCard key={n.id} item={n} page="detail_nearby" meta={weekendMeta(n)} />
-          ))}
-        </ul>
-      </section>
-    ) : null;
+  const nearbySection = rec.hasGeom ? nearby : null;
 
   const header = (
     <>

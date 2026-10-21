@@ -2,9 +2,15 @@ import { DAY_LABELS, formatRange, hasAnyHours, parseWeeklyHours } from '@munyeon
 import type { Kind } from '@munyeon/db';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 import { loadHolidays, loadInstitution, loadLastSync, loadNearby } from '@/lib/data';
 import { institutionPath, SITE_URL } from '@/lib/seo';
-import { InstitutionView } from './InstitutionView';
+import { InstitutionView, NearbyList, NearbyPending } from './InstitutionView';
+
+/** 근처 기관은 거리 계산 쿼리라 느리다. 기관 정보를 먼저 보내고 이 구역은 나중에 보낸다(D45). */
+async function NearbySection({ kind, id }: { kind: Kind; id: string }) {
+  return <NearbyList kind={kind} items={await loadNearby(kind, id)} />;
+}
 
 /** 기관 상세 메타데이터: 제목·설명·canonical, 진료시간이 없거나 비활성이면 noindex(D6) */
 export async function institutionMetadata(kind: Kind, id: string): Promise<Metadata> {
@@ -25,11 +31,12 @@ export async function institutionMetadata(kind: Kind, id: string): Promise<Metad
 export async function InstitutionPage({ kind, id }: { kind: Kind; id: string }) {
   const rec = await loadInstitution(kind, id);
   if (!rec) notFound();
-  const [nearby, holidays, lastSyncAt] = await Promise.all([
-    rec.hasGeom ? loadNearby(kind, rec.id) : Promise.resolve([]),
-    loadHolidays(),
-    loadLastSync(kind),
-  ]);
+  const [holidays, lastSyncAt] = await Promise.all([loadHolidays(), loadLastSync(kind)]);
+  const nearby = (
+    <Suspense fallback={<NearbyPending kind={kind} />}>
+      <NearbySection kind={kind} id={rec.id} />
+    </Suspense>
+  );
   return (
     <InstitutionView rec={rec} nearby={nearby} holidays={holidays} lastSyncAt={lastSyncAt} url={SITE_URL + institutionPath(kind, rec.id)} />
   );

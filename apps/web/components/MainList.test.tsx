@@ -59,6 +59,14 @@ describe('MainList', () => {
     expect(screen.queryByText(/영업시간은 등록 기준이에요/)).toBeNull();
   });
 
+  test('tapping a card name hands its info to the detail preview (D45)', async () => {
+    const { readPreview, clearPreviews } = await import('@/lib/detailPreview');
+    clearPreviews();
+    renderList('open');
+    fireEvent.click(screen.getByRole('link', { name: '가까운약국' }));
+    expect(readPreview('pharmacy', 'OPEN_NEAR')).toMatchObject({ name: '가까운약국', hours: { dutyTime1s: '0900', dutyTime1c: '2300' } });
+  });
+
   test('call and directions sit in the same row', () => {
     renderList('open');
     const card = document.querySelector('[data-id="OPEN_NEAR"]')!;
@@ -106,14 +114,24 @@ describe('MainList', () => {
     expect(screen.getByText('평소 금요일엔 이 시간 영업')).toBeTruthy();
   });
 
-  test('renders in pages of 50', () => {
-    const many = decodeGrid(encodeGrid(Array.from({ length: 120 }, (_, i) =>
+  test('shows 10 first; the more button adds 10 and focuses the first new card; no automatic loading (D45)', () => {
+    const observe = vi.fn();
+    vi.stubGlobal('IntersectionObserver', vi.fn(() => ({ observe, disconnect: vi.fn() })));
+    const many = decodeGrid(encodeGrid(Array.from({ length: 25 }, (_, i) =>
       makeRecord({ id: `M${i}`, hours: { dutyTime1s: '0900', dutyTime1c: '2300' }, lat: center.lat + i * 0.0001, lon: center.lon }))), 'pharmacy');
     render(<MainList items={buildView(many, center, 3, now, ctx, 'open')} mode="open" now={now} ctx={ctx} holidayToday={false} loadingMore={false} onShowAll={vi.fn()} failed={false} onRetry={vi.fn()} />);
-    expect(ids()).toHaveLength(PAGE_SIZE);
+    expect(PAGE_SIZE).toBe(10);
+    expect(ids()).toHaveLength(10);
+    expect(observe).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: '전체 보기' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: '더 보기' }));
-    expect(ids()).toHaveLength(PAGE_SIZE * 2);
+    fireEvent.click(screen.getByRole('button', { name: '10곳 더 보기 (남은 15곳)' }));
+    expect(ids()).toHaveLength(20);
+    expect(document.activeElement?.closest('[data-id]')?.getAttribute('data-id')).toBe(ids()[10]);
+    fireEvent.click(screen.getByRole('button', { name: '5곳 더 보기 (남은 5곳)' }));
+    expect(ids()).toHaveLength(25);
+    expect(screen.queryByRole('button', { name: /더 보기/ })).toBeNull();
+    expect(screen.getByRole('button', { name: '전체 보기' })).toBeTruthy();
+    vi.unstubAllGlobals();
   });
 
   test('all cells failed: load error with retry instead of "nobody open"', () => {

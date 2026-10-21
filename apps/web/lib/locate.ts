@@ -61,11 +61,16 @@ export async function geoPermission(): Promise<PermissionState | 'unknown'> {
   }
 }
 
-export type AreaSource = 'gps' | 'recent' | 'default';
+export type AreaSource = 'gps' | 'last' | 'recent' | 'default';
 
-/** 시작 지점: 현재 위치 → 최근 지역 → 명동(D34). gps일 때 이름은 목록 데이터를 받은 뒤 붙인다. */
-export function startArea(result: LocateResult, recent: Area[]): { center: { lat: number; lon: number }; label: string | null; source: AreaSource } {
+/**
+ * 시작 지점: 현재 위치 → 마지막으로 보던 지역(D45) → 최근 지역 → 명동(D34). gps일 때 이름은 목록 데이터를 받은 뒤 붙인다.
+ */
+export function startArea(
+  result: LocateResult, recent: Area[], last: Area | null = null,
+): { center: { lat: number; lon: number }; label: string | null; source: AreaSource } {
   if (result.ok) return { center: { lat: result.lat, lon: result.lon }, label: null, source: 'gps' };
+  if (last) return { center: { lat: last.lat, lon: last.lon }, label: last.label, source: 'last' };
   const r = recent[0];
   if (r) return { center: { lat: r.lat, lon: r.lon }, label: r.label, source: 'recent' };
   return { center: { lat: MYEONGDONG.lat, lon: MYEONGDONG.lon }, label: MYEONGDONG.label, source: 'default' };
