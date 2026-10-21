@@ -79,7 +79,9 @@ p { margin: 0.25rem 0; }
   max-width: 1080px; margin: 0 auto; padding: 0 16px; height: 52px;
   display: flex; align-items: center; justify-content: space-between;
 }
-.logo { font-weight: 700; font-size: 18px; text-decoration: none; }
+.logo { font-weight: 700; font-size: 18px; text-decoration: none; display: inline-flex; align-items: center; }
+/* 가로형 로고는 높이 24px 이상(브랜드 규칙) */
+.logo img { display: block; height: 28px; width: auto; }
 .icon-btn {
   min-width: var(--tap); min-height: var(--tap); display: inline-flex; align-items: center; justify-content: center;
   background: none; border: 0; color: var(--text); font-size: 20px; cursor: pointer; text-decoration: none;
