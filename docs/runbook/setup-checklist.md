@@ -22,7 +22,7 @@
 
 | # | 할 일 | 어디서 | 결과물 |
 |---|---|---|---|
-| 1 | **도메인 구매** | 서비스명·도메인을 다시 정한 뒤(D40) 가비아·후이즈 등 .kr 등록업체(연 2만 원 안팎). `munyeon.kr`은 타인이 사용 중이라 쓰지 않는다 | 도메인 소유 |
+| 1 | **도메인 구매** | `findmedi.co.kr` — 가비아, 네임서버 가비아 기본(D44). `munyeon.kr`은 제3자가 사용 중이라 쓰지 않는다 | 완료(10-21) |
 | 5 | **prod 접속 문자열** | `munyeon-prod` → Connect → **Transaction pooler**(포트 6543) URI. GitHub Secrets·Vercel 환경변수에만 입력(7·8번). 내 PC의 `.env.local`에는 넣지 않는다 | — |
 
 ## 2. 배포 준비 (11-05까지)
@@ -30,22 +30,22 @@
 | # | 할 일 | 어디서 | 결과물 |
 |---|---|---|---|
 | 6 | **GitHub 공개 저장소** | https://github.com/YongBinKim545/munyeon (Public) | 완료(10-18, main push, CI 통과) |
-| 7 | **GitHub Secrets·Variables 입력** | 저장소 → Settings → Secrets and variables → Actions. Secrets: `DATA_GO_KR_KEY`(**완료**, Actions probe 성공), `DATABASE_URL`(**prod** Transaction pooler URI), `REVALIDATE_SECRET`(아무 긴 무작위 문자열, 8번에도 같은 값). Variables: `WEB_BASE_URL` = 우리 웹 주소(정식 도메인 확정 전에는 Vercel 운영 주소 `https://….vercel.app`). **남의 도메인을 넣지 않는다**(워커는 https `*.vercel.app`과 `OWN_DOMAINS`의 자체 도메인에만 보낸다). 그리고 DB가 준비된 뒤 `SYNC_ENABLED` = `true`(매시간 예약 실행 시작) | 매시간 동기화 |
+| 7 | **GitHub Secrets·Variables 입력** | 저장소 → Settings → Secrets and variables → Actions. Secrets: `DATA_GO_KR_KEY`(**완료**, Actions probe 성공), `DATABASE_URL`(**prod** Transaction pooler URI), `REVALIDATE_SECRET`(아무 긴 무작위 문자열, 8번에도 같은 값). Variables: `WEB_BASE_URL` = `https://findmedi.co.kr`. **`munyeon.kr` 같은 남의 도메인은 절대 넣지 않는다**(넣으면 `REVALIDATE_SECRET`이 제3자 서버로 간다. 이미 넣었던 적이 있으면 `REVALIDATE_SECRET`을 새 값으로 바꾸고 Vercel에도 같은 값). 워커는 https `*.vercel.app`과 `OWN_DOMAINS`(`findmedi.co.kr`, `www.findmedi.co.kr`)에만 보낸다. 그리고 DB가 준비된 뒤 `SYNC_ENABLED` = `true`(매시간 예약 실행 시작) | 매시간 동기화 |
 | 8 | **Vercel 가입, 저장소 import** | vercel.com, Hobby(무료). GitHub로 로그인 → Add New Project → 6번 저장소 → Root Directory `apps/web`. 환경변수: `DATABASE_URL`(prod pooler), `REVALIDATE_SECRET`(7번과 같은 값), `NEXT_PUBLIC_GA_ID`(9번) | 배포 주소 생성 |
-| 9 | **GA4 속성 생성, 문의 메일 정하기** | analytics.google.com → 속성 만들기 → 웹 스트림(정식 도메인) | 측정 ID(`G-` 로 시작)와 개인정보처리방침에 적을 문의 메일 — 둘 다 공개 값이라 채팅으로 알려줘도 됩니다. Vercel 환경변수 `NEXT_PUBLIC_GA_ID`, `NEXT_PUBLIC_CONTACT_EMAIL` |
+| 9 | **GA4 속성 생성, 문의 메일 정하기** | analytics.google.com → 속성 만들기 → 웹 스트림 `https://findmedi.co.kr` | 측정 ID(`G-` 로 시작)와 개인정보처리방침에 적을 문의 메일 — 둘 다 공개 값이라 채팅으로 알려줘도 됩니다. Vercel 환경변수 `NEXT_PUBLIC_GA_ID`, `NEXT_PUBLIC_CONTACT_EMAIL` |
 
 ## 3. 공개 직전 (11-13~11-20)
 
 | # | 할 일 | 어디서 | 결과물 |
 |---|---|---|---|
-| 10 | **도메인 연결** | Vercel 프로젝트 → Settings → Domains → 정식 도메인과 `www.` 추가 → 안내된 A/CNAME 레코드를 등록업체 DNS에 입력. 이어서 Vercel 환경변수 `NEXT_PUBLIC_SITE_URL`(정식 주소), GitHub 변수 `WEB_BASE_URL`을 정식 주소로 바꾸고, Claude가 워커 `OWN_DOMAINS`에 도메인을 추가 | 정식 주소 접속 |
-| 11 | **네이버 서치어드바이저 등록** | searchadvisor.naver.com → 사이트 등록 → HTML 태그 방식 → 메타 태그의 `content` 값을 Vercel 환경변수 `NAVER_SITE_VERIFICATION`에 입력 → 제가 재배포 → 소유 확인 → 사이트맵 `https://<정식 도메인>/sitemap.xml` 제출 | 네이버 색인 시작 |
-| 12 | **구글 Search Console 등록** | search.google.com/search-console → URL 접두어 `https://<정식 도메인>` → HTML 태그 → `content` 값을 `GOOGLE_SITE_VERIFICATION`에 입력 → 재배포 → 확인 → 사이트맵 제출 | 구글 색인 시작 |
+| 10 | **도메인 연결** | ① Vercel 프로젝트 → Settings → Domains에 `findmedi.co.kr`과 `www.findmedi.co.kr`을 먼저 추가 → ② Vercel이 보여 주는 A·CNAME 값을 가비아 DNS 관리에 입력 → ③ Vercel에서 두 도메인 모두 'Valid Configuration' 확인. 환경변수는 Vercel `NEXT_PUBLIC_SITE_URL=https://findmedi.co.kr`, GitHub 변수 `WEB_BASE_URL=https://findmedi.co.kr`(워커 `OWN_DOMAINS`에는 추가 완료) | `https://findmedi.co.kr` 접속 |
+| 11 | **네이버 서치어드바이저 등록** | searchadvisor.naver.com → 사이트 등록 → HTML 태그 방식 → 메타 태그의 `content` 값을 Vercel 환경변수 `NAVER_SITE_VERIFICATION`에 입력 → 제가 재배포 → 소유 확인 → 사이트맵 `https://findmedi.co.kr/sitemap.xml` 제출 | 네이버 색인 시작 |
+| 12 | **구글 Search Console 등록** | search.google.com/search-console → URL 접두어 `https://findmedi.co.kr` → HTML 태그 → `content` 값을 `GOOGLE_SITE_VERIFICATION`에 입력 → 재배포 → 확인 → 사이트맵 제출 | 구글 색인 시작 |
 
 ## 비용 요약
 
 | 항목 | 비용 |
 |---|---|
-| 도메인(재결정 중) | 연 2만 원 안팎 |
+| 도메인 `findmedi.co.kr`(가비아) | 연 2만 원 안팎 |
 | Supabase Free, Vercel Hobby, GitHub(공개 저장소), GA4 | 0원 |
 | 업그레이드 기준 | [DECISIONS D13](../DECISIONS.md): 수익·B2G 시작 또는 Vercel 사용량 80% → Vercel Pro 월 $20, Supabase 일시정지·용량 400MB·설 대비 → Supabase Pro 월 $25 |

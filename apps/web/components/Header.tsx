@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { noteNavigation } from '@/lib/navHistory';
+import { SITE_NAME } from '@/lib/seo';
 
 /**
  * 공통 헤더: 로고(메인) + 상호 검색(D27·D33).
@@ -19,7 +20,7 @@ export function Header() {
     <header className={isMain ? 'site-header site-header--static' : 'site-header'}>
       <div className="site-header__inner">
         <Link href="/" className="logo">
-          지금문연
+          {SITE_NAME}
         </Link>
         {isMain ? null : (
           <Link href="/search" className="icon-btn" aria-label="병원·약국 이름 검색">

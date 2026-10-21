@@ -8,7 +8,7 @@ export default function Privacy() {
     <main className="container">
       <h1>개인정보처리방침</h1>
       <p className="muted">시행일: 2026-11-20</p>
-      <p>지금문연(이하 &lsquo;서비스&rsquo;)은 회원가입이 없으며, 이용자를 식별할 수 있는 개인정보를 수집하지 않도록 설계했습니다.</p>
+      <p>찾아줘 메디(이하 &lsquo;서비스&rsquo;)은 회원가입이 없으며, 이용자를 식별할 수 있는 개인정보를 수집하지 않도록 설계했습니다.</p>
 
       <h2>1. 수집하는 정보</h2>
       <ul>

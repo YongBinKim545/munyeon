@@ -4,10 +4,10 @@ import type { Kind } from '@munyeon/db';
 export const MAX_REVALIDATE = 500;
 
 /**
- * 캐시 갱신 요청(비밀값 포함)을 보내도 되는 자체 도메인. 정식 도메인이 확정되면 여기에 추가한다.
- * 그전에는 우리 Vercel 배포(https://*.vercel.app)로만 보낸다(2026-10-21: 예정했던 도메인을 남이 사용 중).
+ * 캐시 갱신 요청(비밀값 포함)을 보내도 되는 자체 도메인(D44). 이 밖에는 우리 Vercel 배포(https://*.vercel.app)로만 보낸다.
+ * munyeon.kr은 제3자 사이트라 절대 넣지 않는다(D40).
  */
-export const OWN_DOMAINS: readonly string[] = [];
+export const OWN_DOMAINS: readonly string[] = ['findmedi.co.kr', 'www.findmedi.co.kr'];
 
 /** WEB_BASE_URL이 우리 웹인지: https이고 *.vercel.app 또는 자체 도메인 */
 export function isTrustedBaseUrl(baseUrl: string, ownDomains: readonly string[] = OWN_DOMAINS): boolean {

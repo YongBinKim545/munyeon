@@ -1,4 +1,4 @@
-# CLAUDE.md — 지금문연 (open-clinic-now)
+# CLAUDE.md — 찾아줘 메디 (open-clinic-now)
 
 지금 영업 중인 병원·약국을 찾아 원탭 전화로 확인하고, 그 확인 결과를 다음 사용자에게 남기는 서비스. 전체 개요는 [README.md](README.md).
 

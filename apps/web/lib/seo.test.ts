@@ -3,11 +3,11 @@ import { institutionPath, parseRegionParams, regionPath, safeDecode, siteUrl } f
 
 describe('siteUrl', () => {
   test('explicit site url wins, trailing slash removed', () =>
-    expect(siteUrl({ NEXT_PUBLIC_SITE_URL: 'https://example.com/', VERCEL_URL: 'x.vercel.app' })).toBe('https://example.com'));
+    expect(siteUrl({ NEXT_PUBLIC_SITE_URL: 'https://findmedi.co.kr/', VERCEL_URL: 'x.vercel.app' })).toBe('https://findmedi.co.kr'));
 
-  test('vercel production uses the project production host', () =>
+  test('vercel production without a setting uses the official domain', () =>
     expect(siteUrl({ VERCEL_ENV: 'production', VERCEL_PROJECT_PRODUCTION_URL: 'app.vercel.app', VERCEL_URL: 'app-abc.vercel.app' })).toBe(
-      'https://app.vercel.app',
+      'https://findmedi.co.kr',
     ));
 
   test('vercel preview uses the branch host, then the deployment host', () => {
@@ -17,7 +17,7 @@ describe('siteUrl', () => {
     expect(siteUrl({ VERCEL_ENV: 'preview', VERCEL_URL: 'app-abc.vercel.app' })).toBe('https://app-abc.vercel.app');
   });
 
-  test('no settings: localhost, never a fixed public domain', () => expect(siteUrl({})).toBe('http://localhost:3000'));
+  test('no settings: the official domain (D44)', () => expect(siteUrl({})).toBe('https://findmedi.co.kr'));
 });
 
 describe('paths', () => {

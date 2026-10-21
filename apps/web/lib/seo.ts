@@ -1,17 +1,23 @@
 import { SIDO_NAMES } from '@munyeon/core';
 
+/** 정식 도메인(D44, 2026-10-21 가비아 등록) */
+export const DEFAULT_SITE_URL = 'https://findmedi.co.kr';
+
 /**
- * canonical·사이트맵·구조화 데이터에 쓰는 사이트 주소. 정식 도메인은 확정 뒤 NEXT_PUBLIC_SITE_URL로만 넣는다.
- * 없으면 Vercel이 넣어 주는 자기 배포 주소, 그것도 없으면(로컬) localhost. 남의 도메인을 기본값으로 두지 않는다(2026-10-21).
+ * canonical·사이트맵·구조화 데이터에 쓰는 사이트 주소.
+ * NEXT_PUBLIC_SITE_URL이 있으면 그 값, Vercel 미리보기는 자기 배포 주소, 그 밖에는 정식 도메인(D44).
+ * 남의 도메인을 넣지 않는다(D40).
  */
 export function siteUrl(env: Record<string, string | undefined>): string {
   if (env.NEXT_PUBLIC_SITE_URL) return env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, '');
-  const host = env.VERCEL_ENV === 'production' ? env.VERCEL_PROJECT_PRODUCTION_URL : (env.VERCEL_BRANCH_URL ?? env.VERCEL_URL);
-  return host ? `https://${host}` : 'http://localhost:3000';
+  const preview = env.VERCEL_ENV === 'preview' ? (env.VERCEL_BRANCH_URL ?? env.VERCEL_URL) : undefined;
+  return preview ? `https://${preview}` : DEFAULT_SITE_URL;
 }
 
 export const SITE_URL = siteUrl(process.env);
-export const SITE_NAME = '지금문연';
+export const SITE_NAME = '찾아줘 메디';
+/** 소개 한 줄(D44) */
+export const SITE_TAGLINE = '지금 문 연 병원·약국을 찾아드려요';
 
 export type Kind = 'pharmacy' | 'hospital';
 export const KIND_LABEL: Record<Kind, string> = { pharmacy: '약국', hospital: '병원' };

@@ -2,12 +2,12 @@ import { GoogleAnalytics } from '@next/third-parties/google';
 import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import { Header } from '@/components/Header';
-import { SITE_NAME, SITE_URL } from '@/lib/seo';
+import { SITE_NAME, SITE_TAGLINE, SITE_URL } from '@/lib/seo';
 import './globals.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: `${SITE_NAME} — 지금 문 연 병원·약국 찾기`, template: `%s | ${SITE_NAME}` },
+  title: { default: `${SITE_NAME} — ${SITE_TAGLINE}`, template: `%s | ${SITE_NAME}` },
   description: '야간·휴일·명절에 지금 문 연 병원·약국을 찾고 원탭으로 전화해 확인하세요. 요일별·공휴일 진료시간 제공.',
   applicationName: SITE_NAME,
   formatDetection: { telephone: false },

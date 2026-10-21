@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { makeRecord } from './fixtures';
 import { buildInstitutionJsonLd, serializeJsonLd } from './jsonld';
 
-const url = 'https://example.com/pharmacy/C1100005';
+const url = 'https://findmedi.co.kr/pharmacy/C1100005';
 
 describe('buildInstitutionJsonLd', () => {
   test('pharmacy JSON-LD', () => {

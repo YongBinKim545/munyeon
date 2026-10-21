@@ -44,8 +44,12 @@ describe('requestRevalidate', () => {
 });
 
 describe('isTrustedBaseUrl', () => {
-  test('https vercel deployments only, until an own domain is added', () => {
+  test('https vercel deployments and our own domain only (D44)', () => {
     expect(isTrustedBaseUrl('https://app-git-x.vercel.app')).toBe(true);
+    expect(isTrustedBaseUrl('https://findmedi.co.kr')).toBe(true);
+    expect(isTrustedBaseUrl('https://www.findmedi.co.kr/')).toBe(true);
+    expect(isTrustedBaseUrl('http://findmedi.co.kr')).toBe(false);
+    expect(isTrustedBaseUrl('https://munyeon.kr')).toBe(false);
     expect(isTrustedBaseUrl('https://example.com')).toBe(false);
     expect(isTrustedBaseUrl('https://example.com', ['example.com'])).toBe(true);
     expect(isTrustedBaseUrl('http://example.com', ['example.com'])).toBe(false);

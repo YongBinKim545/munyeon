@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { SITE_NAME, SITE_TAGLINE } from '@/lib/seo';
 
 export const metadata: Metadata = { title: '소개', alternates: { canonical: '/about' } };
 
@@ -6,8 +7,9 @@ export default function About() {
   const contact = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
   return (
     <main className="container">
-      <h1>지금문연 소개</h1>
-      <p>지금문연은 야간·휴일·명절에 지금 문 연 병원·약국을 찾고, 한 번의 탭으로 전화해 확인할 수 있게 돕는 서비스입니다.</p>
+      <h1>{SITE_NAME} 소개</h1>
+      <p>{SITE_TAGLINE}.</p>
+      <p>{SITE_NAME}는 야간·휴일·명절에 지금 문 연 병원·약국을 찾고, 한 번의 탭으로 전화해 확인할 수 있게 돕는 서비스입니다.</p>
       <h2>데이터 출처</h2>
       <p>
         병·의원과 약국의 위치·전화번호·요일별 진료시간은 국립중앙의료원이 공공데이터포털에 제공하는 &lsquo;전국 병·의원 찾기 서비스&rsquo;와
