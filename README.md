@@ -57,21 +57,34 @@
 
 ### 로컬에서 확인 (배포 전)
 
-처음 한 번 전국 데이터를 로컬 DB(PGlite + PostGIS, `.pglite/`에 저장)로 받는다. 공공 API 11호출, 1분 안팎.
+기본은 **Supabase dev DB**를 쓴다(2026-10-21부터). `.env.local`에 `munyeon-dev`의 **Session pooler**(포트 5432) 접속 문자열을 `DATABASE_URL`로 **사용자가 직접** 넣는다. 비밀번호 자리의 `[ ]` 괄호는 지우고, 비밀번호에 `@ : / ? # %` 같은 문자가 있으면 URL 인코딩한다.
+
+처음 한 번 테이블을 만들고 전국 데이터를 받는다(공공 API 13호출, 몇 분).
 
 ```bash
-node apps/worker/src/dev-db.ts --real
+npm run db:migrate
 ```
 
-위 창을 켜 둔 채 다른 터미널에서 `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres npm run sync -- all` 을 실행하고, 끝나면 DB 창을 닫는다.
+```bash
+npm run sync -- all
+```
 
-그다음부터는 한 줄로 DB → 빌드 → 실행(포트 3001, 같은 와이파이의 휴대폰에서도 접속)까지 된다. 접속 주소가 화면에 나오고, `Ctrl + C`로 함께 꺼진다.
+```bash
+npm run sync -- holidays
+```
+
+그다음부터는 한 줄로 빌드 → 실행(포트 3001, 같은 와이파이의 휴대폰에서도 접속)까지 된다. 접속 주소가 화면에 나오고, `Ctrl + C`로 꺼진다.
 
 ```bash
 npm run local
 ```
 
 - 빌드 없이 다시 띄우기: `npm run local -- --no-build`
+- Supabase 무료 프로젝트는 1주일 쓰지 않으면 일시정지된다. 접속이 안 되면 대시보드에서 **Restore**를 누른다.
+- 인터넷 없이 로컬 DB(PGlite + PostGIS, `.pglite/`)로 띄우기: `npm run local -- --pglite`. `.env.local`에 `DATABASE_URL`이 없어도 로컬 DB로 뜬다. 로컬 DB에 데이터를 받으려면 `node apps/worker/src/dev-db.ts --real`을 켜 둔 채 다른 터미널에서 `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres npm run sync -- all`(셸에서 준 값이 `.env.local`보다 우선한다).
+
+로컬 DB(`--pglite`)를 쓸 때만 해당:
+
 - 끌 때는 `Ctrl + C` 한 번. 로컬 DB는 정상적으로 닫힌 뒤 꺼진다(강제로 끄면 `.pglite/`가 손상될 수 있다). 이미 켜져 있으면 두 번째 DB는 데이터 폴더를 열지 않고 멈춘다.
 - 로컬 DB(PGlite)는 세션이 하나라, 연결이 둘 이상 동시에 붙으면 쿼리가 섞인다(`bind message supplies … parameters` 오류). 웹 서버는 연결 하나만 쓰도록 되어 있으니, `npm run sync`처럼 다른 연결을 여는 작업은 웹을 끄고 실행한다. 실서비스 DB(진짜 Postgres)에는 이 제약이 없다.
 - 로컬 DB가 `RuntimeError: Aborted()`로 열리지 않으면 폴더가 손상된 것이다. `.pglite/`를 다른 이름(예: `.pglite.broken-날짜`)으로 바꾸고, 처음 받을 때처럼 `npm run sync -- all`과 `npm run sync -- holidays`로 다시 받는다(공공 API 13호출).

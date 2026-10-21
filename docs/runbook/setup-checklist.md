@@ -6,21 +6,24 @@
 ## 1. 지금 (로컬 실데이터 확인)
 
 > 2026-10-18 변경: Supabase 대신 로컬 DB(PGlite, `.pglite/`)로 먼저 확인한다. Supabase·도메인은 배포 단계로 옮겼다.
+> 2026-10-21 변경: Supabase dev·prod를 만들고, 로컬 확인(`npm run local`)은 dev DB를 기본으로 쓴다. 로컬 DB는 `--pglite`로 남긴다.
 
 | # | 할 일 | 어디서 | 상태 |
 |---|---|---|---|
 | 2 | **공공데이터포털 키 입력** | 저장소 루트 `.env`(또는 `.env.local`)에 `DATA_GO_KR_KEY=` + **Decoding 키** | 완료(10-18, probe 성공) |
 | 3 | **특일 정보 API 활용신청** | data.go.kr에서 '한국천문연구원_특일 정보' 활용신청(자동승인, 같은 키 사용). 없으면 기본 공휴일 목록만 씀 | 완료(10-19, 로컬에서 2026·2027년 46일 수신) |
 
-로컬 확인: `node apps/worker/src/dev-db.ts --real` → `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres npm run db:migrate` → `… npm run sync -- all`.
+| 4 | **Supabase 가입, 프로젝트 2개 생성** | supabase.com 무료 플랜(조직당 2개), `munyeon-dev`·`munyeon-prod`, **Region: Northeast Asia (Seoul)**. Security: **Data API 끄기**, Automatically expose new tables 끄기, **automatic RLS 켜기**. Extensions의 `postgis`·`pg_trgm`은 마이그레이션이 켠다 | 완료(10-21) |
+| 4-1 | **dev 접속 문자열** | `munyeon-dev` → Connect → Direct(Connection string) → Method **Session pooler**(포트 5432) URI. 저장소 루트 `.env.local`에 `DATABASE_URL=`로 입력. 비밀번호 자리의 `[ ]`는 지우고, 특수문자는 URL 인코딩 | `npm run local`이 dev DB 사용 |
+
+로컬 확인(2026-10-21부터 Supabase dev): `npm run db:migrate` → `npm run sync -- all` → `npm run sync -- holidays` → `npm run local`. 인터넷 없이 로컬 DB로는 `npm run local -- --pglite`([README](../../README.md)).
 
 ## 1-1. 배포 단계에 (11월 초~중순)
 
 | # | 할 일 | 어디서 | 결과물 |
 |---|---|---|---|
 | 1 | **도메인 `munyeon.kr` 구매** | 가비아·후이즈 등 .kr 등록업체(연 2만 원 안팎). 이름이 확정이면 일찍 사 둬도 좋다 | 도메인 소유 |
-| 4 | **Supabase 가입, 프로젝트 생성** | supabase.com 무료 플랜, `munyeon-prod`, **Region: Northeast Asia (Seoul)**. Extensions에서 **`postgis`, `pg_trgm` 켜기** | prod DB |
-| 5 | **prod 접속 문자열** | Supabase → Connect → **Transaction pooler**(포트 6543) URI. GitHub Secrets·Vercel 환경변수에만 입력(7·8번) | — |
+| 5 | **prod 접속 문자열** | `munyeon-prod` → Connect → **Transaction pooler**(포트 6543) URI. GitHub Secrets·Vercel 환경변수에만 입력(7·8번). 내 PC의 `.env.local`에는 넣지 않는다 | — |
 
 ## 2. 배포 준비 (11-05까지)
 
