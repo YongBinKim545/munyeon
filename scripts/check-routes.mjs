@@ -1,5 +1,5 @@
 // 메인·지역·기관·검색 페이지의 응답 코드, noindex, canonical, 캐시 HTML의 영업 상태 문구 유무를 점검한다.
-//   node scripts/check-routes.mjs [기본 http://localhost:3000 | https://munyeon.kr]
+//   node scripts/check-routes.mjs [기본 http://localhost:3000 | 배포 주소]
 // 메인의 상태 선택 메뉴에 '영업 중' 글자가 있으므로, 상태 문구는 '영업 중 ·'처럼 카드 문구 모양으로 찾는다.
 const base = process.argv[2] ?? 'http://localhost:3000';
 const LIVE = /영업 중 ·|영업 종료|곧 마감|곧 영업 ·|전화 확인 필요|24시간 영업/;

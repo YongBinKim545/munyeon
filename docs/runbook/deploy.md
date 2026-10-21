@@ -14,14 +14,14 @@
 | 5 | 사용자 | 체크리스트 6~9(GitHub 공개 저장소, Secrets, Vercel import, GA4) | — |
 | 6 | Claude | `git push` → Vercel 배포, prod에 `DATABASE_URL=… npm run db:migrate` (사용자가 터미널에서 실행하거나 일회성 Actions) | 배포 URL 200 |
 | 7 | Claude·사용자 | Actions `sync` 수동 실행: `probe`(**완료 10-18, 해외 러너 정상 응답**) → `all` → `holidays`. 이어서 저장소 변수 `SYNC_ENABLED=true`로 매시간 실행 시작 | 1만 행 페이지가 150초 안 |
-| 8 | 사용자 | 체크리스트 10(도메인 연결) | `https://munyeon.kr` 200 |
+| 8 | 사용자 | 체크리스트 10(도메인 연결) | 정식 주소 200 |
 | 9 | Claude | 공개 점검(2절) | 모두 통과 |
 | 10 | 사용자 | 체크리스트 11~12(서치어드바이저·Search Console 소유 확인, 사이트맵 제출) | 사이트맵 '성공' |
 
 ## 2. 공개 점검
 
 ```bash
-node scripts/check-routes.mjs https://munyeon.kr
+node scripts/check-routes.mjs https://<정식 도메인 또는 Vercel 주소>
 ```
 
 - 무작위 기관 20곳 200 응답, 없는 기관 404, 진료시간 없는 기관 `noindex`

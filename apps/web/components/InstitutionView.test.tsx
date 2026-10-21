@@ -5,7 +5,7 @@ import { InstitutionView } from './InstitutionView';
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...rest }: any) => <a href={href} {...rest}>{children}</a> }));
 
-const base = { holidays: ['2026-12-25'], lastSyncAt: new Date('2026-11-20T05:07:00Z'), url: 'https://munyeon.kr/pharmacy/C1100005' };
+const base = { holidays: ['2026-12-25'], lastSyncAt: new Date('2026-11-20T05:07:00Z'), url: 'https://example.com/pharmacy/C1100005' };
 
 describe('InstitutionView', () => {
   test('server HTML has no live status', () => {

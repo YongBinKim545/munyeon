@@ -6,18 +6,18 @@ describe('sitemap xml', () => {
 
   test('buildUrlset escapes and keeps encoded Korean paths', () => {
     const xml = buildUrlset([
-      { loc: 'https://munyeon.kr/pharmacy/C1', lastmod: new Date('2026-11-01T00:00:00Z') },
-      { loc: `https://munyeon.kr${encodeURI('/서울특별시/강남구')}?a=1&b=2` },
+      { loc: 'https://example.com/pharmacy/C1', lastmod: new Date('2026-11-01T00:00:00Z') },
+      { loc: `https://example.com${encodeURI('/서울특별시/강남구')}?a=1&b=2` },
     ]);
     expect(xml).toContain('<?xml version="1.0" encoding="UTF-8"?>');
-    expect(xml).toContain('<loc>https://munyeon.kr/pharmacy/C1</loc><lastmod>2026-11-01T09:00:00+09:00</lastmod>');
+    expect(xml).toContain('<loc>https://example.com/pharmacy/C1</loc><lastmod>2026-11-01T09:00:00+09:00</lastmod>');
     expect(xml).toContain('%EC%84%9C%EC%9A%B8');
     expect(xml).toContain('a=1&amp;b=2');
     expect(xml).not.toMatch(/[가-힣]/);
   });
 
   test('buildIndex lists files', () => {
-    const xml = buildIndex(['https://munyeon.kr/sitemaps/0.xml', 'https://munyeon.kr/sitemaps/1.xml'], new Date('2026-11-01T00:00:00Z'));
+    const xml = buildIndex(['https://example.com/sitemaps/0.xml', 'https://example.com/sitemaps/1.xml'], new Date('2026-11-01T00:00:00Z'));
     expect(xml).toContain('<sitemapindex');
     expect((xml.match(/<sitemap>/g) ?? []).length).toBe(2);
   });

@@ -1,5 +1,24 @@
 import { describe, expect, test } from 'vitest';
-import { institutionPath, parseRegionParams, regionPath, safeDecode } from './seo';
+import { institutionPath, parseRegionParams, regionPath, safeDecode, siteUrl } from './seo';
+
+describe('siteUrl', () => {
+  test('explicit site url wins, trailing slash removed', () =>
+    expect(siteUrl({ NEXT_PUBLIC_SITE_URL: 'https://example.com/', VERCEL_URL: 'x.vercel.app' })).toBe('https://example.com'));
+
+  test('vercel production uses the project production host', () =>
+    expect(siteUrl({ VERCEL_ENV: 'production', VERCEL_PROJECT_PRODUCTION_URL: 'app.vercel.app', VERCEL_URL: 'app-abc.vercel.app' })).toBe(
+      'https://app.vercel.app',
+    ));
+
+  test('vercel preview uses the branch host, then the deployment host', () => {
+    expect(siteUrl({ VERCEL_ENV: 'preview', VERCEL_BRANCH_URL: 'app-git-x.vercel.app', VERCEL_URL: 'app-abc.vercel.app' })).toBe(
+      'https://app-git-x.vercel.app',
+    );
+    expect(siteUrl({ VERCEL_ENV: 'preview', VERCEL_URL: 'app-abc.vercel.app' })).toBe('https://app-abc.vercel.app');
+  });
+
+  test('no settings: localhost, never a fixed public domain', () => expect(siteUrl({})).toBe('http://localhost:3000'));
+});
 
 describe('paths', () => {
   test('institution path', () => expect(institutionPath('pharmacy', 'C1100001')).toBe('/pharmacy/C1100001'));

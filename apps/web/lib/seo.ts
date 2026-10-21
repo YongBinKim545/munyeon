@@ -1,6 +1,16 @@
 import { SIDO_NAMES } from '@munyeon/core';
 
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://munyeon.kr';
+/**
+ * canonical·사이트맵·구조화 데이터에 쓰는 사이트 주소. 정식 도메인은 확정 뒤 NEXT_PUBLIC_SITE_URL로만 넣는다.
+ * 없으면 Vercel이 넣어 주는 자기 배포 주소, 그것도 없으면(로컬) localhost. 남의 도메인을 기본값으로 두지 않는다(2026-10-21).
+ */
+export function siteUrl(env: Record<string, string | undefined>): string {
+  if (env.NEXT_PUBLIC_SITE_URL) return env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, '');
+  const host = env.VERCEL_ENV === 'production' ? env.VERCEL_PROJECT_PRODUCTION_URL : (env.VERCEL_BRANCH_URL ?? env.VERCEL_URL);
+  return host ? `https://${host}` : 'http://localhost:3000';
+}
+
+export const SITE_URL = siteUrl(process.env);
 export const SITE_NAME = '지금문연';
 
 export type Kind = 'pharmacy' | 'hospital';
