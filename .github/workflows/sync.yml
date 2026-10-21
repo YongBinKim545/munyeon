@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       command:
-        description: 'all | hospital | pharmacy | holidays | probe'
+        description: 'all | hospital | pharmacy | holidays | probe | migrate'
         required: true
         default: probe
 concurrency:
@@ -46,5 +46,6 @@ jobs:
           else
             CMD=all
           fi
-          case "$CMD" in all|hospital|pharmacy|holidays|probe) ;; *) echo "unknown command"; exit 1 ;; esac
-          npm run sync -- "$CMD"
+          case "$CMD" in all|hospital|pharmacy|holidays|probe|migrate) ;; *) echo "unknown command"; exit 1 ;; esac
+          # migrate: DB 테이블 만들기·바꾸기(수동 실행 전용, 이미 적용된 파일은 건너뛴다)
+          if [ "$CMD" = "migrate" ]; then npm run db:migrate; else npm run sync -- "$CMD"; fi
