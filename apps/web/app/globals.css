@@ -275,3 +275,11 @@ p { margin: 0.25rem 0; }
 .guide-steps li { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: var(--radius); background: var(--surface); font-size: var(--fs-small); }
 .guide-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 @media (min-width: 768px) { .guide-actions { flex-direction: row; } .guide-actions > * { flex: 1; } }
+
+/* 기관 상세 첫 생성 중 틀(loading.tsx) */
+.detail-loading { display: grid; gap: 12px; padding: 16px 0; }
+.skeleton { height: 16px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); animation: skeleton-pulse 1.2s ease-in-out infinite alternate; }
+.skeleton--title { height: 28px; width: 60%; }
+.skeleton--short { width: 40%; }
+@keyframes skeleton-pulse { from { opacity: 1; } to { opacity: 0.5; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }

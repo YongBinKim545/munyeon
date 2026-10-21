@@ -94,6 +94,7 @@
 - 설명: 주소 + 일요일·공휴일 시간 요약(예: "일요일 10:00~14:00, 공휴일 정보 없음")
 - 구조화 데이터: schema.org `Pharmacy` / `MedicalClinic`, `openingHoursSpecification`(월~일, 정보 있는 요일만), `telephone`, `address`, `geo`
 - 캐시: 하루 단위 재생성(ISR). 진료시간이 바뀌면 사이트맵 `lastmod`가 바뀐다.
+- 처음 열리는 기관은 서버가 그 자리에서 페이지를 만들어 몇 초 걸릴 수 있다. 그동안 제목·줄 모양의 틀과 "정보를 불러오고 있어요…"를 바로 보여준다(2026-10-21, `loading.tsx`). 틀에는 영업 상태 문구를 넣지 않는다.
 
 ### 4.2 지역 랜딩 페이지 (`/r/{시도}/{시군구}/{pharmacy|hospital}/{all|sunday|holiday|night}`)
 
