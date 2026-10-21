@@ -78,6 +78,7 @@ export function MainList({ items, mode, now, ctx, holidayToday, loadingMore, onS
         </div>
       ) : null}
       {holidayToday ? <p className="holiday-strip">오늘은 공휴일 · 공휴일 진료시간 기준</p> : null}
+      {total > 0 ? <p className="muted list-basis">영업시간은 등록 기준이에요 · 방문 전 전화로 확인하세요</p> : null}
       {total === 0 && mode === 'open' && !loadingMore ? (
         <div className="empty">
           <p>{pediatric ? '등록 기준으로 지금 문 연 소아과가 없어요' : '등록 기준으로 지금 문 연 곳이 없어요'}</p>

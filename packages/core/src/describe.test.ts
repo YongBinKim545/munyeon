@@ -42,6 +42,14 @@ describe('describeStatus', () => {
   test('24h on holiday uses code 8', () => expect(d(allDay, '2026-12-25T23:50:00')).toMatchObject({ text: '24시간 영업 (등록 기준)', holiday: true }));
   test('24h today but tomorrow unknown closes at midnight', () =>
     expect(d({ dutyTime1s: '0000', dutyTime1c: '2400' }, '2026-10-19T23:30:00').text).toBe('곧 마감 · 30분 남음 (등록 기준)'));
+  test('list cards drop the basis suffix (D42); other states unchanged', () => {
+    const card = (raw: RawHours, at: string) => describeStatus(parseWeeklyHours(raw), kst(at), ctx, { basis: false }).text;
+    expect(card(weekday, '2026-10-19T10:00:00')).toBe('영업 중 · 오후 6시 마감');
+    expect(card(weekday, '2026-10-19T17:20:00')).toBe('곧 마감 · 40분 남음');
+    expect(card(allDay, '2026-10-19T12:00:00')).toBe('24시간 영업');
+    expect(card(weekday, '2026-10-19T08:00:00')).toBe('영업 전 · 오전 9시 시작');
+    expect(card(weekday, '2026-10-18T10:00:00')).toBe('오늘 정보 없음 — 전화로 확인');
+  });
   test('midnight close chained to next day early hours', () =>
     expect(d({ dutyTime1s: '0900', dutyTime1c: '2400', dutyTime2s: '0000', dutyTime2c: '0200' }, '2026-10-19T23:30:00').text)
       .toBe('영업 중 · 새벽 2시 마감 (등록 기준)'));

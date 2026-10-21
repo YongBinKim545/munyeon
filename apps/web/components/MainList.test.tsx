@@ -47,6 +47,18 @@ describe('MainList', () => {
     expect(screen.queryByText(/전체 보기로/)).toBeNull();
   });
 
+  test('cards drop "(등록 기준)"; the list says it once on top (D42)', () => {
+    renderList('open');
+    expect(document.querySelector('[data-id="OPEN_NEAR"] .card__status')!.textContent).toBe('영업 중 · 오후 11시 마감');
+    expect(document.querySelector('.main-list')!.textContent).not.toContain('등록 기준');
+    expect(screen.getAllByText('영업시간은 등록 기준이에요 · 방문 전 전화로 확인하세요')).toHaveLength(1);
+  });
+
+  test('no basis line when the list is empty', () => {
+    render(<MainList items={[]} mode="open" now={now} ctx={ctx} holidayToday={false} loadingMore={false} onShowAll={vi.fn()} failed={false} onRetry={vi.fn()} />);
+    expect(screen.queryByText(/영업시간은 등록 기준이에요/)).toBeNull();
+  });
+
   test('call and directions sit in the same row', () => {
     renderList('open');
     const card = document.querySelector('[data-id="OPEN_NEAR"]')!;
