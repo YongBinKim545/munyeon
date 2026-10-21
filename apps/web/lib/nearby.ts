@@ -5,6 +5,19 @@ import {
 import { decodeGrid, type GridEntry, type GridPayload } from './grid';
 import type { Kind } from './seo';
 
+/** 메인 유형(D41): 약국 / 병원(소아과 포함) / 소아과 */
+export type ListFilter = 'pharmacy' | 'hospital' | 'pediatric';
+
+/** 소아과·병원은 병원 격자를 받는다(같은 칸을 다시 받지 않는다) */
+export function kindOf(filter: ListFilter): Kind {
+  return filter === 'pharmacy' ? 'pharmacy' : 'hospital';
+}
+
+/** 소아과: 이름에 소아청소년과·소아과 또는 소아·아동·어린이·키즈가 들어간 일반 병·의원(격자의 pediatric 표시). 나머지는 거르지 않는다. */
+export function matcherOf(filter: ListFilter): ((e: GridEntry) => boolean) | undefined {
+  return filter === 'pediatric' ? (e) => e.pediatric : undefined;
+}
+
 /** 메인 목록 한 줄. 상태는 브라우저에서만 계산한다. */
 export interface ViewItem extends GridEntry {
   distanceM: number;
@@ -79,8 +92,10 @@ export function buildView(entries: GridEntry[], center: LatLon, radiusKm: number
   return orderList(items, mode);
 }
 
-export function visibleCount(entries: GridEntry[], center: LatLon, radiusKm: number, at: Date, ctx: StatusContext): number {
-  return buildView(entries, center, radiusKm, at, ctx, 'open').length;
+export function visibleCount(
+  entries: GridEntry[], center: LatLon, radiusKm: number, at: Date, ctx: StatusContext, match?: (e: GridEntry) => boolean,
+): number {
+  return buildView(match ? entries.filter(match) : entries, center, radiusKm, at, ctx, 'open').length;
 }
 
 export interface NearbyStep {
@@ -94,10 +109,12 @@ export interface NearbyStep {
 /**
  * 2단계 불러오기(D36): 1km 칸을 먼저 받아 알리고, 3km를 받아 알리고, 보여줄 곳이 5곳 미만이면 10km·25km로 넓힌다.
  * 서버로는 격자 번호만 간다(좌표 없음). isCurrent()가 false가 되면(지역·유형이 바뀜) 멈춘다.
+ * match가 있으면(소아과) 그 조건에 맞는 곳만 세어 넓힐지 정한다(D41).
  * 칸을 받지 못하면 더 넓히지 않고 멈춘다(실패한 채 넓히면 요청만 늘고, 빈 결과를 '없음'으로 오해하게 된다).
  */
 export async function loadNearby(opts: {
   kind: Kind;
+  match?: (e: GridEntry) => boolean;
   center: LatLon;
   at: () => Date;
   ctx: StatusContext;
@@ -114,7 +131,7 @@ export async function loadNearby(opts: {
   for (const [i, r] of RADII_KM.entries()) {
     const { entries, failed } = await loadCells(kind, cellUrls(kind, center, r, 'coarse'), cache, fetchJson);
     if (!current()) return;
-    const last = failed > 0 || i === RADII_KM.length - 1 || visibleCount(entries, center, r, opts.at(), opts.ctx) >= MIN_VISIBLE;
+    const last = failed > 0 || i === RADII_KM.length - 1 || visibleCount(entries, center, r, opts.at(), opts.ctx, opts.match) >= MIN_VISIBLE;
     onStep({ entries, radiusKm: r, done: last, failed });
     if (last) return;
   }

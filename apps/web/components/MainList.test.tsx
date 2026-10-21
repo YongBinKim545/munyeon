@@ -63,6 +63,27 @@ describe('MainList', () => {
     expect(document.querySelector('a[href^="tel:119"]')).toBeNull();
   });
 
+  test('pediatric: empty text names pediatrics; few open places offer nearby hospitals once loading ends', () => {
+    const onNearbyHospitals = vi.fn();
+    const props = { now, ctx, holidayToday: false, onShowAll: vi.fn(), failed: false, onRetry: vi.fn(), filter: 'pediatric' as const, onNearbyHospitals };
+    const { rerender } = render(<MainList items={[]} mode="open" loadingMore {...props} />);
+    expect(screen.queryByRole('button', { name: /가까운 병원 보기/ })).toBeNull();
+    rerender(<MainList items={[]} mode="open" loadingMore={false} {...props} />);
+    expect(screen.getByText('등록 기준으로 지금 문 연 소아과가 없어요')).toBeTruthy();
+    expect(screen.getByText('가까운 곳에 지금 문 연 소아과가 적어요')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /가까운 병원 보기/ }));
+    expect(onNearbyHospitals).toHaveBeenCalled();
+    // 펼친 뒤(전체)에도 영업 중인 곳 수로 판단한다
+    rerender(<MainList items={buildView(entries, center, 3, now, ctx, 'all')} mode="all" loadingMore={false} {...props} />);
+    expect(screen.getByRole('button', { name: /가까운 병원 보기/ })).toBeTruthy();
+  });
+
+  test('pharmacy and hospital lists never offer the hospital switch', () => {
+    render(<MainList items={[]} mode="open" now={now} ctx={ctx} holidayToday={false} loadingMore={false} onShowAll={vi.fn()} failed={false} onRetry={vi.fn()} filter="hospital" onNearbyHospitals={vi.fn()} />);
+    expect(screen.getByText('등록 기준으로 지금 문 연 곳이 없어요')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /가까운 병원 보기/ })).toBeNull();
+  });
+
   test('holiday strip and holidayUsual badge', () => {
     const hctx = { holidays: new Set(['2026-12-25']) };
     const hnow = new Date('2026-12-25T10:00:00+09:00');

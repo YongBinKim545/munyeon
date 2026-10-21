@@ -4,9 +4,9 @@ import { kstParts, type LatLon } from '@munyeon/core';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { geoPermission, locate, startArea, type AreaSource } from '@/lib/locate';
 import { fetchMeta } from '@/lib/meta';
-import { areaLabel, buildView, loadNearby, type CellCache, type FetchJson } from '@/lib/nearby';
+import { areaLabel, buildView, kindOf, loadNearby, matcherOf, type CellCache, type FetchJson, type ListFilter } from '@/lib/nearby';
 import type { GridEntry } from '@/lib/grid';
-import { pushRecentArea, readKind, readRecentAreas, saveKind, saveLastCenter, type Area } from '@/lib/prefs';
+import { pushRecentArea, readFilter, readRecentAreas, saveFilter, saveLastCenter, type Area } from '@/lib/prefs';
 import type { Kind } from '@/lib/seo';
 import { track } from '@/lib/track';
 import { LocationGuideModal, type GuideReason } from './LocationGuideModal';
@@ -39,13 +39,15 @@ function findAnchor(list: HTMLElement | null, forItems: unknown): Anchor | null 
 }
 
 /**
- * 메인 = 현재 위치 기준 목록(D31·D32·D34·D36·D38). 목록과 지역 이름은 브라우저에서만 그린다.
+ * 메인 = 현재 위치 기준 목록(D31·D32·D34·D36·D38·D41). 목록과 지역 이름은 브라우저에서만 그린다.
+ * 유형은 약국 / 병원 / 소아과. 목록은 늘 영업 중으로 시작하고 [전체 보기]로 펼친다(유형·지역을 바꾸면 다시 영업 중).
  * 위치 권한은 [현재 위치]를 눌렀을 때만 묻는다. 이미 허용한 브라우저는 들어올 때 자동으로 현재 위치를 쓴다.
  * 늦게 온 데이터도 순서 규칙대로 제자리에 넣고, 보고 있는 카드는 화면에서 움직이지 않게 스크롤을 보정한다.
  */
 export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetchJson?: FetchJson; holidays?: string[] }) {
-  const [kind, setKind] = useState<Kind>('pharmacy');
-  const [mode, setMode] = useState<'open' | 'all'>('open');
+  const [filter, setFilter] = useState<ListFilter>('pharmacy');
+  /** [전체 보기]를 누른 목록의 loadKey. 유형·지역을 고르면 지워져 다시 영업 중 목록이 된다 */
+  const [showAllKey, setShowAllKey] = useState<string | null>(null);
   const [recent, setRecent] = useState<Area[]>([]);
   const [current, setCurrent] = useState<Current | null>(null);
   const [guide, setGuide] = useState<GuideReason | null>(null);
@@ -70,6 +72,7 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
   }, []);
 
   const applyGps = useCallback((lat: number, lon: number) => {
+    setShowAllKey(null);
     setCurrent({ center: { lat, lon }, label: null, source: 'gps' });
     setPcNote(window.matchMedia?.('(pointer: fine) and (hover: hover)').matches ?? false);
   }, []);
@@ -105,7 +108,7 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
   useEffect(() => {
     // 저장값은 브라우저에만 있으므로 하이드레이션 뒤에 읽는다(서버 HTML과 첫 렌더를 맞춘다)
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setKind(readKind());
+    setFilter(readFilter());
     setRecent(readRecentAreas());
     void fetchMeta().then((m) => {
       if (m) setHolidays(new Set(m.holidays)); // 실패하면 HTML에 담겨 온 목록을 그대로 쓴다
@@ -124,13 +127,17 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
 
   // 지역·유형이 바뀌면 1km → 3km → (부족하면 10·25km) 차례로 받는다(D36)
   const centerKey = current ? `${current.center.lat},${current.center.lon}` : '';
-  const loadKey = `${centerKey}|${kind}`;
+  const kind = kindOf(filter);
+  const match = useMemo(() => matcherOf(filter), [filter]);
+  const loadKey = `${centerKey}|${filter}`;
+  const mode = showAllKey === loadKey ? 'all' : 'open';
   useEffect(() => {
     if (!current) return;
     let alive = true;
     saveLastCenter(current.center);
     void loadNearby({
       kind,
+      match,
       center: current.center,
       at: () => new Date(),
       ctx: { holidays },
@@ -163,8 +170,8 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
 
   const ctx = useMemo(() => ({ holidays }), [holidays]);
   const items = useMemo(
-    () => (current && view ? buildView(view.entries, current.center, view.radiusKm, now, ctx, mode) : null),
-    [current, view, now, ctx, mode],
+    () => (current && view ? buildView(match ? view.entries.filter(match) : view.entries, current.center, view.radiusKm, now, ctx, mode) : null),
+    [current, view, now, ctx, mode, match],
   );
 
   // 보던 카드의 화면 위치가 그대로 남도록 스크롤을 보정한다(사파리는 자동 보정이 없다)
@@ -180,9 +187,16 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
     if (diff !== 0) window.scrollBy(0, diff);
   }, [items]);
 
+  const chooseFilter = (f: ListFilter) => {
+    saveFilter(f);
+    setShowAllKey(null);
+    setFilter(f);
+  };
+
   const pickArea = (a: Area) => {
     locateReq.current += 1;
     setRecent(pushRecentArea(a));
+    setShowAllKey(null);
     setCurrent({ center: { lat: a.lat, lon: a.lon }, label: a.label, source: 'manual' });
   };
 
@@ -191,13 +205,8 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
       <MainHeader
         areaLabel={label}
         pcLocationNote={pcNote && current?.source === 'gps'}
-        kind={kind}
-        mode={mode}
-        onKind={(k) => {
-          saveKind(k);
-          setKind(k);
-        }}
-        onMode={setMode}
+        filter={filter}
+        onFilter={chooseFilter}
         onCurrentLocation={requestLocation}
         onOpenLocationSearch={() => setModalOpen(true)}
       />
@@ -214,8 +223,10 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
           onRetry={() => setRetry((n) => n + 1)}
           onShowAll={() => {
             track('show_all', null, 'home');
-            setMode('all');
+            setShowAllKey(loadKey);
           }}
+          filter={filter}
+          onNearbyHospitals={() => chooseFilter('hospital')}
         />
       </div>
       {modalOpen ? (

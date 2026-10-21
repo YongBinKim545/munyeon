@@ -68,7 +68,7 @@ describe('MainScreen', () => {
     expect(html).toContain('가까운 곳을 찾고 있어요');
   });
 
-  test('already-granted browsers start at current location with remembered kind and status always open-only', async () => {
+  test('already-granted browsers start at current location with the remembered type, no status select', async () => {
     localStorage.setItem('munyeon:kind', 'hospital');
     const s = server([makeRecord({ id: 'A', kind: 'hospital', category: 'general', hours: OPEN, ...near(0.2) })], []);
     await act(async () => {
@@ -76,7 +76,7 @@ describe('MainScreen', () => {
     });
     await flush();
     expect(screen.getByRole('combobox', { name: '유형' })).toHaveProperty('value', 'hospital');
-    expect(screen.getByRole('combobox', { name: '상태' })).toHaveProperty('value', 'open');
+    expect(screen.queryByRole('combobox', { name: '상태' })).toBeNull();
     expect(s.urls[0]).toMatch(/^\/api\/grid\/hospital\/f\d+_\d+$/);
     expect(ids()).toEqual(['A']);
     expect(screen.getByText('중구 태평로1가')).toBeTruthy();
@@ -205,7 +205,7 @@ describe('MainScreen', () => {
     Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
   });
 
-  test('show all switches the status select to all and appends closed places', async () => {
+  test('show all appends closed places; changing the type returns to open-only', async () => {
     const s = server([], [
       makeRecord({ id: 'O', hours: OPEN, ...near(0.3) }),
       makeRecord({ id: 'X', hours: { dutyTime1s: '0900', dutyTime1c: '1800' }, ...near(0.1) }),
@@ -218,8 +218,40 @@ describe('MainScreen', () => {
     await flush();
     expect(ids()).not.toContain('X');
     fireEvent.click(screen.getByRole('button', { name: '전체 보기' }));
-    expect(screen.getByRole('combobox', { name: '상태' })).toHaveProperty('value', 'all');
+    expect(screen.queryByRole('button', { name: '전체 보기' })).toBeNull();
     expect(ids().at(-1)).toBe('X');
     expect(ids()[0]).toBe('O');
+    await act(async () => {
+      fireEvent.change(screen.getByRole('combobox', { name: '유형' }), { target: { value: 'hospital' } });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByRole('combobox', { name: '유형' }), { target: { value: 'pharmacy' } });
+    });
+    await flush();
+    expect(ids()).not.toContain('X');
+    expect(screen.getByRole('button', { name: '전체 보기' })).toBeTruthy();
+  });
+
+  test('pediatric shows pediatric hospitals only; few open ones offer nearby hospitals, which switches the type', async () => {
+    const hosp = (id: string, pediatricName: boolean, km: number) =>
+      makeRecord({ id, kind: 'hospital', category: 'general', pediatricName, hours: OPEN, ...near(km) });
+    const rows = [hosp('P', true, 0.4), hosp('H1', false, 0.2), hosp('H2', false, 0.3)];
+    const s = server(rows, rows);
+    s.release();
+    localStorage.setItem('munyeon:kind', 'pediatric');
+    await act(async () => {
+      render(<MainScreen fetchJson={s.fetchJson} />);
+    });
+    await flush();
+    expect(screen.getByRole('combobox', { name: '유형' })).toHaveProperty('value', 'pediatric');
+    expect(ids()).toEqual(['P']);
+    expect(s.urls.every((u) => u.includes('/hospital/'))).toBe(true);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /가까운 병원 보기/ }));
+    });
+    await flush();
+    expect(screen.getByRole('combobox', { name: '유형' })).toHaveProperty('value', 'hospital');
+    expect(ids()).toEqual(['H1', 'H2', 'P']);
+    expect(localStorage.getItem('munyeon:kind')).toBe('hospital');
   });
 });

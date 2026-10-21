@@ -1,7 +1,9 @@
 import { describe, expect, test, vi } from 'vitest';
 import { makeRecord } from './fixtures';
 import { decodeGrid, encodeGrid, type GridPayload } from './grid';
-import { areaLabel, cellUrls, formatArea, loadCells, loadNearby, type CellCache, type NearbyStep } from './nearby';
+import {
+  areaLabel, cellUrls, formatArea, kindOf, loadCells, loadNearby, matcherOf, type CellCache, type ListFilter, type NearbyStep,
+} from './nearby';
 
 const center = { lat: 37.5637, lon: 126.9838 }; // 명동
 const at = new Date('2026-10-19T10:00:00+09:00'); // 월요일
@@ -18,6 +20,24 @@ function server(rows: ReturnType<typeof makeRecord>[]) {
   });
   return { urls, fetchJson };
 }
+
+describe('list filter (D41)', () => {
+  const entry = (kind: 'pharmacy' | 'hospital', pediatric: boolean) => decodeGrid(encodeGrid([makeRecord({ kind, category: kind === 'pharmacy' ? 'pharmacy' : 'general', pediatricName: pediatric })]), kind)[0]!;
+
+  test('pediatric and hospital read hospital cells', () => {
+    expect(kindOf('pharmacy')).toBe('pharmacy');
+    expect(kindOf('hospital')).toBe('hospital');
+    expect(kindOf('pediatric')).toBe('hospital');
+  });
+
+  test('hospital includes pediatric; pediatric keeps only pediatric names', () => {
+    expect(matcherOf('hospital')).toBeUndefined();
+    expect(matcherOf('pharmacy')).toBeUndefined();
+    const ped = matcherOf('pediatric')!;
+    expect(ped(entry('hospital', true))).toBe(true);
+    expect(ped(entry('hospital', false))).toBe(false);
+  });
+});
 
 describe('cellUrls', () => {
   test('requests carry grid ids only', () => {
@@ -75,6 +95,22 @@ describe('loadNearby', () => {
     const steps: NearbyStep[] = [];
     await loadNearby({ kind: 'pharmacy', center, at: () => at, ctx, cache: new Map(), fetchJson, onStep: (s) => steps.push(s) });
     expect(steps.map((s) => [s.radiusKm, s.done, s.failed])).toEqual([[1, false, 0], [3, true, 1]]);
+  });
+
+  test('pediatric widening counts pediatric places only', async () => {
+    const hosp = (id: string, pediatricName: boolean) =>
+      makeRecord({ id, kind: 'hospital', category: 'general', pediatricName, hours: open, lat: center.lat, lon: center.lon });
+    const rows = [hosp('P1', true), ...[1, 2, 3, 4, 5, 6].map((i) => hosp(`H${i}`, false))];
+    const run = async (filter: ListFilter) => {
+      const steps: NearbyStep[] = [];
+      await loadNearby({
+        kind: kindOf(filter), match: matcherOf(filter), center, at: () => at, ctx, cache: new Map(), fetchJson: server(rows).fetchJson,
+        onStep: (s) => steps.push(s),
+      });
+      return steps.map((s) => s.radiusKm);
+    };
+    expect(await run('hospital')).toEqual([1, 3]);
+    expect(await run('pediatric')).toEqual([1, 3, 10, 25]);
   });
 
   test('stops when no longer current', async () => {

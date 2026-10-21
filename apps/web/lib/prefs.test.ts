@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { pushRecentArea, readKind, readLastCenter, readRecentAreas, saveKind, saveLastCenter } from './prefs';
+import { pushRecentArea, readFilter, readLastCenter, readRecentAreas, saveFilter, saveLastCenter } from './prefs';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -10,10 +10,14 @@ afterEach(() => {
 const area = (label: string) => ({ label, lat: 37.5, lon: 127 });
 
 describe('prefs', () => {
-  test('kind defaults to pharmacy and remembers the last choice', () => {
-    expect(readKind()).toBe('pharmacy');
-    saveKind('hospital');
-    expect(readKind()).toBe('hospital');
+  test('filter defaults to pharmacy and remembers the last choice (pharmacy, hospital, pediatric)', () => {
+    expect(readFilter()).toBe('pharmacy');
+    saveFilter('hospital');
+    expect(readFilter()).toBe('hospital');
+    saveFilter('pediatric');
+    expect(readFilter()).toBe('pediatric');
+    localStorage.setItem('munyeon:kind', 'dental');
+    expect(readFilter()).toBe('pharmacy');
   });
 
   test('recent areas keep 3, newest first, no duplicates', () => {
@@ -30,8 +34,8 @@ describe('prefs', () => {
     expect(readRecentAreas().map((a) => a.label)).toEqual(['ok']);
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
-    expect(readKind()).toBe('pharmacy');
-    expect(() => saveKind('hospital')).not.toThrow();
+    expect(readFilter()).toBe('pharmacy');
+    expect(() => saveFilter('hospital')).not.toThrow();
     expect(() => pushRecentArea(area('x'))).not.toThrow();
     expect(readRecentAreas()).toEqual([]);
   });

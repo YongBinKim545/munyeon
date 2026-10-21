@@ -3,24 +3,22 @@
 import { ChevronDown, LocateFixed, MapPin, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import type { Kind } from '@/lib/seo';
+import type { ListFilter } from '@/lib/nearby';
 
 interface Props {
   /** null이면 위치를 찾는 중 */
   areaLabel: string | null;
   /** 현재 위치가 PC에서 잡혔을 때 안내 */
   pcLocationNote: boolean;
-  kind: Kind;
-  mode: 'open' | 'all';
-  onKind: (k: Kind) => void;
-  onMode: (m: 'open' | 'all') => void;
+  filter: ListFilter;
+  onFilter: (f: ListFilter) => void;
   onCurrentLocation: () => void;
   onOpenLocationSearch: () => void;
 }
 
 /**
- * 메인 전용 헤더(D31·D38): 1줄 📍 지역 이름 + [위치 찾기 ▾](현재 위치 / 위치 검색), 2줄 [약국 ▾] [영업 중 ▾] [검색].
- * '유형'·'상태' 글자는 화면에 보이지 않고 화면 낭독기용 이름으로만 둔다.
+ * 메인 전용 헤더(D31·D38·D41): 1줄 📍 지역 이름 + [위치 찾기 ▾](현재 위치 / 위치 검색), 2줄 [약국 ▾] [검색].
+ * 유형은 약국 / 병원 / 소아과. '유형' 글자는 화면에 보이지 않고 화면 낭독기용 이름으로만 둔다.
  */
 export function MainHeader(p: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -86,16 +84,10 @@ export function MainHeader(p: Props) {
       {p.pcLocationNote ? <p className="muted area__note">PC는 위치가 부정확할 수 있어요</p> : null}
       <div className="filters">
         <span className="select-wrap">
-          <select aria-label="유형" className="select" value={p.kind} onChange={(e) => p.onKind(e.target.value as Kind)}>
+          <select aria-label="유형" className="select" value={p.filter} onChange={(e) => p.onFilter(e.target.value as ListFilter)}>
             <option value="pharmacy">약국</option>
             <option value="hospital">병원</option>
-          </select>
-          <ChevronDown aria-hidden="true" size={16} className="select-wrap__icon" />
-        </span>
-        <span className="select-wrap">
-          <select aria-label="상태" className="select" value={p.mode} onChange={(e) => p.onMode(e.target.value as 'open' | 'all')}>
-            <option value="open">영업 중</option>
-            <option value="all">전체</option>
+            <option value="pediatric">소아과</option>
           </select>
           <ChevronDown aria-hidden="true" size={16} className="select-wrap__icon" />
         </span>

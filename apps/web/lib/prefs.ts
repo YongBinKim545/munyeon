@@ -1,9 +1,9 @@
-import type { Kind } from './seo';
+import type { ListFilter } from './nearby';
 
 /**
  * 브라우저에만 저장하는 값(D34). 서버로 보내지 않는다.
  * 저장소가 막혀 있으면(사생활 보호 모드 등) 기본값으로 동작한다.
- * 상태(영업 중/전체)는 저장하지 않는다 — 들어올 때마다 '영업 중'.
+ * 목록은 들어올 때마다 영업 중으로 시작한다([전체 보기]는 저장하지 않는다).
  */
 export interface Area {
   /** '마포구 망원동' */
@@ -33,12 +33,14 @@ function write(key: string, value: string): void {
   }
 }
 
-export function readKind(): Kind {
-  return read(KIND_KEY) === 'hospital' ? 'hospital' : 'pharmacy';
+/** 메인 유형(D41). 처음은 약국, 이후 마지막 선택 */
+export function readFilter(): ListFilter {
+  const v = read(KIND_KEY);
+  return v === 'hospital' || v === 'pediatric' ? v : 'pharmacy';
 }
 
-export function saveKind(k: Kind): void {
-  write(KIND_KEY, k);
+export function saveFilter(f: ListFilter): void {
+  write(KIND_KEY, f);
 }
 
 function isArea(a: unknown): a is Area {

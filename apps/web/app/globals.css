@@ -212,6 +212,9 @@ p { margin: 0.25rem 0; }
 .pill--holiday { background: var(--holiday-bg); color: var(--holiday-text); }
 .list-loading { padding: 24px 0; text-align: center; }
 .list-more { display: flex; justify-content: center; margin: 16px 0 24px; }
+/* 소아과가 적을 때(D41): 안내 한 줄 아래 [가까운 병원 보기] */
+.list-switch { flex-direction: column; align-items: center; gap: 8px; margin-bottom: 0; }
+.list-switch p { margin: 0; }
 .btn-wide { width: 100%; max-width: 480px; }
 .empty { padding: 16px 0; }
 /* 맨 위로 버튼에 마지막 카드가 가려지지 않게 */

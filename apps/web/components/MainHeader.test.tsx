@@ -8,22 +8,21 @@ afterEach(cleanup);
 const props = (over = {}) => ({
   areaLabel: '마포구 망원동',
   pcLocationNote: false,
-  kind: 'pharmacy' as const,
-  mode: 'open' as const,
-  onKind: vi.fn(),
-  onMode: vi.fn(),
+  filter: 'pharmacy' as const,
+  onFilter: vi.fn(),
   onCurrentLocation: vi.fn(),
   onOpenLocationSearch: vi.fn(),
   ...over,
 });
 
 describe('MainHeader', () => {
-  test('selects show values only; type and status names are for screen readers', () => {
+  test('one type select (pharmacy / hospital / pediatric), no status select; the type name is for screen readers', () => {
     render(<MainHeader {...props()} />);
-    expect(screen.getByRole('combobox', { name: '유형' })).toHaveProperty('value', 'pharmacy');
-    expect(screen.getByRole('combobox', { name: '상태' })).toHaveProperty('value', 'open');
+    const select = screen.getByRole('combobox', { name: '유형' });
+    expect(select).toHaveProperty('value', 'pharmacy');
+    expect([...select.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['약국', '병원', '소아과']);
+    expect(screen.getAllByRole('combobox')).toHaveLength(1);
     expect(screen.queryByText('유형')).toBeNull();
-    expect(screen.queryByText('상태')).toBeNull();
     expect(screen.getByRole('link', { name: '검색' }).getAttribute('href')).toBe('/search');
   });
 
@@ -57,13 +56,11 @@ describe('MainHeader', () => {
     expect(document.activeElement).toBe(btn);
   });
 
-  test('kind and mode changes', () => {
+  test('type change', () => {
     const p = props();
     render(<MainHeader {...p} />);
-    fireEvent.change(screen.getByRole('combobox', { name: '유형' }), { target: { value: 'hospital' } });
-    expect(p.onKind).toHaveBeenCalledWith('hospital');
-    fireEvent.change(screen.getByRole('combobox', { name: '상태' }), { target: { value: 'all' } });
-    expect(p.onMode).toHaveBeenCalledWith('all');
+    fireEvent.change(screen.getByRole('combobox', { name: '유형' }), { target: { value: 'pediatric' } });
+    expect(p.onFilter).toHaveBeenCalledWith('pediatric');
   });
 
   test('locating placeholder, no permission warning line', () => {
