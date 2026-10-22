@@ -21,6 +21,16 @@ export function getSql(): Sql {
   return holder.__munyeonSql;
 }
 
+/**
+ * 공유 연결을 버린다. 다음 getSql()은 새로 연결한다(D47).
+ * 빌드에서 조회가 취소된 뒤 같은 연결로 다시 시도하면 응답 없이 멈춘 일이 있어, 재시도 전에 부른다.
+ */
+export async function resetSql(): Promise<void> {
+  const old = holder.__munyeonSql;
+  holder.__munyeonSql = undefined;
+  await old?.end({ timeout: 1 }).catch(() => {});
+}
+
 export function createSql(url: string, max = 1): Sql {
   return postgres(url, { prepare: false, max, idle_timeout: 20, connect_timeout: 15, onnotice: () => {} });
 }

@@ -17,4 +17,11 @@ describe('getSql', () => {
     expect(a).not.toBe(b);
     expect(a.getSql()).toBe(b.getSql());
   });
+
+  test('resetSql drops the shared client so the next call opens a fresh one (D47)', async () => {
+    const { getSql, resetSql } = await import('./client.ts');
+    const first = getSql();
+    await resetSql();
+    expect(getSql()).not.toBe(first);
+  });
 });

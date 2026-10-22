@@ -1,6 +1,6 @@
 import {
   getHolidays, getInstitution, getLastSyncAt, getNearby, getRegionStats, getSql, listNeighborhoods, listRegion,
-  listRegions, listSido, type Kind,
+  listRegions, listSido, resetSql, type Kind,
 } from '@munyeon/db';
 import { cache } from 'react';
 import { withRetry } from './retry';
@@ -36,7 +36,11 @@ export const loadHolidays = cache(async () => getHolidays(getSql(), ...holidayRa
  */
 export async function loadHome(): Promise<[Awaited<ReturnType<typeof listSido>>, string[]]> {
   try {
-    return await withRetry('home', () => Promise.all([listSido(getSql()), getHolidays(getSql(), ...holidayRange())]));
+    // 하나씩 조회하고, 다시 시도할 때는 연결을 새로 만든다(같은 연결로는 멈춘 일이 있었다)
+    return await withRetry('home', async () => {
+      const sido = await listSido(getSql());
+      return [sido, await getHolidays(getSql(), ...holidayRange())] as [Awaited<ReturnType<typeof listSido>>, string[]];
+    }, { reset: resetSql });
   } catch {
     console.error('[home] DB 조회를 포기하고 빈 목록으로 만듭니다');
     return [[], []];
