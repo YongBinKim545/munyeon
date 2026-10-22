@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import type { Sql } from './client.ts';
 import {
   countSitemapEntries, deactivateMissing, finishRun, getHolidays, getInstitution, getLastSyncAt, getNearby,
-  getRegionStats, insertEvent, listGridCell, listLandingCounts, listNeighborhoods, listRegion, listRegions, listSido, listSitemapEntries,
+  getRegionStats, insertEvent, insertFeedback, listGridCell, listLandingCounts, listNeighborhoods, listRegion, listRegions, listSido, listSitemapEntries,
   refreshNeighborhoods, searchInstitutions, startRun, upsertHolidays, upsertInstitutions, type InstitutionRow,
 } from './queries.ts';
 import { startTestDb } from './test-db.ts';
@@ -16,7 +16,7 @@ beforeAll(async () => {
 }, 60_000);
 afterAll(async () => stop?.());
 beforeEach(async () => {
-  await sql`truncate institutions, events, sync_runs`;
+  await sql`truncate institutions, events, sync_runs, feedback`;
 });
 
 const row = (over: Partial<InstitutionRow> = {}): InstitutionRow => ({
@@ -233,5 +233,27 @@ describe('grid', () => {
     expect(hits[0]?.distanceM).toBe(0);
     expect(hits[1]?.distanceM).toBeGreaterThan(500);
     expect(hits[3]?.distanceM).toBeUndefined();
+  });
+});
+
+describe('insertFeedback (D49)', () => {
+  const fb = { type: 'correction' as const, body: '', fields: ['tel', 'hours'], kind: 'pharmacy' as const, institutionId: 'C1100001', path: '/pharmacy/C1100001' };
+
+  test('stores only the given fields with a minute timestamp, and skips the same report within 10 minutes', async () => {
+    expect(await insertFeedback(sql, fb)).toBe(true);
+    expect(await insertFeedback(sql, fb)).toBe(false);
+    expect(await insertFeedback(sql, { ...fb, fields: ['tel'] })).toBe(true);
+    expect(await insertFeedback(sql, { ...fb, institutionId: 'C1100002' })).toBe(true);
+    const rows = await sql<{ type: string; fields: string[]; created_minute: Date }[]>`select type, fields, created_minute from feedback order by id`;
+    expect(rows).toHaveLength(3);
+    expect(rows[0]!.fields).toEqual(['tel', 'hours']);
+    expect(rows[0]!.created_minute.getSeconds()).toBe(0);
+  });
+
+  test('opinions without an institution are deduplicated by body', async () => {
+    const op = { type: 'opinion' as const, body: '글씨가 작아요', fields: [], kind: null, institutionId: null, path: '/' };
+    expect(await insertFeedback(sql, op)).toBe(true);
+    expect(await insertFeedback(sql, op)).toBe(false);
+    expect(await insertFeedback(sql, { ...op, body: '지도가 있으면 좋겠어요' })).toBe(true);
   });
 });

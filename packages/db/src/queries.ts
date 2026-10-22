@@ -220,6 +220,33 @@ export async function insertEvent(sql: Sql, e: { type: EventType; institutionId:
   await sql`insert into events (type, institution_id, page) values (${e.type}, ${e.institutionId}, ${e.page})`;
 }
 
+export interface FeedbackRow {
+  type: 'opinion' | 'correction';
+  body: string;
+  fields: string[];
+  kind: Kind | null;
+  institutionId: string | null;
+  path: string | null;
+}
+
+/**
+ * 개선의견·수정요청을 저장한다(D49). 10분 안에 같은 종류·내용·항목·기관이 이미 있으면 넣지 않고 false.
+ * 확인과 저장을 한 문장으로 해 트랜잭션 풀러에서도 한 번에 끝난다.
+ */
+export async function insertFeedback(sql: Sql, f: FeedbackRow): Promise<boolean> {
+  const rows = await sql`
+    insert into feedback (type, body, fields, kind, institution_id, path)
+    select ${f.type}, ${f.body}, ${f.fields}::text[], ${f.kind}, ${f.institutionId}, ${f.path}
+    where not exists (
+      select 1 from feedback
+      where type = ${f.type} and body = ${f.body} and fields = ${f.fields}::text[]
+        and institution_id is not distinct from ${f.institutionId}
+        and created_minute > now() - interval '10 minutes'
+    )
+    returning id`;
+  return rows.length > 0;
+}
+
 export async function startRun(sql: Sql, source: string, startedAt: Date): Promise<number> {
   const [r] = await sql<{ id: number }[]>`
     insert into sync_runs (source, started_at, status) values (${source}, ${startedAt}, 'running') returning id::int`;

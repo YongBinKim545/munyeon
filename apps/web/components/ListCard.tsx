@@ -66,7 +66,6 @@ function CardStatus({ item, now, ctx }: { item: ViewItem; now: Date; ctx: Status
       </p>
     );
   }
-  // '(등록 기준)'은 카드마다 붙이지 않고 목록 맨 위에 한 번(D42)
-  const s = describeStatus(parseWeeklyHours(item.hours), now, ctx, { basis: false });
+  const s = describeStatus(parseWeeklyHours(item.hours), now, ctx);
   return <p className="card__status"><span className={`pill pill--${s.tone}`}>{s.text}</span></p>;
 }

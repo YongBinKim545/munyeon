@@ -6,6 +6,7 @@ import { KIND_LABEL, regionPath } from '@/lib/seo';
 import { Badges } from './Badges';
 import { Breadcrumbs, type Crumb } from './Breadcrumbs';
 import { CallButton } from './CallButton';
+import { CorrectionButton } from './CorrectionButton';
 import { DataStamp } from './DataStamp';
 import { DirectionsButton } from './DirectionsButton';
 import { EmergencyNote } from './EmergencyNote';
@@ -80,6 +81,7 @@ export function InstitutionView({ rec, nearby, holidays, lastSyncAt, url }: Prop
       <main className="container">
         {header}
         <p className="notice">현재 운영 정보가 없습니다. 폐업했거나 정보가 바뀌었을 수 있어요. 근처 {KIND_LABEL[rec.kind]}을 확인하세요.</p>
+        <CorrectionButton kind={rec.kind} institutionId={rec.id} name={rec.name} />
         {nearbySection}
         <EmergencyNote />
       </main>
@@ -110,6 +112,8 @@ export function InstitutionView({ rec, nearby, holidays, lastSyncAt, url }: Prop
               </>
             ) : null}
           </p>
+          {/* 틀린 정보를 알려 주는 버튼(D49) */}
+          <CorrectionButton kind={rec.kind} institutionId={rec.id} name={rec.name} />
           {!rec.tel ? nearbySection : null}
           <h2>{rec.kind === 'pharmacy' ? '영업시간' : '진료시간'}</h2>
           <WeeklyTable hours={rec.hours} />

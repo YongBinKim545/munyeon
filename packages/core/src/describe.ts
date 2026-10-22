@@ -28,11 +28,10 @@ export function koreanTime(at: Date): string {
 }
 
 /**
- * 기능 정의서 3.2의 상태 문구. '영업 중'에는 '(등록 기준)'을 붙인다.
- * 메인 목록 카드는 basis: false로 빼고 목록 맨 위에 한 번 안내한다(D42).
+ * 기능 정의서 3.2의 상태 문구. '(등록 기준)'은 붙이지 않는다(D42·D49).
+ * 등록 정보라는 안내는 메인 목록 맨 위 한 줄과 기관 상세의 "방문 전 꼭 전화로 확인" 문구가 맡는다.
  */
-export function describeStatus(hours: WeeklyHours, at: Date, ctx: StatusContext, { basis = true }: { basis?: boolean } = {}): StatusText {
-  const b = basis ? ' (등록 기준)' : '';
+export function describeStatus(hours: WeeklyHours, at: Date, ctx: StatusContext): StatusText {
   const s = getOpenStatus(hours, at, ctx);
   const holiday = s.basis === 'holiday';
   if (s.state === 'open' && s.closesAt) {
@@ -44,15 +43,15 @@ export function describeStatus(hours: WeeklyHours, at: Date, ctx: StatusContext,
       const today = hours[dayCodeFor(kstParts(at).ymd, ctx)];
       if (next && next.open === 0) {
         if (next.close >= 1440 && today?.open === 0 && today.close >= 1440) {
-          return { tone: 'open', text: `24시간 영업${b}`, holiday };
+          return { tone: 'open', text: '24시간 영업', holiday };
         }
         closesAt = kstDate(end.ymd, next.close);
       }
     }
     const left = Math.round((closesAt.getTime() - at.getTime()) / 60_000);
     const text = left <= CLOSING_SOON_MIN
-      ? `곧 마감 · ${left}분 남음${b}`
-      : `영업 중 · ${koreanTime(closesAt)} 마감${b}`;
+      ? `곧 마감 · ${left}분 남음`
+      : `영업 중 · ${koreanTime(closesAt)} 마감`;
     return { tone: 'open', text, holiday };
   }
   if (s.state === 'closed') {
