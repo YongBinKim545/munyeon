@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { MainScreen } from '@/components/MainScreen';
-import { loadHolidays, loadSido } from '@/lib/data';
+import { loadHome } from '@/lib/data';
 import { regionPath } from '@/lib/seo';
 
 // 서버 HTML에는 헤더 틀·소개·시도 목록만 넣는다(1시간 캐시). 목록과 영업 상태는 브라우저에서만 그린다(D31·D35).
@@ -8,7 +8,8 @@ export const revalidate = 3600;
 
 export default async function Home() {
   // 빌드 환경에 DB가 없으면 빈 목록으로 만들고, 첫 재생성 때 채운다.
-  const [sido, holidays] = process.env.DATABASE_URL ? await Promise.all([loadSido(), loadHolidays()]) : [[], []];
+  // 빌드 중 DB 조회가 취소돼도 빌드를 멈추지 않는다(다시 시도 후 빈 목록, D47)
+  const [sido, holidays] = process.env.DATABASE_URL ? await loadHome() : [[], []];
   return (
     <main className="container container--wide">
       <h1 className="sr-only">지금 문 연 병원·약국</h1>
