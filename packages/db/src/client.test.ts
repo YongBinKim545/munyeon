@@ -18,6 +18,13 @@ describe('getSql', () => {
     expect(a.getSql()).toBe(b.getSql());
   });
 
+  test('queries are not pipelined on one connection (D48)', async () => {
+    const { createSql } = await import('./client.ts');
+    const sql = createSql('postgres://u:p@127.0.0.1:1/db');
+    expect((sql.options as unknown as { max_pipeline: number }).max_pipeline).toBe(1);
+    expect(sql.options.prepare).toBe(false);
+  });
+
   test('resetSql drops the shared client so the next call opens a fresh one (D47)', async () => {
     const { getSql, resetSql } = await import('./client.ts');
     const first = getSql();

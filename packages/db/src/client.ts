@@ -31,6 +31,12 @@ export async function resetSql(): Promise<void> {
   await old?.end({ timeout: 1 }).catch(() => {});
 }
 
+/**
+ * max_pipeline: 1 — 한 연결에 쿼리를 겹쳐 보내지 않는다(D48). Supabase 트랜잭션 풀러에서 겹쳐 보낸 쿼리가
+ * 'statement timeout'으로 취소되거나 연결이 멈춰, 빌드가 실패하고 운영 상세 페이지가 응답하지 않았다(2026-10-22).
+ */
 export function createSql(url: string, max = 1): Sql {
-  return postgres(url, { prepare: false, max, idle_timeout: 20, connect_timeout: 15, onnotice: () => {} });
+  // max_pipeline은 postgres.js가 지원하지만 타입 정의에 빠져 있어 따로 넘긴다
+  const options = { prepare: false, max, max_pipeline: 1, idle_timeout: 20, connect_timeout: 15, onnotice: () => {} };
+  return postgres(url, options as postgres.Options<Record<string, never>>);
 }
