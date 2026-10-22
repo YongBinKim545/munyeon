@@ -29,6 +29,9 @@ const KIND_BY_LABEL = new Map<string, Kind>(Object.entries(KIND_LABEL).map(([k, 
 const SITUATION_BY_LABEL = new Map<string, Situation>(Object.entries(SITUATIONS).map(([k, v]) => [v, k as Situation]));
 const SIDO_SET = new Set(SIDO_NAMES);
 
+/** 지금 쓰는 시도 이름 17개. SIDO_NAMES의 옛 이름(강원도·전라북도)은 주소 해석용이라 뺀다. 지역으로 찾기의 예비 목록(D52) */
+export const CURRENT_SIDO: readonly string[] = SIDO_NAMES.filter((s) => s !== '강원도' && s !== '전라북도');
+
 /** 경로 조각을 한 번만 디코딩한다. 이미 디코딩된 값은 그대로, 잘못된 인코딩은 null. */
 export function safeDecode(seg: string): string | null {
   if (!seg.includes('%')) return seg;

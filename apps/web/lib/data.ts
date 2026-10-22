@@ -29,21 +29,34 @@ function holidayRange(): [string, string] {
 export const loadHolidays = cache(async () => query('holidays', (sql) => getHolidays(sql, ...holidayRange())));
 
 /**
- * 메인 페이지 데이터(시도 목록·공휴일). 빌드 중 DB 조회가 취소되는 일이 있어 다시 시도하고(D47),
+ * '지역으로 찾기' 페이지의 시도별 기관 수(D52). 실패하면 빈 목록(페이지는 시도 이름만으로 그린다).
+ * 빌드 중 조회가 취소되는 일이 있어(D47) 메인과 같은 방식으로 다시 시도한다.
+ */
+export async function loadSidoCounts(): Promise<Awaited<ReturnType<typeof listSido>>> {
+  try {
+    return await query('sido', (sql) => listSido(sql), {
+      tries: 3, timeoutMs: 15_000, wait: (attempt) => new Promise<void>((r) => setTimeout(r, 1000 * attempt)),
+    });
+  } catch {
+    console.error('[sido] DB 조회를 포기하고 시도 이름만으로 만듭니다');
+    return [];
+  }
+}
+
+/**
+ * 메인 페이지 데이터(공휴일). 시도 목록은 '지역으로 찾기' 페이지로 옮겼다(D52). 빌드 중 DB 조회가 취소되는 일이 있어 다시 시도하고(D47),
  * 그래도 안 되면 빈 목록으로 페이지를 만든다(빌드를 멈추지 않음). 메인은 1시간마다 다시 만들어져 곧 채워지고,
  * 공휴일은 브라우저가 /api/meta로 다시 받는다. React cache는 실패도 기억하므로 여기서는 쓰지 않는다.
  */
-export async function loadHome(): Promise<[Awaited<ReturnType<typeof listSido>>, string[]]> {
+export async function loadHome(): Promise<string[]> {
   try {
-    // 하나씩 조회하고, 다시 시도할 때는 연결을 새로 만든다(같은 연결로는 멈춘 일이 있었다)
-    return await query(
-      'home',
-      async (sql) => [await listSido(sql), await getHolidays(sql, ...holidayRange())] as [Awaited<ReturnType<typeof listSido>>, string[]],
-      { tries: 3, timeoutMs: 15_000, wait: (attempt) => new Promise<void>((r) => setTimeout(r, 1000 * attempt)) },
-    );
+    // 다시 시도할 때는 연결을 새로 만든다(같은 연결로는 멈춘 일이 있었다)
+    return await query('home', (sql) => getHolidays(sql, ...holidayRange()), {
+      tries: 3, timeoutMs: 15_000, wait: (attempt) => new Promise<void>((r) => setTimeout(r, 1000 * attempt)),
+    });
   } catch {
-    console.error('[home] DB 조회를 포기하고 빈 목록으로 만듭니다');
-    return [[], []];
+    console.error('[home] 공휴일 조회를 포기합니다(브라우저가 /api/meta로 다시 받음)');
+    return [];
   }
 }
 

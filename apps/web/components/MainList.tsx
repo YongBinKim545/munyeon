@@ -84,7 +84,7 @@ export function MainList({ items, mode, now, ctx, holidayToday, loadingMore, onS
           <EmergencyNote />
         </div>
       ) : null}
-      <ul ref={listRef} className="cards cards--3 main-list">
+      <ul ref={listRef} className="cards main-list">
         {shown.map((item) => (
           <ListCard key={item.id} item={item} now={now} ctx={ctx} />
         ))}

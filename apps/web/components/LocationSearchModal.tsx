@@ -35,7 +35,7 @@ interface Props {
 }
 
 /**
- * 위치 검색 모달(D33·D38·D43). 휴대폰은 화면 전체, 태블릿·PC는 가운데. 공통 검색 틀(SearchPanel)을 쓰고 [검색]·엔터로만 찾는다.
+ * 지역 검색 모달(D33·D38·D43, D52에서 '위치 검색'을 '지역 검색'으로). 휴대폰은 화면 전체, 태블릿·PC는 가운데. 공통 검색 틀(SearchPanel)을 쓰고 [검색]·엔터로만 찾는다.
  * 뒤로 가기·Esc·Tab 동작은 useModal. 고른 지역은 모달이 닫힌 뒤(popstate) onPick으로 넘긴다.
  */
 export function LocationSearchModal({ recent, onPick, onClose }: Props) {
@@ -61,7 +61,7 @@ export function LocationSearchModal({ recent, onPick, onClose }: Props) {
 
   return (
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && close()}>
-      <div ref={dialogRef} className="modal" role="dialog" aria-modal="true" aria-label="위치 검색">
+      <div ref={dialogRef} className="modal" role="dialog" aria-modal="true" aria-label="지역 검색">
         <SearchPanel
           inputId="area-q"
           label="동네 이름"

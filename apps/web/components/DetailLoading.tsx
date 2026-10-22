@@ -15,7 +15,7 @@ export function DetailLoading({ kind }: { kind: Kind }) {
   const preview = id ? readPreview(kind, id) : null;
   if (preview) return <DetailPreview p={preview} />;
   return (
-    <main className="container container--wide">
+    <main className="container">
       <div className="detail-loading" role="status">
         <div className="skeleton skeleton--title" aria-hidden="true" />
         <div className="skeleton" aria-hidden="true" />

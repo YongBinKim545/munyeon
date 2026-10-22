@@ -138,18 +138,18 @@ describe('MainScreen', () => {
     await flush();
     const menu = () => screen.getByRole('list', { name: '위치 찾기' }).querySelectorAll('button');
     fireEvent.click(screen.getByRole('button', { name: /위치 찾기/ }));
-    expect([...menu()].map((b) => b.textContent?.trim())).toEqual(['현재 위치', '위치 검색']);
+    expect([...menu()].map((b) => b.textContent?.trim())).toEqual(['현재 위치', '지역 검색']);
     permission = 'denied';
     fireEvent.click(screen.getByRole('button', { name: /현재 위치/ }));
     await flush();
     expect(geoCalls).toBe(1);
     expect(screen.getByRole('dialog', { name: '위치 권한이 꺼져 있어요' })).toBeTruthy();
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /위치 검색으로 찾기/ }));
+      fireEvent.click(screen.getByRole('button', { name: /지역 검색으로 찾기/ }));
     });
     await flush();
     expect(screen.queryByRole('dialog', { name: '위치 권한이 꺼져 있어요' })).toBeNull();
-    expect(screen.getByRole('dialog', { name: '위치 검색' })).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: '지역 검색' })).toBeTruthy();
   });
 
   test('a manual area pick is not overridden by a pending location result', async () => {
@@ -167,7 +167,7 @@ describe('MainScreen', () => {
     await flush();
     fireEvent.click(screen.getByRole('button', { name: /위치 찾기/ }));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /위치 검색/ }));
+      fireEvent.click(screen.getByRole('button', { name: /지역 검색/ }));
     });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: '마포구 망원동' }));

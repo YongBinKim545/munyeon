@@ -15,12 +15,12 @@ import { FeedbackDialog } from './FeedbackDialog';
  */
 export function Header() {
   const pathname = usePathname();
-  const isMain = pathname === '/';
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   // 이름 검색 [닫기]가 직전 화면이 있는지 알 수 있게 앱 안 이동을 기록한다(D43)
   useEffect(() => noteNavigation(pathname), [pathname]);
+  // 모든 페이지에서 첫 줄은 화면 위에 고정(D52, 메인도)
   return (
-    <header className={isMain ? 'site-header site-header--static' : 'site-header'}>
+    <header className="site-header">
       <div className="site-header__inner">
         <div className="brand">
           <Link href="/" className="logo" aria-label={`${SITE_NAME} 메인`}>

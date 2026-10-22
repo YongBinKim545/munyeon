@@ -10,6 +10,7 @@ import { DetailReady } from './DetailReady';
 import { DirectionsButton } from './DirectionsButton';
 import { EmergencyNote } from './EmergencyNote';
 import { LiveStatus } from './LiveStatus';
+import { StickyCall } from './StickyCall';
 import { WeeklyTable } from './WeeklyTable';
 
 interface Props {
@@ -56,45 +57,34 @@ export function InstitutionView({ rec, holidays, lastSyncAt, url }: Props) {
   }
 
   const actions = (
-    <div className="actions">
+    <div className="actions detail-call">
       <CallButton tel={rec.tel} institutionId={rec.id} page="detail" />
       <DirectionsButton institutionId={rec.id} name={rec.name} addr={rec.addr} lat={rec.lat} lon={rec.lon} page="detail" />
     </div>
   );
 
   return (
-    <main className="container container--wide">
+    <main className="container">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildInstitutionJsonLd(rec, url)) }} />
-      <div className="detail-grid">
-        <div className="detail-main">
-          {header}
-          <LiveStatus hours={rec.hours} holidays={holidays} />
-          <div className="hide-pc">{actions}</div>
-          <p className="notice">
-            등록된 정보가 실제와 다를 수 있어요. 방문 전 꼭 전화로 확인하세요.
-            {lastSyncAt ? (
-              <>
-                <br />
-                <DataStamp kind={rec.kind} initial={lastSyncAt.toISOString()} />
-              </>
-            ) : null}
-          </p>
-          {/* 틀린 정보를 알려 주는 버튼(D49) */}
-          <CorrectionButton kind={rec.kind} institutionId={rec.id} name={rec.name} />
-          <h2>{rec.kind === 'pharmacy' ? '영업시간' : '진료시간'}</h2>
-          <WeeklyTable hours={rec.hours} />
-          <EmergencyNote />
-          <p className="muted">출처: 국립중앙의료원 · 공공데이터포털</p>
-        </div>
-        <aside className="detail-aside show-pc" aria-label="전화·길찾기">
-          {actions}
-        </aside>
-      </div>
-      {rec.tel ? (
-        <div className="sticky-call">
-          <CallButton tel={rec.tel} institutionId={rec.id} page="detail_sticky" />
-        </div>
-      ) : null}
+      {header}
+      <LiveStatus hours={rec.hours} holidays={holidays} />
+      {actions}
+      <p className="notice">
+        등록된 정보가 실제와 다를 수 있어요. 방문 전 꼭 전화로 확인하세요.
+        {lastSyncAt ? (
+          <>
+            <br />
+            <DataStamp kind={rec.kind} initial={lastSyncAt.toISOString()} />
+          </>
+        ) : null}
+      </p>
+      {/* 틀린 정보를 알려 주는 버튼(D49) */}
+      <CorrectionButton kind={rec.kind} institutionId={rec.id} name={rec.name} />
+      <h2>{rec.kind === 'pharmacy' ? '영업시간' : '진료시간'}</h2>
+      <WeeklyTable hours={rec.hours} />
+      <EmergencyNote />
+      <p className="muted">출처: 국립중앙의료원 · 공공데이터포털</p>
+      {rec.tel ? <StickyCall tel={rec.tel} institutionId={rec.id} /> : null}
     </main>
   );
 }

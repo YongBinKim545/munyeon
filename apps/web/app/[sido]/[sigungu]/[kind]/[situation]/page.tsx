@@ -61,7 +61,7 @@ export default async function LandingPage({ params }: Props) {
   const page = `landing_${situation}`;
 
   return (
-    <main className="container container--wide">
+    <main className="container">
       <Breadcrumbs
         items={[
           { name: sido, href: regionPath(sido) },
@@ -93,7 +93,7 @@ export default async function LandingPage({ params }: Props) {
       {main.length === 0 && folded.length === 0 ? (
         <p>등록 기준으로 해당하는 곳이 없어요. 아래 다른 조건이나 이웃 지역을 확인하세요.</p>
       ) : null}
-      <ul className="cards cards--3" data-region-list="">
+      <ul className="cards" data-region-list="">
         {main.map((i) => (
           <InstitutionCard key={i.id} item={i} page={page} dong={i.dong} meta={situationTime(i.hours, situation)} />
         ))}
@@ -101,7 +101,7 @@ export default async function LandingPage({ params }: Props) {
       {folded.length ? (
         <details>
           <summary className="chip">{`한의원·치과도 보기 (${folded.length}곳)`}</summary>
-          <ul className="cards cards--3" data-region-list="">
+          <ul className="cards" data-region-list="">
             {folded.map((i) => (
               <InstitutionCard key={i.id} item={i} page={page} dong={i.dong} meta={situationTime(i.hours, situation)} />
             ))}

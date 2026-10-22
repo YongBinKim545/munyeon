@@ -18,7 +18,7 @@ const STEPS: { kind: Exclude<DeviceKind, 'unknown'>; title: string; lines: strin
 
 interface Props {
   reason: GuideReason;
-  /** 'retry'는 [다시 시도], 'search'는 [위치 검색으로 찾기], null은 닫기 */
+  /** 'retry'는 [다시 시도], 'search'는 [지역 검색으로 찾기], null은 닫기 */
   onClosed: (action: GuideAction | null) => void;
 }
 
@@ -66,7 +66,7 @@ export function LocationGuideModal({ reason, onClosed }: Props) {
             <RefreshCw aria-hidden="true" size={18} /> 다시 시도
           </button>
           <button type="button" className="btn btn-secondary" onClick={() => close('search')}>
-            <Search aria-hidden="true" size={18} /> 위치 검색으로 찾기
+            <Search aria-hidden="true" size={18} /> 지역 검색으로 찾기
           </button>
           <button type="button" className="btn btn-secondary" onClick={() => close()}>
             <X aria-hidden="true" size={18} /> 닫기

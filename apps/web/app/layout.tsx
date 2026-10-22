@@ -42,6 +42,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="site-footer">
           <p>데이터 출처: 국립중앙의료원 · 공공데이터포털</p>
           <p>
+            {/* 메인 하단 시도 목록을 옮긴 뒤에도 검색 로봇이 지역 페이지로 들어가는 길(D52) */}
+            <Link href="/regions">지역으로 찾기</Link>
             <Link href="/about">소개</Link>
             <Link href="/privacy">개인정보처리방침</Link>
             <Link href="/terms">이용약관</Link>

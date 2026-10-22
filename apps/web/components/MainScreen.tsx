@@ -13,7 +13,6 @@ import { LocationGuideModal, type GuideReason } from './LocationGuideModal';
 import { LocationSearchModal } from './LocationSearchModal';
 import { MainHeader } from './MainHeader';
 import { MainList } from './MainList';
-import { ScrollTopButton } from './ScrollTopButton';
 
 interface Current {
   center: LatLon;
@@ -255,7 +254,6 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
           }}
         />
       ) : null}
-      <ScrollTopButton />
     </>
   );
 }

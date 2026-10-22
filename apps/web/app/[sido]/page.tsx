@@ -30,11 +30,11 @@ export default async function SidoPage({ params }: Props) {
   const regions = (await loadRegions()).filter((x) => x.sido === r.sido);
   if (regions.length === 0) notFound();
   return (
-    <main className="container container--wide">
+    <main className="container">
       <Breadcrumbs items={[{ name: r.sido, href: regionPath(r.sido) }]} />
       <h1>{r.sido} 문 여는 병원·약국</h1>
       <p className="muted">시군구를 고르면 일요일·공휴일·야간에 여는 곳을 볼 수 있어요.</p>
-      <ul className="link-list link-list--multi">
+      <ul className="link-list">
         {regions.map((g) => (
           <li key={g.sigungu}>
             <Link href={regionPath(r.sido, g.sigungu)}>

@@ -67,8 +67,8 @@ h1 { font-size: var(--fs-title); line-height: 1.35; margin: 0.25rem 0; }
 h2 { font-size: 18px; margin: 1.5rem 0 0.5rem; }
 p { margin: 0.25rem 0; }
 
-.container { max-width: 720px; margin: 0 auto; padding: 0 16px 96px; }
-@media (min-width: 1024px) { .container--wide { max-width: 1080px; } }
+/* PC도 휴대폰과 같은 한 열(D52). 넓은 화면은 양옆이 빈다(나중에 필요하면 다른 용도) */
+.container { max-width: 600px; margin: 0 auto; padding: 0 16px 96px; }
 
 /* 헤더 */
 .site-header {
@@ -76,7 +76,7 @@ p { margin: 0.25rem 0; }
   background: var(--bg); border-bottom: 1px solid var(--border);
 }
 .site-header__inner {
-  max-width: 1080px; margin: 0 auto; padding: 6px 16px; min-height: 62px; gap: 8px;
+  max-width: 600px; margin: 0 auto; padding: 6px 16px; min-height: 62px; gap: 8px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .logo { font-weight: 700; font-size: 18px; text-decoration: none; display: inline-flex; align-items: center; }
@@ -134,8 +134,6 @@ p { margin: 0.25rem 0; }
 
 /* 카드 목록 */
 .cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 0; margin: 0; list-style: none; }
-@media (min-width: 768px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (min-width: 1024px) { .cards--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .card { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; background: var(--bg); }
 .card__head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
 .card__name { font-weight: 600; text-decoration: none; }
@@ -143,23 +141,15 @@ p { margin: 0.25rem 0; }
 .card .actions { margin: 0; }
 
 .link-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
-@media (min-width: 768px) { .link-list--multi { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; } }
-@media (min-width: 1024px) { .link-list--multi { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .link-list a { display: flex; justify-content: space-between; min-height: var(--tap); align-items: center; border-bottom: 1px solid var(--border); text-decoration: none; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .chip { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 1px solid var(--border); border-radius: 999px; text-decoration: none; font-size: var(--fs-small); }
 .chip[aria-current='page'] { background: var(--badge-bg); color: var(--badge-text); border-color: transparent; }
 
-/* 기관 상세: 휴대폰은 하단 고정 전화, PC는 두 칸 */
-.detail-grid { display: block; }
+/* 기관 상세: 휴대폰은 위쪽 [전화하기]가 화면 밖일 때만 하단 고정 전화(D52) */
 .sticky-call { position: fixed; left: 0; right: 0; bottom: 0; padding: 8px 16px calc(8px + env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid var(--border); z-index: 10; }
 @media (min-width: 768px) { .sticky-call { display: none; } }
-@media (min-width: 1024px) {
-  .detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 32px; align-items: start; }
-  .detail-aside { position: sticky; top: 80px; border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
-  .detail-aside .actions { flex-direction: column; margin: 0; }
-  .tel-big { white-space: nowrap; }
-}
+.tel-big { white-space: nowrap; }
 
 .sheet { position: fixed; inset: auto 0 0 0; background: var(--bg); border-top: 1px solid var(--border); border-radius: 14px 14px 0 0; padding: 16px; z-index: 30; }
 .sheet a { display: flex; min-height: var(--tap); align-items: center; border-bottom: 1px solid var(--border); text-decoration: none; }
@@ -180,22 +170,22 @@ p { margin: 0.25rem 0; }
 .search__row > a { text-decoration: none; flex: 1; }
 .search__kinds { display: flex; gap: 6px; }
 
-.show-pc { display: none; }
-@media (min-width: 1024px) {
-  .show-pc { display: block; }
-  .hide-pc { display: none; }
-}
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* 메인(D31·D32): 헤더는 고정하지 않고 목록과 함께 스크롤 */
-.site-header--static { position: static; }
-.main-header { display: flex; flex-direction: column; gap: 8px; padding: 12px 0 8px; }
+/* 메인 헤더 2·3줄: 사이트 헤더 아래에 붙고, 아래로 스크롤하면 그 뒤로 숨는다(D52). 옆 여백까지 덮어 목록이 비치지 않게 */
+.main-header {
+  display: flex; flex-direction: column; gap: 8px; padding: 12px 16px 8px; margin: 0 -16px;
+  position: sticky; top: 63px; z-index: 15; background: var(--bg); border-bottom: 1px solid var(--border);
+  transition: transform 0.2s ease;
+}
+.main-header--hidden { transform: translateY(-100%); }
+@media (prefers-reduced-motion: reduce) { .main-header { transition: none; } }
 .area { position: relative; }
 .area__menu {
   position: absolute; z-index: 25; top: calc(var(--tap) + 2px); left: 0; min-width: 220px; margin: 0; padding: 4px 0; list-style: none;
   background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 6px 20px rgb(0 0 0 / 12%);
 }
-.area__menu button { display: block; width: 100%; min-height: var(--tap); padding: 0 16px; text-align: left; background: none; border: 0; color: var(--text); font: inherit; cursor: pointer; }
+.area__menu button, .area__menu a { display: block; width: 100%; min-height: var(--tap); padding: 0 16px; text-align: left; background: none; border: 0; color: var(--text); font: inherit; cursor: pointer; }
 .area__menu li + li { border-top: 1px solid var(--border); }
 .area__note { margin: 0 4px; }
 .filters { display: flex; gap: 8px; }
@@ -221,14 +211,8 @@ p { margin: 0.25rem 0; }
 .list-switch p { margin: 0; }
 .btn-wide { width: 100%; max-width: 480px; }
 .empty { padding: 16px 0; }
-/* 맨 위로 버튼에 마지막 카드가 가려지지 않게 */
+/* 목록 끝 여백 */
 .main-list { padding-bottom: 8px; }
-.scroll-top {
-  position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 15;
-  min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border);
-  background: var(--bg); color: var(--text); font: inherit; font-size: var(--fs-small); font-weight: 600;
-  box-shadow: 0 4px 14px rgb(0 0 0 / 15%); cursor: pointer;
-}
 
 /* 위치 검색 모달(D33): 휴대폰은 화면 전체, 768px부터 가운데 */
 .modal-backdrop { position: fixed; inset: 0; z-index: 40; background: var(--bg); }
@@ -273,9 +257,8 @@ p { margin: 0.25rem 0; }
 .load-error--partial p { font-weight: 400; font-size: var(--fs-small); }
 
 /* 아이콘(D39): lucide SVG는 글자색(currentColor)을 따른다 */
-.btn svg, .icon-btn svg, .area__menu svg, .scroll-top svg { flex-shrink: 0; }
-.scroll-top { display: inline-flex; align-items: center; gap: 4px; }
-.area__menu button { display: flex; align-items: center; gap: 8px; }
+.btn svg, .icon-btn svg, .area__menu svg { flex-shrink: 0; }
+.area__menu button, .area__menu a { display: flex; align-items: center; gap: 8px; text-decoration: none; }
 
 /* 지역 줄(D38): 📍 지역 이름(글자) + [위치 찾기 ▾] */
 .area { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

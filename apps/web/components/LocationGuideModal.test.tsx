@@ -30,7 +30,7 @@ describe('LocationGuideModal', () => {
     expect(screen.getByText('아이폰(사파리)')).toBeTruthy();
     expect(screen.queryByText('안드로이드(크롬)')).toBeNull();
     expect(screen.getByText('허용한 뒤 [다시 시도]를 눌러 주세요.')).toBeTruthy();
-    expect(screen.getAllByRole('button').map((b) => b.textContent?.trim())).toEqual(['다시 시도', '위치 검색으로 찾기', '닫기']);
+    expect(screen.getAllByRole('button').map((b) => b.textContent?.trim())).toEqual(['다시 시도', '지역 검색으로 찾기', '닫기']);
   });
 
   test('unknown device shows every guide', async () => {
