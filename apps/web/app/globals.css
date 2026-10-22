@@ -27,6 +27,11 @@
   --font: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', 'Segoe UI', sans-serif;
   color-scheme: light dark;
 }
+/* 마우스 기기(PC)만 Noto Sans KR(D54). 맥은 애플 기본 글꼴이 먼저 잡혀 Noto를 받지 않으므로, 실제로 바뀌는 건 윈도우 등 */
+@media (hover: hover) and (pointer: fine) {
+  :root { --font: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', var(--font-noto), 'Malgun Gothic', 'Segoe UI', sans-serif; }
+}
+
 
 @media (prefers-color-scheme: dark) {
   :root {

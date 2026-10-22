@@ -1,11 +1,19 @@
 import { GoogleAnalytics } from '@next/third-parties/google';
 import type { Metadata, Viewport } from 'next';
+import { Noto_Sans_KR } from 'next/font/google';
 import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { InstantDetailLayer } from '@/components/InstantDetailLayer';
 import { NavProgress } from '@/components/NavProgress';
 import { SITE_NAME, SITE_TAGLINE, SITE_URL } from '@/lib/seo';
 import './globals.css';
+
+/**
+ * 윈도우 PC용 글꼴(D54). 빌드 때 받아 우리 도메인에서 제공한다(사용자가 구글 서버에 접속하지 않음).
+ * 실제로 쓰는 곳은 globals.css의 마우스 기기 규칙뿐이고, 맥·휴대폰은 기기 글꼴이 먼저라 내려받지 않는다.
+ * 휴대폰이 미리 받지 않도록 preload는 끈다.
+ */
+const noto = Noto_Sans_KR({ weight: ['400', '600', '700'], display: 'swap', preload: false, variable: '--font-noto' });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -33,7 +41,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const gaId = process.env.NEXT_PUBLIC_GA_ID;
   return (
-    <html lang="ko">
+    <html lang="ko" className={noto.variable}>
       <body>
         <Header />
         <NavProgress />
