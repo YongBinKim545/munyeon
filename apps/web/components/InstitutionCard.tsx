@@ -1,9 +1,9 @@
+import { primaryBadge } from '@munyeon/core';
 import type { InstitutionSummary } from '@munyeon/db';
-import Link from 'next/link';
-import { institutionPath } from '@/lib/seo';
 import { Badges } from './Badges';
 import { CallButton } from './CallButton';
 import { DirectionsButton } from './DirectionsButton';
+import { PreviewLink } from './PreviewLink';
 
 interface Props {
   item: InstitutionSummary;
@@ -22,9 +22,18 @@ export function InstitutionCard({ item, page, meta, dong }: Props) {
   return (
     <li className="card" data-dong={dong ?? undefined}>
       <div className="card__head">
-        <Link className="card__name" href={institutionPath(item.kind, item.id)} prefetch={false}>
+        {/* 누르는 즉시 이 카드의 정보로 상세를 그린다(D51) */}
+        <PreviewLink
+          className="card__name"
+          preview={{
+            kind: item.kind, id: item.id, name: item.name,
+            badge: primaryBadge({ kind: item.kind, category: item.category, divName: item.divName, specialty: item.specialty }),
+            pediatric: item.pediatricName, tel: item.tel, hours: item.hours, sido: null, sigungu: null, area: item.addr,
+            lat: item.lat, lon: item.lon, holidays: [],
+          }}
+        >
           {item.name}
-        </Link>
+        </PreviewLink>
         {item.distanceM !== undefined ? <span className="muted">{formatDistance(item.distanceM)}</span> : null}
       </div>
       <div className="card__meta">

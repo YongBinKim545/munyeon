@@ -24,7 +24,7 @@ describe('GET /api/search', () => {
     expect(res.headers.get('Cache-Control')).toBe('public, s-maxage=86400, stale-while-revalidate=3600');
     expect(searchInstitutions).toHaveBeenCalledWith({}, '시청', 20);
     expect(await res.json()).toEqual({
-      items: [{ id: 'C1', kind: 'pharmacy', name: '시청약국', sido: '서울특별시', sigungu: '중구', tel: '02-777-0001', lat: 37.567, lon: 126.979, badge: '약국' }],
+      items: [{ id: 'C1', kind: 'pharmacy', name: '시청약국', sido: '서울특별시', sigungu: '중구', tel: '02-777-0001', lat: 37.567, lon: 126.979, hours: { dutyTime8s: '1000', dutyTime8c: '1400' }, badge: '약국' }],
     });
   });
 

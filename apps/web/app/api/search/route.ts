@@ -30,6 +30,8 @@ export async function GET(req: Request) {
     tel: h.tel,
     lat: h.lat,
     lon: h.lon,
+    // 목록에서 누르면 상세를 바로 그릴 수 있게 진료시간 원본도 보낸다(D51)
+    hours: h.hours,
     badge: primaryBadge({ kind: h.kind, category: h.category, divName: h.divName, specialty: h.specialty }),
   }));
   return Response.json({ items }, { headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' } });

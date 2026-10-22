@@ -1,17 +1,16 @@
 'use client';
 
-import { distanceM, gridKey, gridOf, toTelHref } from '@munyeon/core';
+import { distanceM, gridKey, gridOf, toTelHref, type RawHours } from '@munyeon/core';
 import { Phone } from 'lucide-react';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { rememberPreview } from '@/lib/detailPreview';
 import { hasPreviousPage } from '@/lib/navHistory';
 import { readLastCenter } from '@/lib/prefs';
 import { MIN_QUERY, normalizeQuery } from '@/lib/search';
-import { institutionPath, type Kind } from '@/lib/seo';
+import type { Kind } from '@/lib/seo';
 import { track } from '@/lib/track';
 import { formatDistance } from './InstitutionCard';
+import { PreviewLink } from './PreviewLink';
 import { SearchPanel } from './SearchPanel';
 
 interface Hit {
@@ -24,6 +23,8 @@ interface Hit {
   lat: number | null;
   lon: number | null;
   badge: string;
+  /** 이전 배포의 캐시된 응답에는 없을 수 있다 */
+  hours?: RawHours;
 }
 
 /**
@@ -103,23 +104,19 @@ export function NameSearch() {
           const tel = h.tel ? toTelHref(h.tel) : null;
           return (
             <li key={h.id} className="search__row">
-              <Link
-                href={institutionPath(h.kind, h.id)}
-                prefetch={false}
-                onClick={() => {
-                  track('search_select', h.id, 'search');
-                  // 상세를 즉시 그릴 수 있게 가진 정보를 넘긴다(진료시간은 없다, D45)
-                  rememberPreview({
-                    kind: h.kind, id: h.id, name: h.name, badge: h.badge, pediatric: false, tel: h.tel, hours: null,
-                    sido: h.sido, sigungu: h.sigungu, area: [h.sido, h.sigungu].filter(Boolean).join(' '), lat: h.lat, lon: h.lon, holidays: [],
-                  });
+              <PreviewLink
+                // 누르는 즉시 가진 정보로 상세를 그린다(D51)
+                preview={{
+                  kind: h.kind, id: h.id, name: h.name, badge: h.badge, pediatric: false, tel: h.tel, hours: h.hours ?? null,
+                  sido: h.sido, sigungu: h.sigungu, area: [h.sido, h.sigungu].filter(Boolean).join(' '), lat: h.lat, lon: h.lon, holidays: [],
                 }}
+                onClick={() => track('search_select', h.id, 'search')}
               >
                 {h.name}{' '}
                 <span className="muted">
                   {[h.badge, h.sigungu, h.distance !== null ? formatDistance(h.distance) : null].filter(Boolean).join(' · ')}
                 </span>
-              </Link>
+              </PreviewLink>
               {tel ? (
                 <a className="icon-btn" href={tel} aria-label={`${h.name} 전화`} onClick={() => track('tel_tap', h.id, 'search')}>
                   <Phone aria-hidden="true" size={20} />

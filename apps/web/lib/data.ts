@@ -1,5 +1,5 @@
 import {
-  getHolidays, getInstitution, getLastSyncAt, getNearby, getRegionStats, listNeighborhoods, listRegion,
+  getHolidays, getInstitution, getLastSyncAt, getRegionStats, listNeighborhoods, listRegion,
   listRegions, listSido, type Kind,
 } from '@munyeon/db';
 import { cache } from 'react';
@@ -17,8 +17,6 @@ export const loadInstitution = cache(async (kind: Kind, id: string) => {
   if (!ID_RE.test(id)) return null;
   return query('institution', (sql) => getInstitution(sql, kind, id));
 });
-
-export const loadNearby = cache(async (kind: Kind, id: string) => query('nearby', (sql) => getNearby(sql, kind, id, 5, 3000)));
 
 export const loadLastSync = cache(async (kind: Kind) => query('lastSync', (sql) => getLastSyncAt(sql, kind)));
 

@@ -9,9 +9,10 @@ import { withRetry } from './retry';
  * (2026-10-22 운영 상세 페이지 40~70초 무응답). 그래서
  * - 마지막 조회가 끝나고 IDLE_RESET_MS보다 오래 쉬었으면(실제 시계 기준이라 얼어 있던 시간도 들어간다) 새로 연결하고,
  * - 조회마다 QUERY_TIMEOUT_MS 제한을 두어, 넘으면 연결을 버리고 새 연결로 한 번 더 시도한다.
+ *   평소 조회는 1초 미만이라 3초로 둔다(D51, 처음엔 8초). 실패하면 약 7초 안에 오류 화면이 나간다.
  */
 export const IDLE_RESET_MS = 10_000;
-export const QUERY_TIMEOUT_MS = 8_000;
+export const QUERY_TIMEOUT_MS = 3_000;
 
 type Usage = { inflight: number; lastDoneAt: number };
 const holder = globalThis as typeof globalThis & { __munyeonDbUsage?: Usage };
@@ -34,7 +35,7 @@ function release(): void {
 export type QueryOptions = Parameters<typeof withRetry>[2];
 
 /**
- * DB 조회 하나. 기본은 8초 제한에 한 번 더 시도(대기 없음). 저장(insert)은 두 번 들어가지 않게 tries: 1로 부른다.
+ * DB 조회 하나. 기본은 3초 제한에 한 번 더 시도(대기 없음). 저장(insert)은 두 번 들어가지 않게 tries: 1로 부른다.
  * fn 안에서 여러 쿼리를 이어 써도 되지만, 제한 시간은 fn 전체에 걸린다.
  */
 export function query<T>(label: string, fn: (sql: Sql) => Promise<T>, opts: QueryOptions = {}): Promise<T> {

@@ -37,6 +37,8 @@ export function NavProgress() {
       if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null;
       if (!a || (a.target && a.target !== '_self') || a.hasAttribute('download')) return;
+      // 기관 상세 링크는 누르는 즉시 상세를 덮어 보여 주므로(D51) 여기서 다루지 않는다
+      if (a.hasAttribute('data-instant')) return;
       const url = new URL(a.href, location.href);
       const from = location.pathname;
       // 다른 사이트·전화(tel:)·같은 경로 안 이동은 제외

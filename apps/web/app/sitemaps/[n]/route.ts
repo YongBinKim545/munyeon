@@ -13,11 +13,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ n: stri
   if (!m) return new Response('not found', { status: 404 });
   const n = Number(m[1]);
   if (n === 0) {
-    const urls = landingUrls(await query('sitemap0', (sql) => listLandingCounts(sql))).map((p) => ({ loc: SITE_URL + p }));
+    const urls = landingUrls(await query('sitemap0', (sql) => listLandingCounts(sql), { timeoutMs: 15_000 })).map((p) => ({ loc: SITE_URL + p }));
     return new Response(buildUrlset([{ loc: `${SITE_URL}/` }, ...urls]), { headers: HEADERS });
   }
 
-  const rows = await query('sitemapN', (sql) => listSitemapEntries(sql, (n - 1) * SITEMAP_CHUNK, SITEMAP_CHUNK));
+  const rows = await query('sitemapN', (sql) => listSitemapEntries(sql, (n - 1) * SITEMAP_CHUNK, SITEMAP_CHUNK), { timeoutMs: 15_000 });
   if (rows.length === 0) return new Response('not found', { status: 404 });
   return new Response(
     buildUrlset(rows.map((r) => ({ loc: SITE_URL + institutionPath(r.kind, r.id), lastmod: r.updatedAt }))),
