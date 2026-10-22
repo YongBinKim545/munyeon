@@ -155,6 +155,20 @@ export function formatArea(sido: string | null, sigungu: string | null, dong: st
   return parts.join(' ') || (sido ?? '');
 }
 
+/** 가장 가까운 기관의 시도·시군구(D53, 지역으로 찾기의 '내 지역') */
+export function areaRegion(center: LatLon, entries: GridEntry[]): { sido: string | null; sigungu: string | null } | null {
+  let best: GridEntry | null = null;
+  let bestD = Infinity;
+  for (const e of entries) {
+    const d = distanceM(center, e);
+    if (d < bestD) {
+      bestD = d;
+      best = e;
+    }
+  }
+  return best ? { sido: best.sido, sigungu: best.sigungu } : null;
+}
+
 /** 현재 위치의 지역 이름: 가장 가까운 기관의 시군구·동(외부 주소 API 없음) */
 export function areaLabel(center: LatLon, entries: GridEntry[]): string | null {
   let best: GridEntry | null = null;

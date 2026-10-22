@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { RegionTable } from '@/components/RegionTable';
 import { loadSidoCounts } from '@/lib/data';
 import { CURRENT_SIDO, regionPath } from '@/lib/seo';
 
@@ -22,23 +22,14 @@ export default async function Regions() {
       <Breadcrumbs items={[{ name: '지역으로 찾기', href: '/regions' }]} />
       <h1>지역으로 찾기</h1>
       <p className="muted">시도를 고르면 시군구별 약국·병원 진료시간을 볼 수 있어요. 방문 전 꼭 전화로 확인하세요.</p>
-      <ul className="link-list">
-        {names.map((sido) => {
-          const c = bySido.get(sido);
-          return (
-            <li key={sido}>
-              <Link href={regionPath(sido)}>
-                <span>{sido}</span>
-                {c ? (
-                  <span className="muted">
-                    약국 {c.pharmacy.toLocaleString('ko-KR')} · 병원 {c.hospital.toLocaleString('ko-KR')}
-                  </span>
-                ) : null}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+      <RegionTable
+        rows={names.map((sido) => ({
+          name: sido,
+          href: regionPath(sido),
+          pharmacy: bySido.get(sido)?.pharmacy ?? null,
+          hospital: bySido.get(sido)?.hospital ?? null,
+        }))}
+      />
     </main>
   );
 }

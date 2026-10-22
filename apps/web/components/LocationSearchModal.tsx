@@ -24,7 +24,7 @@ function loadNeighborhoods(): Promise<NeighborhoodItem[]> {
 
 export function areaOfNeighborhood(n: NeighborhoodItem): Area | null {
   if (n.lat === null || n.lon === null) return null;
-  return { label: formatArea(n.sido, n.sigungu, n.isSigungu ? null : n.name), lat: n.lat, lon: n.lon };
+  return { label: formatArea(n.sido, n.sigungu, n.isSigungu ? null : n.name), lat: n.lat, lon: n.lon, sido: n.sido, sigungu: n.sigungu };
 }
 
 interface Props {

@@ -21,16 +21,17 @@ describe('/regions (D52)', () => {
     const html = renderToString(await Regions());
     expect(html).toContain('지역으로 찾기');
     expect(html).toContain('href="/%EC%84%9C%EC%9A%B8%ED%8A%B9%EB%B3%84%EC%8B%9C"');
-    expect(html).toContain('약국 <!-- -->5,300');
+    expect(html).toContain('<td>5,300</td>');
+    expect(html).toContain('<th scope="col">약국</th>');
   });
 
   test('without the DB still lists the 17 sido names (no empty page after a failed build query)', async () => {
     vi.stubEnv('DATABASE_URL', 'postgres://x');
     loadSidoCounts.mockResolvedValue([]);
     const html = renderToString(await Regions());
-    expect(html.match(/<li>/g)?.length).toBeGreaterThanOrEqual(17 + 1); // 경로의 '홈'·'지역으로 찾기' 포함
+    expect(html.match(/<th scope="row">/g)?.length).toBe(17);
     expect(html).toContain('제주특별자치도');
     expect(html).not.toContain('>강원도<');
-    expect(html).not.toContain('약국 ');
+    expect(html).toContain('<td>–</td>');
   });
 });

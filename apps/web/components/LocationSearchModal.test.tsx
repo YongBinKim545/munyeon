@@ -73,7 +73,7 @@ describe('LocationSearchModal', () => {
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: /중앙동/ }));
     });
-    expect(onPick).toHaveBeenCalledWith({ label: '부산 중구 중앙동', lat: 35.104, lon: 129.036 });
+    expect(onPick).toHaveBeenCalledWith({ label: '부산 중구 중앙동', lat: 35.104, lon: 129.036, sido: '부산광역시', sigungu: '중구' });
     expect(onClose).toHaveBeenCalled();
   });
 

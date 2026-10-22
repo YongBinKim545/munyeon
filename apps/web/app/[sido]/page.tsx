@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { RegionTable } from '@/components/RegionTable';
 import { loadRegions } from '@/lib/data';
 import { parseRegionParams, regionPath } from '@/lib/seo';
 
@@ -34,18 +34,10 @@ export default async function SidoPage({ params }: Props) {
       <Breadcrumbs items={[{ name: r.sido, href: regionPath(r.sido) }]} />
       <h1>{r.sido} 문 여는 병원·약국</h1>
       <p className="muted">시군구를 고르면 일요일·공휴일·야간에 여는 곳을 볼 수 있어요.</p>
-      <ul className="link-list">
-        {regions.map((g) => (
-          <li key={g.sigungu}>
-            <Link href={regionPath(r.sido, g.sigungu)}>
-              <span>{g.sigungu}</span>
-              <span className="muted">
-                약국 {g.pharmacy} · 병원 {g.hospital}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <RegionTable
+        sido={r.sido}
+        rows={regions.map((g) => ({ name: g.sigungu, href: regionPath(r.sido, g.sigungu), pharmacy: g.pharmacy, hospital: g.hospital }))}
+      />
     </main>
   );
 }

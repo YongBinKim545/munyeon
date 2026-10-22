@@ -10,6 +10,9 @@ export interface Area {
   label: string;
   lat: number;
   lon: number;
+  /** 지역으로 찾기에서 '내 지역'을 맨 위에 두는 데 쓴다(D53). 예전에 저장된 값에는 없다 */
+  sido?: string | null;
+  sigungu?: string | null;
 }
 
 const KIND_KEY = 'munyeon:kind';
@@ -51,10 +54,10 @@ function isArea(a: unknown): a is Area {
 
 /**
  * 마지막으로 보던 지역(D45). 현재 위치로 찾은 곳도 이름이 정해지면 저장해, 새로고침하면 여기서 다시 시작한다.
- * 위치 검색의 "최근 지역" 목록(직접 고른 곳)과는 따로 둔다. 이 브라우저에만 남는다.
+ * 지역 검색의 "최근 지역" 목록(직접 고른 곳)과는 따로 둔다. 이 브라우저에만 남는다.
  */
 export function saveLastArea(a: Area): void {
-  write(LAST_AREA_KEY, JSON.stringify({ label: a.label, lat: a.lat, lon: a.lon }));
+  write(LAST_AREA_KEY, JSON.stringify({ label: a.label, lat: a.lat, lon: a.lon, sido: a.sido ?? null, sigungu: a.sigungu ?? null }));
 }
 
 export function readLastArea(): Area | null {

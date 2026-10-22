@@ -142,6 +142,15 @@ p { margin: 0.25rem 0; }
 
 .link-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
 .link-list a { display: flex; justify-content: space-between; min-height: var(--tap); align-items: center; border-bottom: 1px solid var(--border); text-decoration: none; }
+/* 지역 표(D53): 지역 | 약국 | 병원, '내 지역'은 맨 위에 강조 */
+.region-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.region-table th, .region-table td { border-bottom: 1px solid var(--border); padding: 0 4px; text-align: right; font-weight: 400; }
+.region-table thead th { font-size: var(--fs-small); color: var(--text-muted); padding: 8px 4px; }
+.region-table th:first-child { text-align: left; }
+.region-table tbody th a { display: flex; align-items: center; gap: 6px; min-height: var(--tap); text-decoration: none; font-weight: 600; }
+.region-table td { color: var(--text-sub); width: 5.5em; }
+.region-table tr.is-mine { background: var(--today-bg); }
+.region-table__mine { font-size: 12px; font-weight: 600; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .chip { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 1px solid var(--border); border-radius: 999px; text-decoration: none; font-size: var(--fs-small); }
 .chip[aria-current='page'] { background: var(--badge-bg); color: var(--badge-text); border-color: transparent; }

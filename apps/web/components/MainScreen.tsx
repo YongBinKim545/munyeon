@@ -4,7 +4,7 @@ import { kstParts, type LatLon } from '@munyeon/core';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { geoPermission, locate, startArea, type AreaSource } from '@/lib/locate';
 import { fetchMeta } from '@/lib/meta';
-import { areaLabel, buildView, kindOf, loadNearby, matcherOf, type CellCache, type FetchJson, type ListFilter } from '@/lib/nearby';
+import { areaLabel, areaRegion, buildView, kindOf, loadNearby, matcherOf, type CellCache, type FetchJson, type ListFilter } from '@/lib/nearby';
 import type { GridEntry } from '@/lib/grid';
 import { pushRecentArea, readFilter, readLastArea, readRecentAreas, saveFilter, saveLastArea, saveLastCenter, type Area } from '@/lib/prefs';
 import type { Kind } from '@/lib/seo';
@@ -18,6 +18,8 @@ interface Current {
   center: LatLon;
   label: string | null;
   source: AreaSource | 'manual';
+  /** 직접 고른 지역의 시도·시군구(D53). 없으면 받은 데이터에서 가장 가까운 기관으로 정한다 */
+  region?: { sido?: string | null; sigungu?: string | null };
 }
 
 /** 보고 있는 카드(화면 위쪽에 처음 보이는 카드)와 그 화면 위치 */
@@ -169,8 +171,10 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
   // 이름이 정해진 지역은 마지막으로 보던 지역으로 저장해, 새로고침하면 여기서 시작한다(D45).
   // 기본값(명동)은 사용자가 고른 곳이 아니라 저장하지 않는다(최근 지역이 있으면 그쪽이 먼저).
   useEffect(() => {
-    if (current && label && current.source !== 'default') saveLastArea({ label, lat: current.center.lat, lon: current.center.lon });
-  }, [current, label]);
+    if (!current || !label || current.source === 'default') return;
+    const region = current.region ?? (view?.entries.length ? areaRegion(current.center, view.entries) : null);
+    saveLastArea({ label, lat: current.center.lat, lon: current.center.lon, sido: region?.sido ?? null, sigungu: region?.sigungu ?? null });
+  }, [current, label, view]);
 
   const ctx = useMemo(() => ({ holidays }), [holidays]);
   const items = useMemo(
@@ -201,7 +205,7 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
     locateReq.current += 1;
     setRecent(pushRecentArea(a));
     setShowAllKey(null);
-    setCurrent({ center: { lat: a.lat, lon: a.lon }, label: a.label, source: 'manual' });
+    setCurrent({ center: { lat: a.lat, lon: a.lon }, label: a.label, source: 'manual', region: { sido: a.sido, sigungu: a.sigungu } });
   };
 
   return (
