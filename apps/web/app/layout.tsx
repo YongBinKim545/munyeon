@@ -2,6 +2,7 @@ import { GoogleAnalytics } from '@next/third-parties/google';
 import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import { Header } from '@/components/Header';
+import { NavProgress } from '@/components/NavProgress';
 import { SITE_NAME, SITE_TAGLINE, SITE_URL } from '@/lib/seo';
 import './globals.css';
 
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko">
       <body>
         <Header />
+        <NavProgress />
         {children}
         <footer className="site-footer">
           <p>데이터 출처: 국립중앙의료원 · 공공데이터포털</p>

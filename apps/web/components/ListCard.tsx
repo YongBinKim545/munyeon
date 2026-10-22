@@ -19,6 +19,7 @@ export function ListCard({ item, now, ctx }: { item: ViewItem; now: Date; ctx: S
         <Link
           className="card__name"
           href={institutionPath(item.kind, item.id)}
+          prefetch={false}
           // 상세를 즉시 그릴 수 있게 이 카드의 정보를 넘긴다(D45)
           onClick={() =>
             rememberPreview({

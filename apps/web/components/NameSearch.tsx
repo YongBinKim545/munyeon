@@ -105,6 +105,7 @@ export function NameSearch() {
             <li key={h.id} className="search__row">
               <Link
                 href={institutionPath(h.kind, h.id)}
+                prefetch={false}
                 onClick={() => {
                   track('search_select', h.id, 'search');
                   // 상세를 즉시 그릴 수 있게 가진 정보를 넘긴다(진료시간은 없다, D45)

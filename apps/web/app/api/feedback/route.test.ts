@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const insertFeedback = vi.fn(async () => true);
 vi.mock('@munyeon/db', () => ({
-  getSql: () => ({}),
+  getSql: () => ({}), resetSql: async () => {},
   insertFeedback: (...a: unknown[]) => insertFeedback(...(a as [])),
 }));
 

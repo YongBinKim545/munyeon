@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { makeRecord } from '@/lib/fixtures';
 
 const listGridCell = vi.fn();
-vi.mock('@munyeon/db', () => ({ getSql: () => ({}), listGridCell: (...a: unknown[]) => listGridCell(...a) }));
+vi.mock('@munyeon/db', () => ({ getSql: () => ({}), resetSql: async () => {}, listGridCell: (...a: unknown[]) => listGridCell(...a) }));
 
 const { GET } = await import('./route');
 const call = (kind: string, cell: string) =>

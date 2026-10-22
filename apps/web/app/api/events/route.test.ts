@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const insertEvent = vi.fn(async () => {});
 vi.mock('@munyeon/db', () => ({
-  getSql: () => ({}),
+  getSql: () => ({}), resetSql: async () => {},
   insertEvent: (...a: unknown[]) => insertEvent(...(a as [])),
   EVENT_TYPES: ['tel_tap', 'tel_copy', 'directions_tap', 'search_select', 'locate_ok', 'locate_fail', 'show_all'],
 }));

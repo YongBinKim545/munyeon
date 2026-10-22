@@ -22,7 +22,7 @@ export function InstitutionCard({ item, page, meta, dong }: Props) {
   return (
     <li className="card" data-dong={dong ?? undefined}>
       <div className="card__head">
-        <Link className="card__name" href={institutionPath(item.kind, item.id)}>
+        <Link className="card__name" href={institutionPath(item.kind, item.id)} prefetch={false}>
           {item.name}
         </Link>
         {item.distanceM !== undefined ? <span className="muted">{formatDistance(item.distanceM)}</span> : null}

@@ -307,6 +307,14 @@ p { margin: 0.25rem 0; }
 @keyframes skeleton-pulse { from { opacity: 1; } to { opacity: 0.5; } }
 @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
 
+/* 링크를 누르고 1초 넘게 화면이 안 바뀔 때(D50) */
+.nav-progress { position: fixed; inset: 0 0 auto 0; z-index: 60; pointer-events: none; }
+.nav-progress__bar { height: 3px; background: var(--call); transform-origin: left; animation: nav-progress 8s cubic-bezier(0.1, 0.7, 0.2, 1) forwards; }
+.nav-progress__msg { pointer-events: auto; margin: 64px auto 0; width: max-content; max-width: calc(100% - 32px); padding: 8px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: var(--fs-small); box-shadow: 0 2px 8px rgb(0 0 0 / 0.12); }
+.nav-progress__retry { font: inherit; color: var(--call); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+@keyframes nav-progress { from { transform: scaleX(0.05); } to { transform: scaleX(0.9); } }
+@media (prefers-reduced-motion: reduce) { .nav-progress__bar { animation: none; transform: scaleX(0.6); } }
+
 /* 헤더(D49): 로고 아래 소개 문구, 오른쪽 위 [개선의견] */
 .brand { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .tagline { margin: 0; font-size: 12px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

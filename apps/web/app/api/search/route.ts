@@ -1,5 +1,6 @@
 import { gridCenter, parseGridKey, primaryBadge } from '@munyeon/core';
-import { getSql, searchInstitutions } from '@munyeon/db';
+import { searchInstitutions } from '@munyeon/db';
+import { query } from '@/lib/db';
 import { MIN_QUERY, normalizeQuery } from '@/lib/search';
 
 // 상호 검색(D33). 같은 검색어·격자 결과는 CDN에 하루 캐시한다. 검색어는 저장하지 않는다.
@@ -17,9 +18,9 @@ export async function GET(req: Request) {
   }
   const parsed = parseGridKey(params.get('g') ?? '');
   const cell = parsed?.level === 'coarse' ? parsed : null;
-  const hits = cell
-    ? await searchInstitutions(getSql(), q, LIMIT, gridCenter(cell))
-    : await searchInstitutions(getSql(), q, LIMIT);
+  const hits = await query('search', (sql) =>
+    cell ? searchInstitutions(sql, q, LIMIT, gridCenter(cell)) : searchInstitutions(sql, q, LIMIT),
+  );
   const items = hits.map((h) => ({
     id: h.id,
     kind: h.kind,

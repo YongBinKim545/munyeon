@@ -1,4 +1,5 @@
-import { getSql, listLandingCounts, listSitemapEntries } from '@munyeon/db';
+import { listLandingCounts, listSitemapEntries } from '@munyeon/db';
+import { query } from '@/lib/db';
 import { institutionPath, SITE_URL } from '@/lib/seo';
 import { buildUrlset, SITEMAP_CHUNK, landingUrls } from '@/lib/sitemap';
 
@@ -11,14 +12,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ n: stri
   const m = /^(\d{1,4})\.xml$/.exec((await params).n);
   if (!m) return new Response('not found', { status: 404 });
   const n = Number(m[1]);
-  const sql = getSql();
-
   if (n === 0) {
-    const urls = landingUrls(await listLandingCounts(sql)).map((p) => ({ loc: SITE_URL + p }));
+    const urls = landingUrls(await query('sitemap0', (sql) => listLandingCounts(sql))).map((p) => ({ loc: SITE_URL + p }));
     return new Response(buildUrlset([{ loc: `${SITE_URL}/` }, ...urls]), { headers: HEADERS });
   }
 
-  const rows = await listSitemapEntries(sql, (n - 1) * SITEMAP_CHUNK, SITEMAP_CHUNK);
+  const rows = await query('sitemapN', (sql) => listSitemapEntries(sql, (n - 1) * SITEMAP_CHUNK, SITEMAP_CHUNK));
   if (rows.length === 0) return new Response('not found', { status: 404 });
   return new Response(
     buildUrlset(rows.map((r) => ({ loc: SITE_URL + institutionPath(r.kind, r.id), lastmod: r.updatedAt }))),

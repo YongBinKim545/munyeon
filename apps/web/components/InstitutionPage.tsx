@@ -7,9 +7,13 @@ import { loadHolidays, loadInstitution, loadLastSync, loadNearby } from '@/lib/d
 import { institutionPath, SITE_URL } from '@/lib/seo';
 import { InstitutionView, NearbyList, NearbyPending } from './InstitutionView';
 
-/** 근처 기관은 거리 계산 쿼리라 느리다. 기관 정보를 먼저 보내고 이 구역은 나중에 보낸다(D45). */
+/**
+ * 근처 기관은 거리 계산 쿼리라 느리다. 기관 정보를 먼저 보내고 이 구역은 나중에 보낸다(D45).
+ * 부가 정보라 조회가 끝내 실패하면 상세 전체를 오류 화면으로 바꾸지 않고 이 구역만 뺀다(D50).
+ */
 async function NearbySection({ kind, id }: { kind: Kind; id: string }) {
-  return <NearbyList kind={kind} items={await loadNearby(kind, id)} />;
+  const items = await loadNearby(kind, id).catch(() => null);
+  return items ? <NearbyList kind={kind} items={items} /> : null;
 }
 
 /** 기관 상세 메타데이터: 제목·설명·canonical, 진료시간이 없거나 비활성이면 noindex(D6) */

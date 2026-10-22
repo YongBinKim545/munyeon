@@ -1,4 +1,5 @@
-import { EVENT_TYPES, getSql, insertEvent, type EventType } from '@munyeon/db';
+import { EVENT_TYPES, insertEvent, type EventType } from '@munyeon/db';
+import { query } from '@/lib/db';
 
 // 자체 이벤트 수집(D15). 기관 ID·종류·페이지 종류만 저장하고 IP·UA·좌표는 받지 않는다.
 export const dynamic = 'force-dynamic';
@@ -47,6 +48,8 @@ export async function POST(req: Request) {
   if (!validType || !validId || !validPage) return new Response(null, { status: 400 });
   if (!allow()) return new Response(null, { status: 429 });
 
-  await insertEvent(getSql(), { type: type as EventType, institutionId: institutionId as string | null, page: page as string });
+  await query('events', (sql) => insertEvent(sql, { type: type as EventType, institutionId: institutionId as string | null, page: page as string }), {
+    tries: 1,
+  });
   return new Response(null, { status: 204 });
 }

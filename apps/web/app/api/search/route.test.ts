@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { makeSummary } from '@/lib/fixtures';
 
 const searchInstitutions = vi.fn();
-vi.mock('@munyeon/db', () => ({ getSql: () => ({}), searchInstitutions: (...a: unknown[]) => searchInstitutions(...a) }));
+vi.mock('@munyeon/db', () => ({ getSql: () => ({}), resetSql: async () => {}, searchInstitutions: (...a: unknown[]) => searchInstitutions(...a) }));
 
 const { GET } = await import('./route');
 const call = (q: string, g?: string) =>
