@@ -1,7 +1,8 @@
 'use client';
 
-import { describeStatus, parseWeeklyHours, soonLabel, usualLabel, type StatusContext } from '@munyeon/core';
+import { dateLabel, dayLabel, describeStatus, parseWeeklyHours, soonLabel, usualLabel, type StatusContext } from '@munyeon/core';
 import { formatArea, type ViewItem } from '@/lib/nearby';
+import { NOW, type When } from '@/lib/when';
 import { CallButton } from './CallButton';
 import { DirectionsButton } from './DirectionsButton';
 import { formatDistance } from './InstitutionCard';
@@ -10,7 +11,7 @@ import { PreviewLink } from './PreviewLink';
 const PAGE = 'home';
 
 /** 메인 목록 카드(D32): 이름·거리 / 배지 / 상태 / [전화하기] [길찾기]. 상태는 브라우저 계산이다. */
-export function ListCard({ item, now, ctx }: { item: ViewItem; now: Date; ctx: StatusContext }) {
+export function ListCard({ item, now, ctx, when = NOW }: { item: ViewItem; now: Date; ctx: StatusContext; when?: When }) {
   return (
     <li className="card" data-id={item.id}>
       <div className="card__head">
@@ -33,7 +34,7 @@ export function ListCard({ item, now, ctx }: { item: ViewItem; now: Date; ctx: S
           {item.pediatric ? <span className="badge">소아 전문</span> : null}
         </span>
       </div>
-      <CardStatus item={item} now={now} ctx={ctx} />
+      {when.kind === 'date' ? <DayStatus item={item} ymd={when.ymd} /> : <CardStatus item={item} now={now} ctx={ctx} />}
       <div className="actions">
         <CallButton tel={item.tel} institutionId={item.id} page={PAGE} compact />
         <DirectionsButton
@@ -48,6 +49,21 @@ export function ListCard({ item, now, ctx }: { item: ViewItem; now: Date; ctx: S
       </div>
     </li>
   );
+}
+
+/** 날짜를 고른 목록: '10/25(일) 09:00~18:00' / 공휴일 '전화 확인 필요 · 평소 금요일 09:00~18:00' / '그날 정보 없음' */
+function DayStatus({ item, ymd }: { item: ViewItem; ymd: string }) {
+  if (item.tier === 'open' && item.range) {
+    return <p className="card__status"><span className="pill pill--open">{dateLabel(ymd)} {dayLabel(item.range)}</span></p>;
+  }
+  if (item.tier === 'holidayUsual' && item.range) {
+    return (
+      <p className="card__status">
+        <span className="pill pill--holiday">전화 확인 필요</span> <span className="muted">평소 {item.weekdayLabel} {dayLabel(item.range)}</span>
+      </p>
+    );
+  }
+  return <p className="card__status"><span className="pill pill--unknown">{dateLabel(ymd)} 정보 없음 — 전화로 확인</span></p>;
 }
 
 function CardStatus({ item, now, ctx }: { item: ViewItem; now: Date; ctx: StatusContext }) {

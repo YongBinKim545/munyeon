@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { makeRecord } from './fixtures';
 import { decodeGrid, encodeGrid, type GridPayload } from './grid';
 import {
-  areaLabel, cellUrls, formatArea, kindOf, loadCells, loadNearby, matcherOf, type CellCache, type ListFilter, type NearbyStep,
+  areaLabel, buildView, cellUrls, formatArea, kindOf, loadCells, loadNearby, matcherOf, type CellCache, type ListFilter, type NearbyStep,
 } from './nearby';
 
 const center = { lat: 37.5637, lon: 126.9838 }; // 명동
@@ -139,4 +139,30 @@ describe('area names', () => {
     expect(areaLabel(center, entries)).toBe('중구 명동2가');
     expect(areaLabel(center, [])).toBeNull();
   });
+});
+
+describe('buildView with a picked date (부모님 대신 일요일·공휴일)', () => {
+  const rows = [
+    makeRecord({ id: 'SUN', name: '일요약국', hours: { dutyTime7s: '0900', dutyTime7c: '1800' }, lat: 37.5640, lon: 126.9840 }),
+    makeRecord({ id: 'NOSUN', name: '평일약국', hours: { dutyTime1s: '0900', dutyTime1c: '1800' }, lat: 37.5638, lon: 126.9839 }),
+    makeRecord({ id: 'FRI', name: '금요약국', hours: { dutyTime5s: '0900', dutyTime5c: '1800' }, lat: 37.5639, lon: 126.9839 }),
+  ];
+  const entries = decodeGrid(encodeGrid(rows), 'pharmacy');
+  const hol = { holidays: new Set(['2026-12-25']) }; // 금요일 공휴일
+
+  test('a Sunday: only places registered for Sunday; no-Sunday-hours are behind 전체 보기', () => {
+    const v = buildView(entries, center, 3, at, ctx, 'open', { kind: 'date', ymd: '2026-10-25' });
+    expect(v.map((i) => [i.id, i.tier])).toEqual([['SUN', 'open']]);
+    expect(v[0]!.range).toEqual({ open: 540, close: 1080 });
+    const all = buildView(entries, center, 3, at, ctx, 'all', { kind: 'date', ymd: '2026-10-25' });
+    expect(all.map((i) => i.tier)).toEqual(['open', 'unknown', 'unknown']);
+  });
+
+  test('a holiday without code 8: usual weekday hours as call-to-confirm, like now (D32)', () => {
+    const v = buildView(entries, center, 3, at, hol, 'open', { kind: 'date', ymd: '2026-12-25' });
+    expect(v.map((i) => [i.id, i.tier, i.weekdayLabel])).toEqual([['FRI', 'holidayUsual', '금요일']]);
+  });
+
+  test('now mode is unchanged', () =>
+    expect(buildView(entries, center, 3, at, ctx, 'open').map((i) => i.id)).toEqual(['NOSUN']));
 });

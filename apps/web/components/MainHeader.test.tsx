@@ -12,16 +12,37 @@ const props = (over = {}) => ({
   onFilter: vi.fn(),
   onCurrentLocation: vi.fn(),
   onOpenLocationSearch: vi.fn(),
+  when: { kind: 'now' } as const,
+  onWhen: vi.fn(),
   ...over,
 });
 
 describe('MainHeader', () => {
-  test('one type select (pharmacy / hospital / pediatric), no status select; the type name is for screen readers', () => {
+  test('when select: now / pick a date; a picked date shows as 10/25(일) (부모님 대신 찾기)', () => {
+    const onWhen = vi.fn();
+    const { rerender } = render(<MainHeader {...props({ onWhen })} />);
+    const when = screen.getByRole('combobox', { name: '언제' });
+    expect([...when.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['지금', '날짜']);
+    fireEvent.change(when, { target: { value: 'pick' } });
+    const date = screen.getByLabelText('날짜');
+    expect(date.getAttribute('type')).toBe('date');
+    fireEvent.change(date, { target: { value: '2026-12-25' } });
+    expect(onWhen).toHaveBeenCalledWith({ kind: 'date', ymd: '2026-12-25' });
+    rerender(<MainHeader {...props({ onWhen, when: { kind: 'date', ymd: '2026-10-25' } })} />);
+    const again = screen.getByRole('combobox', { name: '언제' });
+    expect(again).toHaveProperty('value', '2026-10-25');
+    expect([...again.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['지금', '10/25(일)', '날짜']);
+    fireEvent.change(again, { target: { value: 'now' } });
+    expect(onWhen).toHaveBeenLastCalledWith({ kind: 'now' });
+  });
+
+
+  test('one type select (pharmacy / hospital / pediatric) and a when select; names are for screen readers', () => {
     render(<MainHeader {...props()} />);
     const select = screen.getByRole('combobox', { name: '유형' });
     expect(select).toHaveProperty('value', 'pharmacy');
     expect([...select.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['약국', '병원', '소아과']);
-    expect(screen.getAllByRole('combobox')).toHaveLength(1);
+    expect(screen.getAllByRole('combobox')).toHaveLength(2);
     expect(screen.queryByText('유형')).toBeNull();
     expect(screen.getByRole('link', { name: '검색' }).getAttribute('href')).toBe('/search');
   });

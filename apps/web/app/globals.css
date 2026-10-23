@@ -202,8 +202,10 @@ p { margin: 0.25rem 0; }
 .area__menu button, .area__menu a { display: block; width: 100%; min-height: var(--tap); padding: 0 16px; text-align: left; background: none; border: 0; color: var(--text); font: inherit; cursor: pointer; }
 .area__menu li + li { border-top: 1px solid var(--border); }
 .area__note { margin: 0 4px; }
-.filters { display: flex; gap: 8px; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
 .filters > * { flex: 1; }
+/* 날짜 고르기를 누르면 달력 입력칸이 다음 줄 전체 너비로 나온다 */
+.filters > .when-date { flex-basis: 100%; order: 1; }
 .select {
   min-height: var(--tap); padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius);
   background: var(--surface); color: var(--text); font: inherit; font-weight: 600;

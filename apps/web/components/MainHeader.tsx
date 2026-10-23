@@ -4,6 +4,8 @@ import { ChevronDown, List, LocateFixed, MapPin, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import type { ListFilter } from '@/lib/nearby';
+import type { When } from '@/lib/when';
+import { WhenSelect } from './WhenSelect';
 
 interface Props {
   /** null이면 위치를 찾는 중 */
@@ -12,6 +14,8 @@ interface Props {
   pcLocationNote: boolean;
   filter: ListFilter;
   onFilter: (f: ListFilter) => void;
+  when: When;
+  onWhen: (w: When) => void;
   onCurrentLocation: () => void;
   onOpenLocationSearch: () => void;
 }
@@ -33,7 +37,7 @@ export function nextHeaderState(s: { hidden: boolean; base: number }, y: number)
 }
 
 /**
- * 메인 전용 헤더(D31·D38·D41·D52): 1줄 📍 지역 이름 + [위치 찾기 ▾](현재 위치 / 지역 검색 / 지역별 보기), 2줄 [약국 ▾] [검색].
+ * 메인 전용 헤더(D31·D38·D41·D52): 1줄 📍 지역 이름 + [위치 찾기 ▾](현재 위치 / 지역 검색 / 지역별 보기), 2줄 [약국 ▾] [언제 ▾] [검색].
  * 유형은 약국 / 병원 / 소아과. '유형' 글자는 화면에 보이지 않고 화면 낭독기용 이름으로만 둔다.
  * 사이트 헤더 바로 아래에 붙어 있고, 아래로 스크롤하면 숨었다가 위로 올리면 다시 나온다(메뉴가 열려 있으면 숨지 않음).
  */
@@ -129,6 +133,7 @@ export function MainHeader(p: Props) {
           </select>
           <ChevronDown aria-hidden="true" size={16} className="select-wrap__icon" />
         </span>
+        <WhenSelect when={p.when} onChange={p.onWhen} />
         <Link className="btn btn-secondary" href="/search" prefetch={false}>
           검색
         </Link>

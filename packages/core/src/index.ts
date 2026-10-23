@@ -9,4 +9,5 @@ export * from './badges.ts';
 export * from './describe.ts';
 export * from './situation.ts';
 export * from './list.ts';
+export * from './day.ts';
 export * from './geo.ts';

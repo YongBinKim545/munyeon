@@ -9,6 +9,7 @@ import type { GridEntry } from '@/lib/grid';
 import { pushRecentArea, readFilter, readLastArea, readRecentAreas, saveFilter, saveLastArea, saveLastCenter, type Area } from '@/lib/prefs';
 import type { Kind } from '@/lib/seo';
 import { track } from '@/lib/track';
+import { NOW, readWhen, saveWhen, type When } from '@/lib/when';
 import { LocationGuideModal, type GuideReason } from './LocationGuideModal';
 import { LocationSearchModal } from './LocationSearchModal';
 import { MainHeader } from './MainHeader';
@@ -47,6 +48,8 @@ function findAnchor(list: HTMLElement | null, forItems: unknown): Anchor | null 
  */
 export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetchJson?: FetchJson; holidays?: string[] }) {
   const [filter, setFilter] = useState<ListFilter>('pharmacy');
+  /** [언제 ▾]: 지금 / 고른 날짜. 이 방문 동안만 기억한다 */
+  const [when, setWhen] = useState<When>(NOW);
   /** [전체 보기]를 누른 목록의 loadKey. 유형·지역을 고르면 지워져 다시 영업 중 목록이 된다 */
   const [showAllKey, setShowAllKey] = useState<string | null>(null);
   const [recent, setRecent] = useState<Area[]>([]);
@@ -110,6 +113,7 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
     // 저장값은 브라우저에만 있으므로 하이드레이션 뒤에 읽는다(서버 HTML과 첫 렌더를 맞춘다)
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFilter(readFilter());
+    setWhen(readWhen(new Date()));
     setRecent(readRecentAreas());
     void fetchMeta().then((m) => {
       if (m) setHolidays(new Set(m.holidays)); // 실패하면 HTML에 담겨 온 목록을 그대로 쓴다
@@ -130,7 +134,8 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
   const centerKey = current ? `${current.center.lat},${current.center.lon}` : '';
   const kind = kindOf(filter);
   const match = useMemo(() => matcherOf(filter), [filter]);
-  const loadKey = `${centerKey}|${filter}`;
+  const whenKey = when.kind === 'date' ? when.ymd : 'now';
+  const loadKey = `${centerKey}|${filter}|${whenKey}`;
   const mode = showAllKey === loadKey ? 'all' : 'open';
   useEffect(() => {
     if (!current) return;
@@ -142,6 +147,7 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
       center: current.center,
       at: () => new Date(),
       ctx: { holidays },
+      when,
       cache: cache.current[kind],
       fetchJson,
       isCurrent: () => alive,
@@ -150,7 +156,7 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
     return () => {
       alive = false;
     };
-    // centerKey가 center를 대신한다
+    // loadKey(centerKey·유형·언제)가 center·when을 대신한다
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadKey, holidays, fetchJson, withAnchor, retry]);
 
@@ -178,8 +184,8 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
 
   const ctx = useMemo(() => ({ holidays }), [holidays]);
   const items = useMemo(
-    () => (current && view ? buildView(match ? view.entries.filter(match) : view.entries, current.center, view.radiusKm, now, ctx, mode) : null),
-    [current, view, now, ctx, mode, match],
+    () => (current && view ? buildView(match ? view.entries.filter(match) : view.entries, current.center, view.radiusKm, now, ctx, mode, when) : null),
+    [current, view, now, ctx, mode, match, when],
   );
 
   // 보던 카드의 화면 위치가 그대로 남도록 스크롤을 보정한다(사파리는 자동 보정이 없다)
@@ -201,6 +207,12 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
     setFilter(f);
   };
 
+  const chooseWhen = (w: When) => {
+    saveWhen(w);
+    setShowAllKey(null);
+    setWhen(w);
+  };
+
   const pickArea = (a: Area) => {
     locateReq.current += 1;
     setRecent(pushRecentArea(a));
@@ -215,6 +227,8 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
         pcLocationNote={pcNote && current?.source === 'gps'}
         filter={filter}
         onFilter={chooseFilter}
+        when={when}
+        onWhen={chooseWhen}
         onCurrentLocation={requestLocation}
         onOpenLocationSearch={() => setModalOpen(true)}
       />
@@ -224,6 +238,7 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
           mode={mode}
           now={now}
           ctx={ctx}
+          when={when}
           holidayToday={ctx.holidays.has(kstParts(now).ymd)}
           key={loadKey}
           loadingMore={!!view && !view.done}

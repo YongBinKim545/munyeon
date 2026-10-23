@@ -1,8 +1,9 @@
 'use client';
 
-import type { StatusContext } from '@munyeon/core';
+import { dateLabel, type StatusContext } from '@munyeon/core';
 import { useEffect, useRef, useState } from 'react';
 import { MIN_VISIBLE, type ListFilter, type ViewItem } from '@/lib/nearby';
+import { NOW, type When } from '@/lib/when';
 import { EmergencyNote } from './EmergencyNote';
 import { ListCard } from './ListCard';
 
@@ -14,6 +15,8 @@ interface Props {
   mode: 'open' | 'all';
   now: Date;
   ctx: StatusContext;
+  /** 날짜를 골랐으면 그날 기준 목록 */
+  when?: When;
   holidayToday: boolean;
   /** 아직 더 받는 중(3km 이상) */
   loadingMore: boolean;
@@ -27,7 +30,7 @@ interface Props {
 }
 
 /** 메인 목록(D32): 구역 제목 없이 한 줄, 끝에 [전체 보기]. 지역·유형이 바뀌면 부모가 key로 새로 그린다. */
-export function MainList({ items, mode, now, ctx, holidayToday, loadingMore, onShowAll, failed, onRetry, filter, onNearbyHospitals }: Props) {
+export function MainList({ items, mode, now, ctx, when = NOW, holidayToday, loadingMore, onShowAll, failed, onRetry, filter, onNearbyHospitals }: Props) {
   const [limit, setLimit] = useState(PAGE_SIZE);
   /** [더 보기]로 새로 나온 첫 카드. 그 카드의 이름 링크로 포커스를 옮긴다 */
   const focusFrom = useRef<number | null>(null);
@@ -76,17 +79,25 @@ export function MainList({ items, mode, now, ctx, holidayToday, loadingMore, onS
           </button>
         </div>
       ) : null}
-      {holidayToday ? <p className="holiday-strip">오늘은 공휴일 · 공휴일 진료시간 기준</p> : null}
+      {when.kind === 'date' ? (
+        ctx.holidays.has(when.ymd) ? <p className="holiday-strip">{dateLabel(when.ymd)} 공휴일 · 공휴일 진료시간 기준</p> : null
+      ) : holidayToday ? (
+        <p className="holiday-strip">오늘은 공휴일 · 공휴일 진료시간 기준</p>
+      ) : null}
       {total > 0 ? <p className="muted list-basis">영업시간은 등록 기준이에요 · 방문 전 전화로 확인하세요</p> : null}
       {total === 0 && mode === 'open' && !loadingMore ? (
         <div className="empty">
-          <p>{pediatric ? '등록 기준으로 지금 문 연 소아과가 없어요' : '등록 기준으로 지금 문 연 곳이 없어요'}</p>
-          <EmergencyNote />
+          <p>
+            {when.kind === 'date'
+              ? `등록 기준으로 ${dateLabel(when.ymd)}에 여는 ${pediatric ? '소아과' : '곳'}이 없어요`
+              : pediatric ? '등록 기준으로 지금 문 연 소아과가 없어요' : '등록 기준으로 지금 문 연 곳이 없어요'}
+          </p>
+          {when.kind === 'now' ? <EmergencyNote /> : null}
         </div>
       ) : null}
       <ul ref={listRef} className="cards main-list">
         {shown.map((item) => (
-          <ListCard key={item.id} item={item} now={now} ctx={ctx} />
+          <ListCard key={item.id} item={item} now={now} ctx={ctx} when={when} />
         ))}
       </ul>
       {limit < total ? (
