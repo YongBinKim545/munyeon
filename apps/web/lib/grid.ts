@@ -1,4 +1,4 @@
-import { DAY_CODES, primaryBadge, SIDO_NAMES, type Category, type RawHours } from '@munyeon/core';
+import { DAY_CODES, normalizeSido, primaryBadge, SIDO_NAMES, type Category, type RawHours } from '@munyeon/core';
 import type { GridRow } from '@munyeon/db';
 import type { Kind } from './seo';
 
@@ -99,7 +99,8 @@ export function decodeGrid(p: GridPayload, kind: Kind): GridEntry[] {
     id, kind, name, lat, lon, category, badge,
     tel: tel || null,
     pediatric: pediatric === 1,
-    sido: SIDO_NAMES[sido] ?? null,
+    // 배포 직전에 캐시된 JSON의 옛 시도 이름도 지금 이름으로(P0-1)
+    sido: normalizeSido(SIDO_NAMES[sido]),
     sigungu: sigungu || null,
     dong: dong || null,
     hours: unpackHours(hours),

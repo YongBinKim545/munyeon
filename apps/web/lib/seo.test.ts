@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'vitest';
-import { institutionPath, parseRegionParams, regionPath, safeDecode, siteUrl } from './seo';
+import { institutionPath, parseRegionParams, regionPath, safeDecode, sidoTitle, siteUrl } from './seo';
+
+test('sidoTitle names the merged sido with its common name (P0-1)', () => {
+  expect(sidoTitle('전남광주통합특별시')).toBe('전남광주통합특별시(광주·전남)');
+  expect(sidoTitle('서울특별시')).toBe('서울특별시');
+});
 
 describe('siteUrl', () => {
   test('explicit site url wins, trailing slash removed', () =>
@@ -47,6 +52,10 @@ describe('paths', () => {
     expect(parseRegionParams({ sido: '서울특별시', sigungu: '강남구', kind: '약국', situation: '새벽' })).toBeNull();
     expect(parseRegionParams({ sido: '서울특별시', sigungu: '' })).toBeNull();
     expect(parseRegionParams({ sido: '%E0%A4%A' })).toBeNull();
+    // 옛 시도 이름은 페이지가 아니라 301(next.config, P0-1)
+    expect(parseRegionParams({ sido: '광주광역시' })).toBeNull();
+    expect(parseRegionParams({ sido: '전라남도', sigungu: '여수시' })).toBeNull();
+    expect(parseRegionParams({ sido: '전남광주통합특별시', sigungu: '동구' })).toEqual({ sido: '전남광주통합특별시', sigungu: '동구' });
   });
 
   test('safeDecode is idempotent and tolerant', () => {

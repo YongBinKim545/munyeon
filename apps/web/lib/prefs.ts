@@ -1,3 +1,4 @@
+import { normalizeSido } from '@munyeon/core';
 import type { ListFilter } from './nearby';
 
 /**
@@ -63,7 +64,8 @@ export function saveLastArea(a: Area): void {
 export function readLastArea(): Area | null {
   try {
     const a = JSON.parse(read(LAST_AREA_KEY) ?? 'null') as unknown;
-    return isArea(a) ? a : null;
+    // 통합 전에 저장한 광주광역시·전라남도도 지금 이름으로 읽는다(P0-1)
+    return isArea(a) ? { ...a, sido: normalizeSido(a.sido) ?? a.sido ?? null } : null;
   } catch {
     return null;
   }

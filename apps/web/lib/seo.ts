@@ -1,4 +1,6 @@
-import { SIDO_NAMES } from '@munyeon/core';
+import { CURRENT_SIDO, JEONNAM_GWANGJU, regionShortName } from '@munyeon/core';
+
+export { CURRENT_SIDO, regionShortName };
 
 /** 정식 도메인(D44, 2026-10-21 가비아 등록) */
 export const DEFAULT_SITE_URL = 'https://findmedi.co.kr';
@@ -27,10 +29,8 @@ export type Situation = keyof typeof SITUATIONS;
 
 const KIND_BY_LABEL = new Map<string, Kind>(Object.entries(KIND_LABEL).map(([k, v]) => [v, k as Kind]));
 const SITUATION_BY_LABEL = new Map<string, Situation>(Object.entries(SITUATIONS).map(([k, v]) => [v, k as Situation]));
-const SIDO_SET = new Set(SIDO_NAMES);
-
-/** 지금 쓰는 시도 이름 17개. SIDO_NAMES의 옛 이름(강원도·전라북도)은 주소 해석용이라 뺀다. 지역으로 찾기의 예비 목록(D52) */
-export const CURRENT_SIDO: readonly string[] = SIDO_NAMES.filter((s) => s !== '강원도' && s !== '전라북도');
+/** 주소에는 지금 시도 이름만. 옛 이름(광주광역시·전라남도 등)은 next.config에서 새 주소로 301(P0-1) */
+const SIDO_SET = new Set(CURRENT_SIDO);
 
 /** 경로 조각을 한 번만 디코딩한다. 이미 디코딩된 값은 그대로, 잘못된 인코딩은 null. */
 export function safeDecode(seg: string): string | null {
@@ -40,6 +40,11 @@ export function safeDecode(seg: string): string | null {
   } catch {
     return null;
   }
+}
+
+/** 시도 페이지 제목·H1. 통합특별시는 사람들이 검색하는 통칭을 함께 적는다(P0-1) */
+export function sidoTitle(sido: string): string {
+  return sido === JEONNAM_GWANGJU ? `${sido}(광주·전남)` : sido;
 }
 
 export function institutionPath(kind: Kind, id: string): string {

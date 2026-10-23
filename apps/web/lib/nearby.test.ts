@@ -127,6 +127,7 @@ describe('area names', () => {
     expect(formatArea('서울특별시', '중구', '명동1가')).toBe('중구 명동1가');
     expect(formatArea('부산광역시', '중구', '중앙동')).toBe('부산 중구 중앙동');
     expect(formatArea('부산광역시', '중구', null)).toBe('부산 중구');
+    expect(formatArea('전남광주통합특별시', '동구', '충장동')).toBe('광주 동구 충장동');
     expect(formatArea('경기도', '수원시 영통구', '영통동')).toBe('수원시 영통구 영통동');
   });
 

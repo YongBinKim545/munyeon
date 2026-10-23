@@ -46,6 +46,8 @@ describe('prefs', () => {
     expect(readLastArea()).toEqual({ label: '강서구 화곡동', lat: 37.541, lon: 126.84, sido: null, sigungu: null });
     saveLastArea({ label: '강서구 화곡동', lat: 37.541, lon: 126.84, sido: '서울특별시', sigungu: '강서구' });
     expect(readLastArea()?.sido).toBe('서울특별시'); // D53
+    saveLastArea({ label: '광주 동구 충장동', lat: 35.15, lon: 126.92, sido: '광주광역시', sigungu: '동구' });
+    expect(readLastArea()?.sido).toBe('전남광주통합특별시'); // 통합 전 저장값(P0-1)
     expect(readRecentAreas()).toEqual([]); // 최근 지역 목록에는 넣지 않는다
     localStorage.setItem('munyeon:lastArea', '{"label":1}');
     expect(readLastArea()).toBeNull();

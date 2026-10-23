@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { RegionTable } from '@/components/RegionTable';
 import { loadRegions } from '@/lib/data';
-import { parseRegionParams, regionPath } from '@/lib/seo';
+import { parseRegionParams, regionPath, sidoTitle } from '@/lib/seo';
 
 export const revalidate = 86400;
 export const dynamicParams = true;
@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const r = parseRegionParams(await params);
   if (!r) return { robots: { index: false } };
   return {
-    title: `${r.sido} 문 여는 병원·약국 — 시군구별 진료시간`,
+    title: `${sidoTitle(r.sido)} 문 여는 병원·약국 — 시군구별 진료시간`,
     description: `${r.sido} 시군구별 약국·병원의 일요일·공휴일·야간 진료시간과 전화번호.`,
     alternates: { canonical: regionPath(r.sido) },
   };
@@ -32,7 +32,7 @@ export default async function SidoPage({ params }: Props) {
   return (
     <main className="container">
       <Breadcrumbs items={[{ name: r.sido, href: regionPath(r.sido) }]} />
-      <h1>{r.sido} 문 여는 병원·약국</h1>
+      <h1>{sidoTitle(r.sido)} 문 여는 병원·약국</h1>
       <p className="muted">시군구를 고르면 일요일·공휴일·야간에 여는 곳을 볼 수 있어요.</p>
       <RegionTable
         sido={r.sido}

@@ -102,6 +102,7 @@ export async function upsertInstitutions(
           has_holiday = excluded.has_holiday, has_night = excluded.has_night, updated_at = excluded.updated_at,
           is_active = true
         where t.content_hash is distinct from excluded.content_hash or not t.is_active
+           or t.sido is distinct from excluded.sido or t.sigungu is distinct from excluded.sigungu
            or t.category is distinct from excluded.category or t.specialty is distinct from excluded.specialty
            or t.dong is distinct from excluded.dong or t.pediatric_name is distinct from excluded.pediatric_name
            or t.has_sunday is distinct from excluded.has_sunday or t.has_holiday is distinct from excluded.has_holiday

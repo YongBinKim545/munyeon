@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import type { Sql } from './client.ts';
 import {
@@ -5,6 +7,7 @@ import {
   getRegionStats, insertEvent, insertFeedback, listGridCell, listLandingCounts, listNeighborhoods, listRegion, listRegions, listSido, listSitemapEntries,
   refreshNeighborhoods, searchInstitutions, startRun, upsertHolidays, upsertInstitutions, type InstitutionRow,
 } from './queries.ts';
+import { MIGRATIONS_DIR } from './migrate.ts';
 import { startTestDb } from './test-db.ts';
 import { FINE_GRID_LAT, FINE_GRID_LON, GRID_LAT, GRID_LON, gridOf } from '@munyeon/core';
 
@@ -61,6 +64,30 @@ describe('upsertInstitutions', () => {
   test('batches larger than 1000 rows', async () => {
     const rows = Array.from({ length: 1205 }, (_, i) => row({ id: `B${i}`, contentHash: `h${i}` }));
     expect((await upsertInstitutions(sql, rows, t1)).inserted).toBe(1205);
+  });
+});
+
+describe('sido merge (P0-1)', () => {
+  test('region change alone counts as a change', async () => {
+    await upsertInstitutions(sql, [row({ sido: null, sigungu: null })], t1);
+    expect(await upsertInstitutions(sql, [row()], t2)).toEqual({ inserted: 0, changed: 1, changedIds: ['C1100001'] });
+  });
+
+  test('migration 0007 re-derives empty and old sido, leaves the rest', async () => {
+    const JG = '전남광주통합특별시';
+    await upsertInstitutions(sql, [
+      row({ id: 'H1', kind: 'hospital', addr: JG + ' 고흥군 고흥읍 터미널길 16', sido: null, sigungu: null }),
+      row({ id: 'P1', addr: '광주광역시 북구 무등로 1', sido: '광주광역시', sigungu: '북구' }),
+      row({ id: 'P2', addr: '서울 성동구 독서당로 278 1층  (금호동4가)', sido: null, sigungu: null }),
+      row({ id: 'P3', addr: '경기도 금빛로 27', sido: null, sigungu: null }),
+      row({ id: 'P4' }),
+    ], t1);
+    await sql.unsafe(await readFile(join(MIGRATIONS_DIR, '0007_sido_merge.sql'), 'utf8'));
+    const got = await sql<{ id: string; sido: string | null; sigungu: string | null }[]>`select id, sido, sigungu from institutions order by id`;
+    expect(got.map((r) => [r.id, r.sido, r.sigungu])).toEqual([
+      ['H1', JG, '고흥군'], ['P1', JG, '북구'], ['P2', '서울특별시', '성동구'], ['P3', null, null], ['P4', '서울특별시', '중구'],
+    ]);
+    expect((await listNeighborhoods(sql)).some((n) => n.sido === JG && n.sigungu === '고흥군')).toBe(true);
   });
 });
 

@@ -9,7 +9,7 @@ import { EmergencyNote } from '@/components/EmergencyNote';
 import { InstitutionCard } from '@/components/InstitutionCard';
 import { loadLastSync, loadRegion, loadRegions, loadRegionStats } from '@/lib/data';
 import { landingIndexable, matchesSituation, situationTime, splitByCategory } from '@/lib/landing';
-import { KIND_LABEL, parseRegionParams, regionPath, SITUATIONS, type Kind, type Situation } from '@/lib/seo';
+import { KIND_LABEL, parseRegionParams, regionPath, regionShortName, SITUATIONS, type Kind, type Situation } from '@/lib/seo';
 
 export const revalidate = 86400;
 export const dynamicParams = true;
@@ -20,9 +20,11 @@ export async function generateStaticParams() {
 
 type Props = { params: Promise<{ sido: string; sigungu: string; kind: string; situation: string }> };
 
-function heading(sigungu: string, kind: Kind, s: Situation): string {
+/** 제목·H1. 시도 약칭을 붙여 다른 시도의 같은 이름 구와 구분한다(P0-2) */
+function heading(sido: string, sigungu: string, kind: Kind, s: Situation): string {
   const k = KIND_LABEL[kind];
-  return s === 'all' ? `${sigungu} ${k} — 진료시간·전화` : `${sigungu} ${SITUATIONS[s]} 문 여는 ${k}`;
+  const area = regionShortName(sido, sigungu);
+  return s === 'all' ? `${area} ${k} — 진료시간·전화` : `${area} ${SITUATIONS[s]} 문 여는 ${k}`;
 }
 
 async function load(params: Props['params']) {
@@ -43,7 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!d) return { robots: { index: false } };
   const label = d.kind === 'pharmacy' ? '영업시간' : '진료시간';
   return {
-    title: `${heading(d.sigungu, d.kind, d.situation)}${d.situation === 'all' ? '' : ` — ${label}·전화`}`,
+    title: `${heading(d.sido, d.sigungu, d.kind, d.situation)}${d.situation === 'all' ? '' : ` — ${label}·전화`}`,
     description: `${d.sido} ${d.sigungu} ${d.situation === 'all' ? '' : `${SITUATIONS[d.situation]}에 여는 `}${KIND_LABEL[d.kind]} ${d.matched.length}곳의 ${label}과 전화번호. 방문 전 전화로 확인하세요.`,
     alternates: { canonical: regionPath(d.sido, d.sigungu, d.kind, d.situation) },
     robots: landingIndexable(d.matched.length) ? undefined : { index: false, follow: true },
@@ -70,7 +72,7 @@ export default async function LandingPage({ params }: Props) {
           ...(situation === 'all' ? [] : [{ name: SITUATIONS[situation], href: regionPath(sido, sigungu, kind, situation) }]),
         ]}
       />
-      <h1>{heading(sigungu, kind, situation)}</h1>
+      <h1>{heading(sido, sigungu, kind, situation)}</h1>
       <p className="muted">
         등록 기준 {main.length + folded.length}곳 · 이 지역 공휴일 진료시간 등록률 {holidayPct}%
       </p>

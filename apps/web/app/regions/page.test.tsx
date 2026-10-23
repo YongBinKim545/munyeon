@@ -25,11 +25,11 @@ describe('/regions (D52)', () => {
     expect(html).toContain('<th scope="col">약국</th>');
   });
 
-  test('without the DB still lists the 17 sido names (no empty page after a failed build query)', async () => {
+  test('without the DB still lists the 16 sido names (광주·전남 통합, P0-1) (no empty page after a failed build query)', async () => {
     vi.stubEnv('DATABASE_URL', 'postgres://x');
     loadSidoCounts.mockResolvedValue([]);
     const html = renderToString(await Regions());
-    expect(html.match(/<th scope="row">/g)?.length).toBe(17);
+    expect(html.match(/<th scope="row">/g)?.length).toBe(16);
     expect(html).toContain('제주특별자치도');
     expect(html).not.toContain('>강원도<');
     expect(html).toContain('<td>–</td>');

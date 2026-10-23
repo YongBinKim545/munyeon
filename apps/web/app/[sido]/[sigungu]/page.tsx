@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { loadRegions, loadRegionStats } from '@/lib/data';
-import { KIND_LABEL, parseRegionParams, regionPath, SITUATIONS, type Kind, type Situation } from '@/lib/seo';
+import { KIND_LABEL, parseRegionParams, regionPath, regionShortName, SITUATIONS, type Kind, type Situation } from '@/lib/seo';
 
 export const revalidate = 86400;
 export const dynamicParams = true;
@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const r = parseRegionParams(await params);
   if (!r?.sigungu) return { robots: { index: false } };
   return {
-    title: `${r.sigungu} 문 여는 병원·약국 — 일요일·공휴일·야간`,
+    title: `${regionShortName(r.sido, r.sigungu)} 문 여는 병원·약국 — 일요일·공휴일·야간`,
     description: `${r.sido} ${r.sigungu}의 약국·병원 일요일·공휴일·야간 진료시간과 전화번호를 한곳에서 확인하세요.`,
     alternates: { canonical: regionPath(r.sido, r.sigungu) },
   };
@@ -39,7 +39,7 @@ export default async function SigunguHub({ params }: Props) {
   return (
     <main className="container">
       <Breadcrumbs items={[{ name: sido, href: regionPath(sido) }, { name: sigungu, href: regionPath(sido, sigungu) }]} />
-      <h1>{sigungu} 문 여는 병원·약국</h1>
+      <h1>{regionShortName(sido, sigungu)} 문 여는 병원·약국</h1>
       {kinds.map((k, i) => {
         const s = stats[i]!;
         return (
