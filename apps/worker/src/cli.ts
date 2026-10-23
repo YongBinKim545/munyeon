@@ -6,7 +6,7 @@
 import { writeFile } from 'node:fs/promises';
 import { kstParts } from '@munyeon/core';
 import {
-  deactivateMissing, finishRun, getLastSyncAt, getSql, refreshNeighborhoods, startRun, upsertHolidays,
+  deactivateMissing, finishRun, getLastSyncAt, getSql, listChangedRegions, refreshNeighborhoods, startRun, upsertHolidays,
   upsertInstitutions, type Kind,
 } from '@munyeon/db';
 import { assertFresh } from './health.ts';
@@ -23,6 +23,7 @@ const startedAt = Date.now();
 
 async function runSync(kinds: Kind[]): Promise<boolean> {
   const sql = getSql();
+  const runStartedAt = new Date();
   let ok = true;
   const changed: { kind: Kind; id: string }[] = [];
   for (const kind of kinds) {
@@ -55,7 +56,12 @@ async function runSync(kinds: Kind[]): Promise<boolean> {
   const baseUrl = process.env.WEB_BASE_URL;
   const secret = process.env.REVALIDATE_SECRET;
   if (baseUrl && secret) {
-    console.log(`revalidate: ${await requestRevalidate(changed, { baseUrl, secret })} (${changed.length} changed)`);
+    // 바뀐 기관이 속한 지역 페이지도 함께(P0-10). 조회가 실패해도 상세 갱신은 보낸다
+    const regions = await listChangedRegions(sql, runStartedAt).catch((e: unknown) => {
+      console.error(`changed regions: FAILED ${e instanceof Error ? e.message : String(e)}`);
+      return [];
+    });
+    console.log(`revalidate: ${await requestRevalidate(changed, { baseUrl, secret }, regions)} (${changed.length} changed, ${regions.length} regions)`);
   }
 
   try {

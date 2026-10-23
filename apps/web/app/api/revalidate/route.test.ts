@@ -29,6 +29,31 @@ describe('POST /api/revalidate', () => {
     expect(revalidatePath.mock.calls.map((c) => c[0])).toEqual(['/pharmacy/C1', '/hospital/A2']);
   });
 
+  test('regions of changed institutions refresh their region pages once each (P0-10)', async () => {
+    const res = await post({
+      items: [],
+      regions: [
+        { kind: 'pharmacy', sido: '서울특별시', sigungu: '마포구' },
+        { kind: 'hospital', sido: '서울특별시', sigungu: '마포구' },
+      ],
+    }, 'Bearer right-secret');
+    expect(res.status).toBe(200);
+    const paths = revalidatePath.mock.calls.map((c) => decodeURIComponent(c[0] as string));
+    expect(paths).toEqual([
+      '/서울특별시', '/서울특별시/마포구',
+      '/서울특별시/마포구/약국/전체', '/서울특별시/마포구/약국/일요일', '/서울특별시/마포구/약국/공휴일', '/서울특별시/마포구/약국/야간',
+      '/서울특별시/마포구/병원/전체', '/서울특별시/마포구/병원/일요일', '/서울특별시/마포구/병원/공휴일', '/서울특별시/마포구/병원/야간',
+      '/regions',
+    ]);
+  });
+
+  test('invalid regions → 400 and nothing is revalidated', async () => {
+    for (const regions of [[{ kind: 'pharmacy', sido: '없는도', sigungu: '구' }], [{ kind: 'pharmacy', sido: '서울특별시', sigungu: 'a/b' }], 'x']) {
+      expect((await post({ items: [], regions }, 'Bearer right-secret')).status).toBe(400);
+    }
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
   test('too many or invalid items → 400', async () => {
     const many = Array.from({ length: 501 }, (_, i) => ({ kind: 'pharmacy', id: `C${i}` }));
     expect((await post({ items: many }, 'Bearer right-secret')).status).toBe(400);

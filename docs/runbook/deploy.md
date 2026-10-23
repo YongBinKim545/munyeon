@@ -43,6 +43,9 @@ node scripts/check-routes.mjs https://findmedi.co.kr
 | 예약 실행 간격 | 매일(10월 말까지) | Actions → sync의 schedule 실행 시각과 `/api/meta`의 `lastSync`. 3~5시간 넘게 벌어지는 일이 잦으면 외부 예약 서비스나 국내 VM 이전을 결정(D46) |
 | Vercel 사용량 | 주 1회 | Usage 화면의 Active CPU(한도 월 4시간), Fast Origin Transfer(10GB). 80%에 가까우면 Pro 검토(D13) |
 | Supabase 용량 | 주 1회 | Database size(한도 500MB). 400MB면 Pro 검토 |
+| 배포 횟수 | 배포마다 | 공개 후 배포는 하루 한 번 이하, 이용이 적은 시간대(새벽)에 묶는다. 배포마다 상세 페이지 캐시가 지워지기 때문이다(P0-10) |
+| 배포 직후 미리 만들기 | 배포마다 | Actions → warm 로그의 `warm: N개, 실패 M개`. 실패가 5%를 넘으면 실패 메일. 수동 실행도 된다(D68) |
+| 공개 후 2주 집중 점검 | 매일(11-20~12-04) | Search Console 설정 → 크롤링 통계(평균 응답 시간·서버 오류), Vercel Logs에서 응답 5xx와 3초 넘는 요청. 상세가 느리다고 나오면 미리 만들기를 상세 일부(수도권 약국 등)로 넓힌다(P0-10 방식 B) |
 | 색인 현황 | 주 1회 | 서치어드바이저·Search Console 색인 페이지 수(KPI) |
 | 공개 저장소 Actions | 60일 | 저장소에 60일간 커밋이 없으면 GitHub가 예약 실행을 멈춘다. 멈추면 Actions 화면에서 다시 켠다 |
 

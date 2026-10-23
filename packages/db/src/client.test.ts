@@ -18,11 +18,10 @@ describe('getSql', () => {
     expect(a.getSql()).toBe(b.getSql());
   });
 
-  test('queries are not pipelined on one connection (D48)', async () => {
+  test('pool holds at most DB_POOL_MAX connections, one by default (web)', async () => {
     const { createSql } = await import('./client.ts');
-    const sql = createSql('postgres://u:p@127.0.0.1:1/db');
-    expect((sql.options as unknown as { max_pipeline: number }).max_pipeline).toBe(1);
-    expect(sql.options.prepare).toBe(false);
+    expect(createSql('postgres://u:p@127.0.0.1:1/db').pool.options.max).toBe(1);
+    expect(createSql('postgres://u:p@127.0.0.1:1/db', 4).pool.options.max).toBe(4);
   });
 
   test('resetSql drops the shared client so the next call opens a fresh one (D47)', async () => {
@@ -30,5 +29,31 @@ describe('getSql', () => {
     const first = getSql();
     await resetSql();
     expect(getSql()).not.toBe(first);
+  });
+});
+
+describe('query building (pg, P0-10)', () => {
+  test('values become numbered parameters, fragments are inlined', async () => {
+    const { createSql } = await import('./client.ts');
+    const sql = createSql('postgres://u:p@127.0.0.1:1/db');
+    const cols = sql`a, b`;
+    const cond = sql`x = ${1} and y = ${'z'}`;
+    expect(sql`select ${cols} from t where ${cond} and k = ${'pharmacy'} limit ${5}`.build()).toEqual({
+      text: 'select a, b from t where x = $1 and y = $2 and k = $3 limit $4',
+      params: [1, 'z', 'pharmacy', 5],
+    });
+  });
+
+  test('json() sends a JSON string, arrays stay arrays', async () => {
+    const { createSql } = await import('./client.ts');
+    const sql = createSql('postgres://u:p@127.0.0.1:1/db');
+    expect(sql`select ${sql.json([{ a: 1 }])}::jsonb, ${sql.array(['a', 'b'])}::text[]`.build().params).toEqual(['[{"a":1}]', ['a', 'b']]);
+  });
+
+  test('a string value is never spliced into SQL', async () => {
+    const { createSql } = await import('./client.ts');
+    const sql = createSql('postgres://u:p@127.0.0.1:1/db');
+    const evil = "x'; drop table institutions; --";
+    expect(sql`select 1 where name = ${evil}`.build()).toEqual({ text: 'select 1 where name = $1', params: [evil] });
   });
 });

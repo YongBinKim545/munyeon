@@ -14,11 +14,12 @@
   },
   "dependencies": {
     "@munyeon/core": "*",
-    "postgres": "^3.4.9"
+    "pg": "^8.16.3"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.10",
     "@electric-sql/pglite-postgis": "^0.2.10",
-    "@electric-sql/pglite-socket": "*"
+    "@electric-sql/pglite-socket": "*",
+    "@types/pg": "^8.15.5"
   }
 }

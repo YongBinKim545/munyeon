@@ -3,7 +3,11 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 let connections = 0;
 const pool = new Map<number, { id: number }>();
 const resetSql = vi.fn(async () => {});
+const configurePool = vi.fn();
+const attachDatabasePool = vi.fn();
+vi.mock('@vercel/functions', () => ({ attachDatabasePool }));
 vi.mock('@munyeon/db', () => ({
+  configurePool,
   getSql: () => {
     if (!pool.has(connections)) pool.set(connections, { id: connections });
     return pool.get(connections);
@@ -14,7 +18,7 @@ vi.mock('@munyeon/db', () => ({
   },
 }));
 
-const { IDLE_RESET_MS, query, resetDbUsage } = await import('./db');
+const { POOL_IDLE_MS, query } = await import('./db');
 const quiet = { log: () => {} };
 
 beforeEach(() => {
@@ -22,35 +26,22 @@ beforeEach(() => {
   connections = 0;
   pool.clear();
   resetSql.mockClear();
-  resetDbUsage();
 });
 afterEach(() => vi.useRealTimers());
 
 describe('query (D50)', () => {
+  test('the pool closes idle connections before the function freezes (P0-10)', () => {
+    expect(configurePool).toHaveBeenCalledWith(expect.objectContaining({ idleMs: POOL_IDLE_MS }));
+    const pool = {};
+    configurePool.mock.calls[0]![0].onCreate(pool);
+    expect(attachDatabasePool).toHaveBeenCalledWith(pool);
+  });
+
   test('consecutive queries reuse the connection', async () => {
     await query('a', async () => 1, quiet);
-    vi.advanceTimersByTime(IDLE_RESET_MS - 1000);
+    vi.advanceTimersByTime(60_000);
     await query('b', async () => 2, quiet);
     expect(resetSql).not.toHaveBeenCalled();
-  });
-
-  test('after resting longer than IDLE_RESET_MS, a new connection is made before the query', async () => {
-    await query('a', async () => 1, quiet);
-    vi.advanceTimersByTime(IDLE_RESET_MS + 1);
-    const seen = await query('b', async (sql) => (sql as unknown as { id: number }).id, quiet);
-    expect(resetSql).toHaveBeenCalledTimes(1);
-    expect(seen).toBe(1);
-  });
-
-  test('does not drop the connection while another query is still running', async () => {
-    await query('a', async () => 1, quiet);
-    vi.advanceTimersByTime(IDLE_RESET_MS + 1);
-    let finish!: () => void;
-    const slow = query('slow', () => new Promise<void>((r) => (finish = r)), quiet); // 여기서 한 번 새로 연결
-    await query('c', async () => 1, quiet);
-    expect(resetSql).toHaveBeenCalledTimes(1);
-    finish();
-    await slow;
   });
 
   test('a hung query times out, the connection is dropped, and the retry on a new connection answers', async () => {

@@ -1,36 +1,21 @@
-import { getSql, resetSql, type Sql } from '@munyeon/db';
+import { attachDatabasePool } from '@vercel/functions';
+import { configurePool, getSql, resetSql, type Sql } from '@munyeon/db';
 import { withRetry } from './retry';
 
 /**
  * 웹의 DB 조회는 모두 query()로 한다(D50).
  *
- * Vercel 함수는 요청이 없으면 얼려지고, 얼어 있는 동안에는 연결의 유휴 타이머도 멈춘다. 그사이 풀러가 연결을 끊으면
- * 깨어난 함수가 죽은 연결로 쿼리를 보내 응답 없이 기다리고, 연결이 하나뿐이라 그 인스턴스의 뒤 요청도 모두 멈췄다
- * (2026-10-22 운영 상세 페이지 40~70초 무응답). 그래서
- * - 마지막 조회가 끝나고 IDLE_RESET_MS보다 오래 쉬었으면(실제 시계 기준이라 얼어 있던 시간도 들어간다) 새로 연결하고,
+ * Vercel 함수는 요청이 없으면 얼려진다. 얼어 있는 동안 풀러가 연결을 끊으면 깨어난 함수가 죽은 연결로 쿼리를 보내
+ * 응답 없이 기다렸다(2026-10-22 운영 상세 페이지 40~70초 무응답). 그래서(P0-10)
+ * - 연결은 pg pool로 하고 Vercel attachDatabasePool을 건다. 함수가 얼기 전에 쉬는 연결을 닫아 죽은 연결이 남지 않는다.
+ *   쉬는 연결은 POOL_IDLE_MS 뒤 닫는다(그동안 함수가 살아 있으므로 짧게).
  * - 조회마다 QUERY_TIMEOUT_MS 제한을 두어, 넘으면 연결을 버리고 새 연결로 한 번 더 시도한다.
- *   평소 조회는 1초 미만이라 3초로 둔다(D51, 처음엔 8초). 실패하면 약 7초 안에 오류 화면이 나간다.
+ *   평소 조회는 1초 미만이라 3초로 둔다(D51). 실패하면 약 7초 안에 오류 화면이 나간다.
  */
-export const IDLE_RESET_MS = 10_000;
+export const POOL_IDLE_MS = 5_000;
 export const QUERY_TIMEOUT_MS = 3_000;
 
-type Usage = { inflight: number; lastDoneAt: number };
-const holder = globalThis as typeof globalThis & { __munyeonDbUsage?: Usage };
-const usage = (): Usage => (holder.__munyeonDbUsage ??= { inflight: 0, lastDoneAt: 0 });
-
-/** 쉬던 연결이면 버리고(진행 중인 조회가 없을 때만) 연결을 꺼낸다. 동시에 불려도 섞이지 않게 모두 동기로 처리한다. */
-function acquire(now = Date.now()): Sql {
-  const u = usage();
-  if (u.inflight === 0 && u.lastDoneAt > 0 && now - u.lastDoneAt > IDLE_RESET_MS) void resetSql();
-  u.inflight += 1;
-  return getSql();
-}
-
-function release(): void {
-  const u = usage();
-  u.inflight -= 1;
-  u.lastDoneAt = Date.now();
-}
+configurePool({ idleMs: POOL_IDLE_MS, onCreate: (pool) => attachDatabasePool(pool) });
 
 export type QueryOptions = Parameters<typeof withRetry>[2];
 
@@ -42,14 +27,7 @@ export function query<T>(label: string, fn: (sql: Sql) => Promise<T>, opts: Quer
   let used: Sql | undefined;
   return withRetry(
     label,
-    async () => {
-      const sql = (used = acquire());
-      try {
-        return await fn(sql);
-      } finally {
-        release();
-      }
-    },
+    () => fn((used = getSql())),
     {
       tries: 2,
       timeoutMs: QUERY_TIMEOUT_MS,
@@ -61,9 +39,4 @@ export function query<T>(label: string, fn: (sql: Sql) => Promise<T>, opts: Quer
       ...opts,
     },
   );
-}
-
-/** 테스트용: 사용 기록을 지운다. */
-export function resetDbUsage(): void {
-  holder.__munyeonDbUsage = undefined;
 }

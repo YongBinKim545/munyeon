@@ -4,7 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import type { Sql } from './client.ts';
 import {
   countSitemapEntries, deactivateMissing, finishRun, getHolidays, getInstitution, getLastSyncAt, getNearby,
-  getRegionStats, insertEvent, insertFeedback, listGridCell, listLandingCounts, listNeighborhoods, listRegion, listRegions, listSido, listSitemapEntries,
+  getRegionStats, insertEvent, listChangedRegions, insertFeedback, listGridCell, listLandingCounts, listNeighborhoods, listRegion, listRegions, listSido, listSitemapEntries,
   refreshNeighborhoods, searchInstitutions, startRun, upsertHolidays, upsertInstitutions, type InstitutionRow,
 } from './queries.ts';
 import { MIGRATIONS_DIR } from './migrate.ts';
@@ -88,6 +88,19 @@ describe('sido merge (P0-1)', () => {
       ['H1', JG, '고흥군'], ['P1', JG, '북구'], ['P2', '서울특별시', '성동구'], ['P3', null, null], ['P4', '서울특별시', '중구'],
     ]);
     expect((await listNeighborhoods(sql)).some((n) => n.sido === JG && n.sigungu === '고흥군')).toBe(true);
+  });
+});
+
+describe('listChangedRegions (P0-10)', () => {
+  test('regions of rows inserted, changed or deactivated since the run started', async () => {
+    await upsertInstitutions(sql, [row({ id: 'A' }), row({ id: 'B', sigungu: '마포구' }), row({ id: 'H', kind: 'hospital', sigungu: '강남구' })], t1);
+    expect(await listChangedRegions(sql, t2)).toEqual([]);
+    await upsertInstitutions(sql, [row({ id: 'B', sigungu: '마포구', contentHash: 'h2' })], t2);
+    await deactivateMissing(sql, 'hospital', [], t2);
+    expect(await listChangedRegions(sql, t2)).toEqual([
+      { kind: 'hospital', sido: '서울특별시', sigungu: '강남구' },
+      { kind: 'pharmacy', sido: '서울특별시', sigungu: '마포구' },
+    ]);
   });
 });
 

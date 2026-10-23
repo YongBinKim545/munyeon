@@ -133,6 +133,17 @@ export async function deactivateMissing(sql: Sql, kind: Kind, seenIds: string[],
   return rows.map((r) => r.id);
 }
 
+/**
+ * since 이후 새로 생기거나 바뀌거나 비활성화된 기관이 속한 지역(시군구×유형). 워커가 그 지역 페이지 캐시도 갱신하게 한다(P0-10).
+ * updated_at은 내용이 바뀐 시각이라(upsert·deactivate가 함께 기록) 이것 하나로 모두 잡힌다.
+ */
+export async function listChangedRegions(sql: Sql, since: Date): Promise<{ kind: Kind; sido: string; sigungu: string }[]> {
+  return sql<{ kind: Kind; sido: string; sigungu: string }[]>`
+    select distinct kind, sido, sigungu from institutions
+    where updated_at >= ${since} and sido is not null and sigungu is not null
+    order by sido, sigungu, kind`;
+}
+
 const summaryCols = (sql: Sql) => sql`
   i.id, i.kind, i.name, i.div_name as "divName", i.addr, i.tel, i.hours, i.has_hours as "hasHours",
   i.category, i.specialty, i.pediatric_name as "pediatricName", i.dong, i.lat, i.lon`;
@@ -208,7 +219,8 @@ export async function getHolidays(sql: Sql, fromYmd: string, toYmd: string): Pro
 export async function upsertHolidays(sql: Sql, rows: { ymd: string; name: string }[], source: string): Promise<number> {
   if (rows.length === 0) return 0;
   const res = await sql`
-    insert into holidays ${sql(rows.map((r) => ({ ...r, source })))}
+    insert into holidays (ymd, name, source)
+    select ymd::date, name, ${source} from jsonb_to_recordset(${sql.json(rows)}::jsonb) as x(ymd text, name text)
     on conflict (ymd) do update set name = excluded.name, source = excluded.source`;
   return res.count;
 }

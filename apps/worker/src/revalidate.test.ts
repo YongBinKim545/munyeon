@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { isTrustedBaseUrl, MAX_REVALIDATE, requestRevalidate } from './revalidate.ts';
+import { isTrustedBaseUrl, MAX_REGIONS, MAX_REVALIDATE, requestRevalidate } from './revalidate.ts';
 
 const ids = (n: number) => Array.from({ length: n }, (_, i) => ({ kind: 'pharmacy' as const, id: `C${i}` }));
 const BASE = 'https://app.vercel.app';
@@ -27,6 +27,23 @@ describe('requestRevalidate', () => {
     const fetchImpl = vi.fn();
     expect(await requestRevalidate(ids(MAX_REVALIDATE + 1), { baseUrl: BASE, secret: 's', fetchImpl })).toBe('skipped');
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  test('sends the regions of changed institutions too (P0-10)', async () => {
+    const fetchImpl = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 200 }));
+    const regions = [{ kind: 'pharmacy' as const, sido: '서울특별시', sigungu: '마포구' }];
+    expect(await requestRevalidate(ids(1), { baseUrl: BASE, secret: 's', fetchImpl }, regions)).toBe('sent');
+    expect(JSON.parse(String(fetchImpl.mock.calls[0]![1]!.body))).toEqual({ items: ids(1), regions });
+  });
+
+  test('too many institutions still sends the regions, too many regions still sends the institutions', async () => {
+    const fetchImpl = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 200 }));
+    const one = [{ kind: 'pharmacy' as const, sido: '서울특별시', sigungu: '마포구' }];
+    await requestRevalidate(ids(MAX_REVALIDATE + 1), { baseUrl: BASE, secret: 's', fetchImpl }, one);
+    expect(JSON.parse(String(fetchImpl.mock.calls[0]![1]!.body))).toEqual({ items: [], regions: one });
+    const many = Array.from({ length: MAX_REGIONS + 1 }, (_, i) => ({ kind: 'pharmacy' as const, sido: '서울특별시', sigungu: `구${i}` }));
+    await requestRevalidate(ids(1), { baseUrl: BASE, secret: 's', fetchImpl }, many);
+    expect(JSON.parse(String(fetchImpl.mock.calls[1]![1]!.body))).toEqual({ items: ids(1) });
   });
 
   test('nothing to send', async () => {
