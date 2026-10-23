@@ -28,28 +28,24 @@ describe('siteUrl', () => {
 describe('paths', () => {
   test('institution path', () => expect(institutionPath('pharmacy', 'C1100001')).toBe('/pharmacy/C1100001'));
 
-  test('region path encodes Korean segments', () => {
-    expect(regionPath('서울특별시')).toBe(`/${encodeURIComponent('서울특별시')}`);
-    expect(regionPath('경기도', '수원시 영통구', 'pharmacy', 'sunday')).toBe(
-      `/${encodeURIComponent('경기도')}/${encodeURIComponent('수원시 영통구')}/${encodeURIComponent('약국')}/${encodeURIComponent('일요일')}`,
-    );
+  test('region path (D69): sido, region screen (pharmacy), region screen /병원', () => {
+    const e = encodeURIComponent;
+    expect(regionPath('서울특별시')).toBe(`/${e('서울특별시')}`);
+    expect(regionPath('경기도', '수원시 영통구')).toBe(`/${e('경기도')}/${e('수원시 영통구')}`);
+    expect(regionPath('경기도', '수원시 영통구', 'pharmacy')).toBe(`/${e('경기도')}/${e('수원시 영통구')}`);
+    expect(regionPath('경기도', '수원시 영통구', 'hospital')).toBe(`/${e('경기도')}/${e('수원시 영통구')}/${e('병원')}`);
   });
 
   test('region path round-trip from encoded or decoded params', () => {
-    const encoded = regionPath('경기도', '수원시 영통구', 'hospital', 'holiday').split('/').slice(1);
-    const [sido, sigungu, kind, situation] = encoded;
-    expect(parseRegionParams({ sido: sido!, sigungu, kind, situation })).toEqual({
-      sido: '경기도', sigungu: '수원시 영통구', kind: 'hospital', situation: 'holiday',
-    });
-    expect(parseRegionParams({ sido: '경기도', sigungu: '수원시 영통구', kind: '병원', situation: '공휴일' })).toEqual({
-      sido: '경기도', sigungu: '수원시 영통구', kind: 'hospital', situation: 'holiday',
-    });
+    const [sido, sigungu, kind] = regionPath('경기도', '수원시 영통구', 'hospital').split('/').slice(1);
+    expect(parseRegionParams({ sido: sido!, sigungu, kind })).toEqual({ sido: '경기도', sigungu: '수원시 영통구', kind: 'hospital' });
+    expect(parseRegionParams({ sido: '경기도', sigungu: '수원시 영통구', kind: '병원' })).toEqual({ sido: '경기도', sigungu: '수원시 영통구', kind: 'hospital' });
   });
 
   test('invalid region params are null', () => {
     expect(parseRegionParams({ sido: '없는도' })).toBeNull();
     expect(parseRegionParams({ sido: '서울특별시', sigungu: '강남구', kind: '한의원' })).toBeNull();
-    expect(parseRegionParams({ sido: '서울특별시', sigungu: '강남구', kind: '약국', situation: '새벽' })).toBeNull();
+    expect(parseRegionParams({ sido: '서울특별시', sigungu: '강남구', kind: '약국' })).toBeNull(); // 약국은 시군구 주소(301)
     expect(parseRegionParams({ sido: '서울특별시', sigungu: '' })).toBeNull();
     expect(parseRegionParams({ sido: '%E0%A4%A' })).toBeNull();
     // 옛 시도 이름은 페이지가 아니라 301(next.config, P0-1)

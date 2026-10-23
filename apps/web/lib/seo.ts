@@ -24,11 +24,6 @@ export const SITE_TAGLINE = '지금 문 연 병원·약국을 찾아드려요';
 export type Kind = 'pharmacy' | 'hospital';
 export const KIND_LABEL: Record<Kind, string> = { pharmacy: '약국', hospital: '병원' };
 
-export const SITUATIONS = { all: '전체', sunday: '일요일', holiday: '공휴일', night: '야간' } as const;
-export type Situation = keyof typeof SITUATIONS;
-
-const KIND_BY_LABEL = new Map<string, Kind>(Object.entries(KIND_LABEL).map(([k, v]) => [v, k as Kind]));
-const SITUATION_BY_LABEL = new Map<string, Situation>(Object.entries(SITUATIONS).map(([k, v]) => [v, k as Situation]));
 /** 주소에는 지금 시도 이름만. 옛 이름(광주광역시·전라남도 등)은 next.config에서 새 주소로 301(P0-1) */
 const SIDO_SET = new Set(CURRENT_SIDO);
 
@@ -51,12 +46,14 @@ export function institutionPath(kind: Kind, id: string): string {
   return `/${kind}/${encodeURIComponent(id)}`;
 }
 
-/** 한글 경로(D24): /서울특별시/강남구/약국/일요일 */
-export function regionPath(sido: string, sigungu?: string, kind?: Kind, situation?: Situation): string {
+/**
+ * 한글 경로(D24·D69): 시도 /서울특별시, 지역 화면 /서울특별시/마포구(약국), /서울특별시/마포구/병원.
+ * 옛 /…/약국[/상황]·/…/병원/상황 주소는 next.config에서 301.
+ */
+export function regionPath(sido: string, sigungu?: string, kind?: Kind): string {
   const segs = [sido];
   if (sigungu) segs.push(sigungu);
-  if (sigungu && kind) segs.push(KIND_LABEL[kind]);
-  if (sigungu && kind && situation) segs.push(SITUATIONS[situation]);
+  if (sigungu && kind === 'hospital') segs.push(KIND_LABEL.hospital);
   return '/' + segs.map(encodeURIComponent).join('/');
 }
 
@@ -64,11 +61,10 @@ export interface RegionParams {
   sido: string;
   sigungu?: string;
   kind?: Kind;
-  situation?: Situation;
 }
 
-/** 라우트 params(인코딩 여부 무관)를 검증한다. 시군구 존재 여부는 DB 조회로 따로 확인한다. */
-export function parseRegionParams(p: { sido: string; sigungu?: string; kind?: string; situation?: string }): RegionParams | null {
+/** 라우트 params(인코딩 여부 무관)를 검증한다. 유형 조각은 '병원'만 있다. 시군구 존재 여부는 DB 조회로 따로 확인한다. */
+export function parseRegionParams(p: { sido: string; sigungu?: string; kind?: string }): RegionParams | null {
   const sido = safeDecode(p.sido);
   if (!sido || !SIDO_SET.has(sido)) return null;
   const out: RegionParams = { sido };
@@ -78,16 +74,8 @@ export function parseRegionParams(p: { sido: string; sigungu?: string; kind?: st
     out.sigungu = sigungu;
   }
   if (p.kind !== undefined) {
-    const label = safeDecode(p.kind);
-    const kind = label ? KIND_BY_LABEL.get(label) : undefined;
-    if (!kind) return null;
-    out.kind = kind;
-  }
-  if (p.situation !== undefined) {
-    const label = safeDecode(p.situation);
-    const situation = label ? SITUATION_BY_LABEL.get(label) : undefined;
-    if (!situation) return null;
-    out.situation = situation;
+    if (safeDecode(p.kind) !== KIND_LABEL.hospital) return null;
+    out.kind = 'hospital';
   }
   return out;
 }

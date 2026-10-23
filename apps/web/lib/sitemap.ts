@@ -1,6 +1,5 @@
 import type { LandingCount } from '@munyeon/db';
-import { landingIndexable } from './landing';
-import { regionPath, type Situation } from './seo';
+import { regionPath } from './seo';
 
 /** 파일 하나에 넣는 기관 수(네이버·구글 한도 5만보다 작게) */
 export const SITEMAP_CHUNK = 10000;
@@ -28,9 +27,7 @@ export function sitemapFileCount(institutionCount: number): number {
   return 1 + Math.ceil(institutionCount / SITEMAP_CHUNK);
 }
 
-const SITUATION_KEYS: Situation[] = ['all', 'sunday', 'holiday', 'night'];
-
-/** 시도·시군구 허브와 색인 가능한(3곳 이상) 지역 랜딩 경로 */
+/** 시도 페이지와 지역 화면(D69): 시군구(약국)는 늘, 시군구/병원은 병원이 있을 때 */
 export function landingUrls(counts: LandingCount[]): string[] {
   const out: string[] = [];
   const seen = new Set<string>();
@@ -43,7 +40,7 @@ export function landingUrls(counts: LandingCount[]): string[] {
   for (const c of counts) {
     push(regionPath(c.sido));
     push(regionPath(c.sido, c.sigungu));
-    for (const s of SITUATION_KEYS) if (landingIndexable(c[s])) push(regionPath(c.sido, c.sigungu, c.kind, s));
+    if (c.kind === 'hospital' && c.all > 0) push(regionPath(c.sido, c.sigungu, 'hospital'));
   }
   return out;
 }

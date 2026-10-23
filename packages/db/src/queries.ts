@@ -169,9 +169,10 @@ export async function getNearby(sql: Sql, kind: Kind, id: string, limit = 5, rad
   return rows;
 }
 
-export async function listRegion(sql: Sql, sido: string, sigungu: string, kind: Kind): Promise<InstitutionSummary[]> {
-  return sql<InstitutionSummary[]>`
-    select ${summaryCols(sql)} from institutions i
+/** 지역 화면의 목록(D69). 메인 목록과 같은 모양(격자 줄)으로 쓰도록 시도·시군구도 함께 */
+export async function listRegion(sql: Sql, sido: string, sigungu: string, kind: Kind): Promise<GridRow[]> {
+  return sql<GridRow[]>`
+    select ${summaryCols(sql)}, i.sido, i.sigungu from institutions i
     where i.sido = ${sido} and i.sigungu = ${sigungu} and i.kind = ${kind} and i.is_active
     order by i.name, i.id`;
 }

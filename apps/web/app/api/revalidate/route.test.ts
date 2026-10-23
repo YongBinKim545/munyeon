@@ -40,10 +40,7 @@ describe('POST /api/revalidate', () => {
     expect(res.status).toBe(200);
     const paths = revalidatePath.mock.calls.map((c) => decodeURIComponent(c[0] as string));
     expect(paths).toEqual([
-      '/서울특별시', '/서울특별시/마포구',
-      '/서울특별시/마포구/약국/전체', '/서울특별시/마포구/약국/일요일', '/서울특별시/마포구/약국/공휴일', '/서울특별시/마포구/약국/야간',
-      '/서울특별시/마포구/병원/전체', '/서울특별시/마포구/병원/일요일', '/서울특별시/마포구/병원/공휴일', '/서울특별시/마포구/병원/야간',
-      '/regions',
+      '/서울특별시', '/서울특별시/마포구', '/서울특별시/마포구/병원', '/regions',
     ]);
   });
 

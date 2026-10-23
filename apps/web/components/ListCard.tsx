@@ -8,10 +8,8 @@ import { DirectionsButton } from './DirectionsButton';
 import { formatDistance } from './InstitutionCard';
 import { PreviewLink } from './PreviewLink';
 
-const PAGE = 'home';
-
 /** 메인 목록 카드(D32): 이름·거리 / 배지 / 상태 / [전화하기] [길찾기]. 상태는 브라우저 계산이다. */
-export function ListCard({ item, now, ctx, when = NOW }: { item: ViewItem; now: Date; ctx: StatusContext; when?: When }) {
+export function ListCard({ item, now, ctx, when = NOW, page = 'home' }: { item: ViewItem; now: Date; ctx: StatusContext; when?: When; page?: string }) {
   return (
     <li className="card" data-id={item.id}>
       <div className="card__head">
@@ -36,14 +34,14 @@ export function ListCard({ item, now, ctx, when = NOW }: { item: ViewItem; now: 
       </div>
       {when.kind === 'date' ? <DayStatus item={item} ymd={when.ymd} /> : <CardStatus item={item} now={now} ctx={ctx} />}
       <div className="actions">
-        <CallButton tel={item.tel} institutionId={item.id} page={PAGE} compact />
+        <CallButton tel={item.tel} institutionId={item.id} page={page} compact />
         <DirectionsButton
           institutionId={item.id}
           name={item.name}
           addr={[item.sido, item.sigungu, item.dong].filter(Boolean).join(' ')}
           lat={item.lat}
           lon={item.lon}
-          page={PAGE}
+          page={page}
           compact
         />
       </div>

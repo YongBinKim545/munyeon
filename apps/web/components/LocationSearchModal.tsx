@@ -32,13 +32,15 @@ interface Props {
   recent: Area[];
   onPick: (a: Area) => void;
   onClose: () => void;
+  /** 지역 화면의 [내 동네 기준으로 보기](D56): 이 시군구의 동만, 검색창이 비어 있으면 그 동 전부를 이름순으로 */
+  scope?: { sido: string; sigungu: string };
 }
 
 /**
  * 지역 검색 모달(D33·D38·D43, D52에서 '위치 검색'을 '지역 검색'으로). 휴대폰은 화면 전체, 태블릿·PC는 가운데. 공통 검색 틀(SearchPanel)을 쓰고 [검색]·엔터로만 찾는다.
  * 뒤로 가기·Esc·Tab 동작은 useModal. 고른 지역은 모달이 닫힌 뒤(popstate) onPick으로 넘긴다.
  */
-export function LocationSearchModal({ recent, onPick, onClose }: Props) {
+export function LocationSearchModal({ recent, onPick, onClose, scope }: Props) {
   const [q, setQ] = useState('');
   /** [검색]을 눌렀을 때의 검색어 */
   const [term, setTerm] = useState('');
@@ -54,10 +56,14 @@ export function LocationSearchModal({ recent, onPick, onClose }: Props) {
     void loadNeighborhoods().then(setList);
   }, []);
 
-  const results = useMemo(
-    () => (list ? matchNeighborhoods(list, term, 20).filter((n) => n.lat !== null && n.lon !== null) : []),
-    [list, term],
-  );
+  const results = useMemo(() => {
+    if (!list) return [];
+    if (scope) {
+      const inScope = list.filter((n) => n.sido === scope.sido && n.sigungu === scope.sigungu && !n.isSigungu && n.lat !== null && n.lon !== null);
+      return term ? matchNeighborhoods(inScope, term, 50) : [...inScope].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    }
+    return matchNeighborhoods(list, term, 20).filter((n) => n.lat !== null && n.lon !== null);
+  }, [list, term, scope]);
 
   return (
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && close()}>
@@ -74,7 +80,7 @@ export function LocationSearchModal({ recent, onPick, onClose }: Props) {
           // 동네 목록을 아직 받는 중에 검색하면 로더
           loading={term.length >= MIN_QUERY && list === null}
         >
-        {normalizeQuery(q).length === 0 && recent.length > 0 ? (
+        {!scope && normalizeQuery(q).length === 0 && recent.length > 0 ? (
           <section aria-label="최근 지역">
             <h2 className="search__title">최근 지역</h2>
             <ul className="search__list">
@@ -88,8 +94,8 @@ export function LocationSearchModal({ recent, onPick, onClose }: Props) {
             </ul>
           </section>
         ) : null}
-        {term.length > 0 && term.length < MIN_QUERY ? <p className="muted">두 글자 이상 입력하세요</p> : null}
-        {term.length >= MIN_QUERY && list && results.length === 0 ? <p className="muted">찾는 동네가 없어요</p> : null}
+        {!scope && term.length > 0 && term.length < MIN_QUERY ? <p className="muted">두 글자 이상 입력하세요</p> : null}
+        {(scope ? !!list : term.length >= MIN_QUERY && !!list) && results.length === 0 ? <p className="muted">찾는 동네가 없어요</p> : null}
         <ul className="search__list">
           {results.map((n) => {
             const area = areaOfNeighborhood(n);

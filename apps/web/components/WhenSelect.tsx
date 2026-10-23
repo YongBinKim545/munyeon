@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { dateRange, NOW, type When } from '@/lib/when';
 
 /**
- * [언제 ▾]: 지금 / 날짜 고르기(부모님 대신 일요일·공휴일 찾기). 날짜는 휴대폰 기본 달력으로 고른다(오늘부터 90일).
+ * [언제 ▾]: 지금 문 연 / 날짜(부모님 대신 일요일·공휴일 찾기). 날짜는 휴대폰 기본 달력으로 고른다(오늘부터 90일).
  * 고른 날짜는 선택지에 '10/25(일)'로 남는다.
  */
 export function WhenSelect({ when, onChange }: { when: When; onChange: (w: When) => void }) {
@@ -40,7 +40,7 @@ export function WhenSelect({ when, onChange }: { when: When; onChange: (w: When)
             } else if (v === 'pick') setPicking(true);
           }}
         >
-          <option value="now">지금</option>
+          <option value="now">지금 문 연</option>
           {when.kind === 'date' ? <option value={when.ymd}>{dateLabel(when.ymd)}</option> : null}
           <option value="pick">날짜</option>
         </select>

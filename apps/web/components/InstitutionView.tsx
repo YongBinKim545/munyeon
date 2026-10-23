@@ -29,7 +29,7 @@ export function InstitutionView({ rec, holidays, lastSyncAt, url }: Props) {
   if (rec.sido) crumbs.push({ name: rec.sido, href: regionPath(rec.sido) });
   if (rec.sido && rec.sigungu) {
     crumbs.push({ name: rec.sigungu, href: regionPath(rec.sido, rec.sigungu) });
-    crumbs.push({ name: KIND_LABEL[rec.kind], href: regionPath(rec.sido, rec.sigungu, rec.kind, 'all') });
+    crumbs.push({ name: KIND_LABEL[rec.kind], href: regionPath(rec.sido, rec.sigungu, rec.kind) });
   }
   crumbs.push({ name: rec.name, href: url.replace(/^https?:\/\/[^/]+/, '') });
 

@@ -37,7 +37,7 @@ export function nextHeaderState(s: { hidden: boolean; base: number }, y: number)
 }
 
 /**
- * 메인 전용 헤더(D31·D38·D41·D52): 1줄 📍 지역 이름 + [위치 찾기 ▾](현재 위치 / 지역 검색 / 지역별 보기), 2줄 [약국 ▾] [언제 ▾] [검색].
+ * 메인 전용 헤더(D31·D38·D41·D52): 1줄 📍 지역 이름 + [위치 찾기 ▾](현재 위치 / 지역 검색 / 지역별 보기), 2줄 [약국 ▾] [언제 ▾]. 이름 검색은 사이트 헤더 오른쪽 위(D69).
  * 유형은 약국 / 병원 / 소아과. '유형' 글자는 화면에 보이지 않고 화면 낭독기용 이름으로만 둔다.
  * 사이트 헤더 바로 아래에 붙어 있고, 아래로 스크롤하면 숨었다가 위로 올리면 다시 나온다(메뉴가 열려 있으면 숨지 않음).
  */
@@ -134,9 +134,6 @@ export function MainHeader(p: Props) {
           <ChevronDown aria-hidden="true" size={16} className="select-wrap__icon" />
         </span>
         <WhenSelect when={p.when} onChange={p.onWhen} />
-        <Link className="btn btn-secondary" href="/search" prefetch={false}>
-          검색
-        </Link>
       </div>
     </div>
   );

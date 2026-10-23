@@ -1,9 +1,9 @@
 import { timingSafeEqual } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
-import { CURRENT_SIDO, institutionPath, regionPath, SITUATIONS, type Kind, type Situation } from '@/lib/seo';
+import { CURRENT_SIDO, institutionPath, regionPath, type Kind } from '@/lib/seo';
 
 // 워커가 내용이 바뀐 기관을 알려주면 그 상세 페이지 캐시를 지운다(다음 방문 때 다시 만듦, D23).
-// 그 기관이 속한 지역(시군구×유형)도 받으면 시도·시군구·유형×상황 페이지와 지역으로 찾기도 함께 지운다(P0-10).
+// 그 기관이 속한 지역(시군구×유형)도 받으면 시도 페이지·지역 화면(시군구, 시군구/병원)과 지역으로 찾기도 함께 지운다(P0-10·D69).
 export const dynamic = 'force-dynamic';
 
 const MAX_ITEMS = 500;
@@ -46,8 +46,7 @@ export async function POST(req: Request) {
   const paths = new Set<string>();
   for (const r of regions as RegionRef[]) {
     paths.add(regionPath(r.sido));
-    paths.add(regionPath(r.sido, r.sigungu));
-    for (const s of Object.keys(SITUATIONS) as Situation[]) paths.add(regionPath(r.sido, r.sigungu, r.kind, s));
+    paths.add(regionPath(r.sido, r.sigungu, r.kind));
   }
   if (paths.size) paths.add('/regions');
   for (const p of paths) revalidatePath(p);

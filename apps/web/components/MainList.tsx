@@ -27,10 +27,12 @@ interface Props {
   /** 소아과면 문구가 바뀌고, 영업 중인 곳이 적을 때 [가까운 병원 보기](D41) */
   filter?: ListFilter;
   onNearbyHospitals?: () => void;
+  /** 이벤트에 남길 화면 이름(메인 'home', 지역 화면 'region') */
+  page?: string;
 }
 
 /** 메인 목록(D32): 구역 제목 없이 한 줄, 끝에 [전체 보기]. 지역·유형이 바뀌면 부모가 key로 새로 그린다. */
-export function MainList({ items, mode, now, ctx, when = NOW, holidayToday, loadingMore, onShowAll, failed, onRetry, filter, onNearbyHospitals }: Props) {
+export function MainList({ items, mode, now, ctx, when = NOW, holidayToday, loadingMore, onShowAll, failed, onRetry, filter, onNearbyHospitals, page }: Props) {
   const [limit, setLimit] = useState(PAGE_SIZE);
   /** [더 보기]로 새로 나온 첫 카드. 그 카드의 이름 링크로 포커스를 옮긴다 */
   const focusFrom = useRef<number | null>(null);
@@ -97,7 +99,7 @@ export function MainList({ items, mode, now, ctx, when = NOW, holidayToday, load
       ) : null}
       <ul ref={listRef} className="cards main-list">
         {shown.map((item) => (
-          <ListCard key={item.id} item={item} now={now} ctx={ctx} when={when} />
+          <ListCard key={item.id} item={item} now={now} ctx={ctx} when={when} page={page} />
         ))}
       </ul>
       {limit < total ? (

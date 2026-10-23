@@ -8,18 +8,37 @@ const OLD_SIDO: Record<string, string> = {
   전라북도: '전북특별자치도',
 };
 
+/** 없앤 상황별 지역 페이지(D69). 지역 화면 하나가 지금·날짜를 모두 보여 준다 */
+const SITUATIONS = ['전체', '일요일', '공휴일', '야간'];
+const both = (seg: string) => [seg, encodeURIComponent(seg)];
+
+function regionRedirects() {
+  const out: { source: string; destination: string; statusCode: 301 }[] = [];
+  for (const ph of both('약국')) {
+    out.push({ source: `/:sido/:sigungu/${ph}`, destination: '/:sido/:sigungu', statusCode: 301 });
+    for (const s of SITUATIONS.flatMap(both)) out.push({ source: `/:sido/:sigungu/${ph}/${s}`, destination: '/:sido/:sigungu', statusCode: 301 });
+  }
+  for (const ho of both('병원')) {
+    for (const s of SITUATIONS.flatMap(both)) {
+      out.push({ source: `/:sido/:sigungu/${ho}/${s}`, destination: `/:sido/:sigungu/${encodeURIComponent('병원')}`, statusCode: 301 });
+    }
+  }
+  return out;
+}
+
 // cacheComponents는 끈다(D30): 첫 요청에도 본문이 완성된 HTML로 나가야 한다(네이버 로봇).
 const nextConfig: NextConfig = {
   transpilePackages: ['@munyeon/core', '@munyeon/db'],
   poweredByHeader: false,
   async redirects() {
-    return Object.entries(OLD_SIDO).flatMap(([from, to]) => {
+    const sido = Object.entries(OLD_SIDO).flatMap(([from, to]) => {
       const dest = `/${encodeURIComponent(to)}`;
       return [from, encodeURIComponent(from)].flatMap((seg) => [
         { source: `/${seg}`, destination: dest, statusCode: 301 as const },
         { source: `/${seg}/:rest*`, destination: `${dest}/:rest*`, statusCode: 301 as const },
       ]);
     });
+    return [...sido, ...regionRedirects()];
   },
 };
 

@@ -22,7 +22,7 @@ describe('MainHeader', () => {
     const onWhen = vi.fn();
     const { rerender } = render(<MainHeader {...props({ onWhen })} />);
     const when = screen.getByRole('combobox', { name: '언제' });
-    expect([...when.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['지금', '날짜']);
+    expect([...when.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['지금 문 연', '날짜']);
     fireEvent.change(when, { target: { value: 'pick' } });
     const date = screen.getByLabelText('날짜');
     expect(date.getAttribute('type')).toBe('date');
@@ -31,7 +31,7 @@ describe('MainHeader', () => {
     rerender(<MainHeader {...props({ onWhen, when: { kind: 'date', ymd: '2026-10-25' } })} />);
     const again = screen.getByRole('combobox', { name: '언제' });
     expect(again).toHaveProperty('value', '2026-10-25');
-    expect([...again.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['지금', '10/25(일)', '날짜']);
+    expect([...again.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['지금 문 연', '10/25(일)', '날짜']);
     fireEvent.change(again, { target: { value: 'now' } });
     expect(onWhen).toHaveBeenLastCalledWith({ kind: 'now' });
   });
@@ -44,7 +44,7 @@ describe('MainHeader', () => {
     expect([...select.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['약국', '병원', '소아과']);
     expect(screen.getAllByRole('combobox')).toHaveLength(2);
     expect(screen.queryByText('유형')).toBeNull();
-    expect(screen.getByRole('link', { name: '검색' }).getAttribute('href')).toBe('/search');
+    expect(screen.queryByRole('link', { name: '검색' })).toBeNull(); // 사이트 헤더로 옮김(D69)
   });
 
   test('area name is text; the find-location menu has current location / area search / browse by region (D52)', () => {

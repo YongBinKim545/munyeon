@@ -30,16 +30,18 @@ describe('sitemap xml', () => {
 });
 
 describe('landingUrls', () => {
-  test('includes sido, hub and only indexable landings', () => {
+  test('sido, the region screen (pharmacy) and its hospital screen when there are hospitals (D69)', () => {
     const urls = landingUrls([
       { sido: '서울특별시', sigungu: '중구', kind: 'pharmacy', all: 4, sunday: 3, holiday: 2, night: 0 },
       { sido: '서울특별시', sigungu: '중구', kind: 'hospital', all: 1, sunday: 0, holiday: 0, night: 0 },
+      { sido: '서울특별시', sigungu: '종로구', kind: 'pharmacy', all: 2, sunday: 0, holiday: 0, night: 0 },
+      { sido: '서울특별시', sigungu: '종로구', kind: 'hospital', all: 0, sunday: 0, holiday: 0, night: 0 },
     ]).map(decodeURI);
     expect(urls).toEqual([
       '/서울특별시',
       '/서울특별시/중구',
-      '/서울특별시/중구/약국/전체',
-      '/서울특별시/중구/약국/일요일',
+      '/서울특별시/중구/병원',
+      '/서울특별시/종로구',
     ]);
   });
 });
