@@ -37,7 +37,7 @@ export async function RegionPage({ sido, sigungu, kind }: { sido: string; sigung
   const k = KIND_LABEL[kind];
 
   return (
-    <main className="container">
+    <main className="container container--wide">
       <Breadcrumbs
         items={[
           { name: sido, href: regionPath(sido) },

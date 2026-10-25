@@ -11,7 +11,6 @@ const props = (over = {}) => ({
   filter: 'pharmacy' as const,
   onFilter: vi.fn(),
   onCurrentLocation: vi.fn(),
-  onOpenLocationSearch: vi.fn(),
   when: { kind: 'now' } as const,
   onWhen: vi.fn(),
   ...over,
@@ -47,12 +46,12 @@ describe('MainHeader', () => {
     expect(screen.queryByRole('link', { name: '검색' })).toBeNull(); // 사이트 헤더로 옮김(D69)
   });
 
-  test('area name is text; the find-location menu has current location / area search / browse by region (D52)', () => {
+  test('area name is text; the find-location menu has current location / browse by region (D70)', () => {
     render(<MainHeader {...props()} />);
     expect(screen.getByText('마포구 망원동').closest('button')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /위치 찾기/ }));
     const items = screen.getByRole('list', { name: '위치 찾기' }).querySelectorAll('li');
-    expect([...items].map((b) => b.textContent?.trim())).toEqual(['현재 위치', '지역 검색', '지역별 보기']);
+    expect([...items].map((b) => b.textContent?.trim())).toEqual(['현재 위치', '지역별 보기']);
     expect(screen.getByRole('link', { name: /지역별 보기/ }).getAttribute('href')).toBe('/regions');
   });
 
@@ -60,10 +59,6 @@ describe('MainHeader', () => {
     const p = props();
     render(<MainHeader {...p} />);
     const open = () => fireEvent.click(screen.getByRole('button', { name: /위치 찾기/ }));
-    open();
-    fireEvent.click(screen.getByRole('button', { name: /지역 검색/ }));
-    expect(p.onOpenLocationSearch).toHaveBeenCalled();
-    expect(screen.queryByRole('list', { name: '위치 찾기' })).toBeNull();
     open();
     fireEvent.click(screen.getByRole('button', { name: /현재 위치/ }));
     expect(p.onCurrentLocation).toHaveBeenCalled();

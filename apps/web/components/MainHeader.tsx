@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, List, LocateFixed, MapPin, Search } from 'lucide-react';
+import { ChevronDown, List, LocateFixed, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import type { ListFilter } from '@/lib/nearby';
@@ -17,7 +17,6 @@ interface Props {
   when: When;
   onWhen: (w: When) => void;
   onCurrentLocation: () => void;
-  onOpenLocationSearch: () => void;
 }
 
 /** 이만큼 넘게 한 방향으로 움직여야 숨기거나 보인다(조금 흔들릴 때 들락거리지 않게) */
@@ -37,7 +36,7 @@ export function nextHeaderState(s: { hidden: boolean; base: number }, y: number)
 }
 
 /**
- * 메인 전용 헤더(D31·D38·D41·D52): 1줄 📍 지역 이름 + [위치 찾기 ▾](현재 위치 / 지역 검색 / 지역별 보기), 2줄 [약국 ▾] [언제 ▾]. 이름 검색은 사이트 헤더 오른쪽 위(D69).
+ * 메인 전용 헤더(D31·D38·D41·D52): 1줄 📍 지역 이름 + [위치 찾기 ▾](현재 위치 / 지역별 보기, 지역 검색은 헤더 [검색]의 [지역] 탭 — D70), 2줄 [약국 ▾] [언제 ▾]. 이름 검색은 사이트 헤더 오른쪽 위(D69).
  * 유형은 약국 / 병원 / 소아과. '유형' 글자는 화면에 보이지 않고 화면 낭독기용 이름으로만 둔다.
  * 사이트 헤더 바로 아래에 붙어 있고, 아래로 스크롤하면 숨었다가 위로 올리면 다시 나온다(메뉴가 열려 있으면 숨지 않음).
  */
@@ -107,11 +106,6 @@ export function MainHeader(p: Props) {
             <li>
               <button type="button" onClick={choose(p.onCurrentLocation)}>
                 <LocateFixed aria-hidden="true" size={18} /> 현재 위치
-              </button>
-            </li>
-            <li>
-              <button type="button" onClick={choose(p.onOpenLocationSearch)}>
-                <Search aria-hidden="true" size={18} /> 지역 검색
               </button>
             </li>
             <li>

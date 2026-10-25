@@ -6,7 +6,7 @@ import { geoPermission, locate, startArea, type AreaSource } from '@/lib/locate'
 import { fetchMeta } from '@/lib/meta';
 import { areaLabel, areaRegion, buildView, kindOf, loadNearby, matcherOf, type CellCache, type FetchJson, type ListFilter } from '@/lib/nearby';
 import type { GridEntry } from '@/lib/grid';
-import { pushRecentArea, readFilter, readLastArea, readRecentAreas, saveFilter, saveLastArea, saveLastCenter, type Area } from '@/lib/prefs';
+import { pushRecentArea, readFilter, readLastArea, readRecentAreas, saveFilter, saveLastArea, saveLastCenter, takePickedArea, type Area } from '@/lib/prefs';
 import type { Kind } from '@/lib/seo';
 import { track } from '@/lib/track';
 import { NOW, readWhen, saveWhen, type When } from '@/lib/when';
@@ -118,7 +118,12 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
     void fetchMeta().then((m) => {
       if (m) setHolidays(new Set(m.holidays)); // 실패하면 HTML에 담겨 온 목록을 그대로 쓴다
     });
-    chooseStartArea();
+    // 헤더 [검색]의 [지역] 탭에서 방금 골랐으면 그 지역이 먼저(현재 위치보다, D70)
+    const picked = takePickedArea();
+    if (picked) {
+      locateReq.current += 1;
+      setCurrent({ center: { lat: picked.lat, lon: picked.lon }, label: picked.label, source: 'manual', region: { sido: picked.sido, sigungu: picked.sigungu } });
+    } else chooseStartArea();
     const tick = () => withAnchor(() => setNow(new Date()));
     const id = setInterval(tick, 60_000);
     // 백그라운드에 있던 탭이 다시 보이면 시각을 바로 갱신한다
@@ -230,7 +235,6 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
         when={when}
         onWhen={chooseWhen}
         onCurrentLocation={requestLocation}
-        onOpenLocationSearch={() => setModalOpen(true)}
       />
       <div ref={listRef}>
         <MainList

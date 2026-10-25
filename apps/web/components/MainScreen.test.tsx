@@ -138,7 +138,7 @@ describe('MainScreen', () => {
     await flush();
     const menu = () => screen.getByRole('list', { name: '위치 찾기' }).querySelectorAll('button');
     fireEvent.click(screen.getByRole('button', { name: /위치 찾기/ }));
-    expect([...menu()].map((b) => b.textContent?.trim())).toEqual(['현재 위치', '지역 검색']);
+    expect([...menu()].map((b) => b.textContent?.trim())).toEqual(['현재 위치']); // 지역 검색은 헤더 [검색](D70)
     permission = 'denied';
     fireEvent.click(screen.getByRole('button', { name: /현재 위치/ }));
     await flush();
@@ -152,32 +152,16 @@ describe('MainScreen', () => {
     expect(screen.getByRole('dialog', { name: '지역 검색' })).toBeTruthy();
   });
 
-  test('a manual area pick is not overridden by a pending location result', async () => {
-    let resolveGeo!: (p: GeolocationPosition) => void;
-    Object.defineProperty(navigator, 'geolocation', {
-      configurable: true,
-      value: { getCurrentPosition: (ok: PositionCallback) => { resolveGeo = ok; } },
-    });
-    localStorage.setItem('munyeon:areas', JSON.stringify([{ label: '마포구 망원동', lat: 37.556, lon: 126.905 }]));
+  test('an area picked in header search comes before current location (D70)', async () => {
+    sessionStorage.setItem('munyeon:pickedArea', JSON.stringify({ label: '마포구 망원동', lat: 37.556, lon: 126.905 }));
     const s = server([], []);
     await act(async () => {
       render(<MainScreen fetchJson={s.fetchJson} />);
     });
-    // 권한 상태 조회는 끝났지만 위치는 아직 오지 않았다. 그사이 위치 검색 모달의 최근 지역을 고른다
-    await flush();
-    fireEvent.click(screen.getByRole('button', { name: /위치 찾기/ }));
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /지역 검색/ }));
-    });
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: '마포구 망원동' }));
-    });
-    await flush();
-    await act(async () => {
-      resolveGeo({ coords: { latitude: center.lat, longitude: center.lon } } as GeolocationPosition);
-    });
     await flush();
     expect(screen.getByText('마포구 망원동')).toBeTruthy();
+    expect(geoCalls).toBe(0);
+    expect(sessionStorage.getItem('munyeon:pickedArea')).toBeNull(); // 한 번만 쓴다
   });
 
   test('holidays come with the page HTML, so a failed meta request still shows holiday rules', async () => {

@@ -8,7 +8,7 @@ import { decodeGrid, type GridPayload } from '@/lib/grid';
 import { geoPermission } from '@/lib/locate';
 import { fetchMeta } from '@/lib/meta';
 import { buildView, matcherOf, type ListFilter } from '@/lib/nearby';
-import { pushRecentArea, saveFilter, saveLastArea, type Area } from '@/lib/prefs';
+import { pushRecentArea, saveFilter, saveLastArea, savePickedArea, type Area } from '@/lib/prefs';
 import type { Kind } from '@/lib/seo';
 import { track } from '@/lib/track';
 import { NOW, parseWhen, readWhen, saveWhen, type When } from '@/lib/when';
@@ -100,6 +100,7 @@ export function RegionScreen({ sido, sigungu, kind, payload, center, holidays: i
   const pickArea = (a: Area) => {
     pushRecentArea(a);
     saveLastArea(a); // 고른 동을 마지막 지역으로 기억해 메인이 여기서 시작한다(D45·D56)
+    savePickedArea(a);
     router.push('/');
   };
 

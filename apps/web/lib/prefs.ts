@@ -20,6 +20,8 @@ const KIND_KEY = 'munyeon:kind';
 const AREAS_KEY = 'munyeon:areas';
 const CENTER_KEY = 'munyeon:lastCenter';
 const LAST_AREA_KEY = 'munyeon:lastArea';
+/** 검색에서 방금 고른 지역. 메인이 한 번 읽고 지운다(이 탭에만, D70) */
+const PICKED_KEY = 'munyeon:pickedArea';
 export const MAX_RECENT_AREAS = 3;
 
 function read(key: string): string | null {
@@ -99,6 +101,27 @@ export function readLastCenter(): { lat: number; lon: number } | null {
   try {
     const c = JSON.parse(read(CENTER_KEY) ?? 'null') as { lat?: unknown; lon?: unknown } | null;
     return c && Number.isFinite(c.lat) && Number.isFinite(c.lon) ? { lat: c.lat as number, lon: c.lon as number } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 헤더 [검색]의 [지역] 탭에서 고른 지역(D70). 메인은 이것을 현재 위치보다 먼저 쓴다 */
+export function savePickedArea(a: Area): void {
+  try {
+    sessionStorage.setItem(PICKED_KEY, JSON.stringify(a));
+  } catch {
+    // 저장 실패는 무시(그래도 마지막 지역으로는 남는다)
+  }
+}
+
+/** 고른 지역을 꺼내고 지운다 */
+export function takePickedArea(): Area | null {
+  try {
+    const raw = sessionStorage.getItem(PICKED_KEY);
+    sessionStorage.removeItem(PICKED_KEY);
+    const a = JSON.parse(raw ?? 'null') as unknown;
+    return isArea(a) ? a : null;
   } catch {
     return null;
   }

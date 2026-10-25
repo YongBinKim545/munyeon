@@ -9,7 +9,7 @@ export default async function Home() {
   // 빌드 환경에 DB가 없거나 조회가 실패하면 공휴일 없이 만들고, 브라우저가 /api/meta로 받는다(D47)
   const holidays = process.env.DATABASE_URL ? await loadHome() : [];
   return (
-    <main className="container">
+    <main className="container container--wide">
       <h1 className="sr-only">지금 문 연 병원·약국</h1>
       <MainScreen holidays={holidays} />
       <p className="notice">
