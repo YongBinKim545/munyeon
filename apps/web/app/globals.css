@@ -259,13 +259,14 @@ p { margin: 0.25rem 0; }
   .modal-backdrop { background: rgb(0 0 0 / 40%); display: flex; align-items: flex-start; justify-content: center; padding-top: 10vh; }
   .modal { height: auto; max-height: 70vh; width: 100%; max-width: 560px; border-radius: 14px; padding: 16px; }
   .main-header { flex-direction: column; }
-  .filters { max-width: 720px; }
 }
 /* 카드의 PC 전화번호가 길면(예: 031-111-2222~3) 넘치지 않게 */
 .card .actions { flex-wrap: wrap; }
 /* PC 카드: [전화번호] [번호 복사] [길찾기] 한 줄(D71). 번호가 아주 길면(예: 031-111-2222~3) 줄을 넘겨 다음 줄로 */
 .card .call-pc--compact { display: contents; }
-.card .call-pc--compact .tel-big { flex: 0 1 auto; align-self: center; overflow-wrap: anywhere; }
+.card .call-pc--compact .tel-big { flex: 0 1 auto; align-self: center; overflow-wrap: anywhere; font-size: 15px; }
+.card .actions:has(.call-pc--compact) { gap: 6px; }
+.card .actions:has(.call-pc--compact) .btn { font-size: 14px; padding: 0 10px; gap: 4px; white-space: nowrap; min-width: 0; }
 
 /* 목록 불러오기 실패: '문 연 곳 없음'과 구분한다 */
 .load-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; margin: 4px 0 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
