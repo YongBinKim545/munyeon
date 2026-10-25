@@ -8,7 +8,7 @@
 const [base = 'https://findmedi.co.kr', sha] = process.argv.slice(2);
 const CONCURRENCY = 4;
 const TIMEOUT_MS = 30_000;
-const WAIT_DEPLOY_MS = 10 * 60_000;
+const WAIT_DEPLOY_MS = 20 * 60_000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

@@ -1,8 +1,10 @@
-# 배포 직후 지역 페이지 미리 만들기(P0-10). Vercel이 운영 배포를 마치면 GitHub에 알리는 deployment_status로 시작한다.
-# 비밀값을 쓰지 않는다. 사이트맵 0번 파일의 주소를 동시에 4개씩 한 번씩 연다.
+# 배포 직후 지역 페이지 미리 만들기(P0-10·D68). main에 push되면 시작해, 운영이 그 커밋으로 바뀔 때까지(/api/version)
+# 기다린 뒤 사이트맵 0번 파일의 주소를 동시에 4개씩 한 번씩 연다. 비밀값을 쓰지 않는다.
+# (Vercel이 이 저장소에 GitHub 배포 기록을 남기지 않아 deployment_status로는 시작되지 않았다, 2026-10-25)
 name: warm
 on:
-  deployment_status:
+  push:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
@@ -11,9 +13,6 @@ concurrency:
   cancel-in-progress: true
 jobs:
   warm:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production')
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -22,4 +21,5 @@ jobs:
         with:
           node-version: 24
       - name: Warm region pages
-        run: node scripts/warm.mjs https://findmedi.co.kr "${{ github.event.deployment.sha }}"
+        # 수동 실행은 기다리지 않고 지금 배포를 바로 데운다
+        run: node scripts/warm.mjs https://findmedi.co.kr "${{ github.event_name == 'push' && github.sha || '' }}"
