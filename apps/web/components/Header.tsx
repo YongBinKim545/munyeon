@@ -29,7 +29,7 @@ export function Header() {
           </Link>
           <p className="tagline">{SITE_TAGLINE}</p>
         </div>
-        <Link className="btn btn-secondary header-btn" href="/search" prefetch={false}>
+        <Link className="btn btn-secondary header-btn header-search" href="/search" prefetch={false}>
           <Search aria-hidden="true" size={16} /> 검색
         </Link>
       </div>

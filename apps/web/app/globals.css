@@ -385,3 +385,6 @@ button.chip[aria-pressed='true'] { border: 2px solid var(--call); color: var(--c
 
 /* 지역 화면 요약 한 문단(P0-3) */
 .region-summary { margin: 0 0 8px; font-size: var(--fs-small); color: var(--text-sub); line-height: 1.6; }
+
+/* 헤더 첫 줄 [검색]과 메인 둘째 줄 [위치 찾기 ▾]는 같은 너비·높이(오른쪽 끝이 한 줄로 맞는다) */
+.header-search, .area__find { width: 120px; min-height: var(--tap); padding: 0 12px; font-size: var(--fs-body); justify-content: center; }
