@@ -19,7 +19,12 @@ describe('POST /api/events', () => {
   test('stores only type, institution and page', async () => {
     const res = await post(JSON.stringify({ type: 'tel_tap', institutionId: 'C1100005', page: 'detail', lat: 37.5, ua: 'x' }));
     expect(res.status).toBe(204);
-    expect(insertEvent).toHaveBeenCalledWith({}, { type: 'tel_tap', institutionId: 'C1100005', page: 'detail' });
+    expect(insertEvent).toHaveBeenCalledWith({}, { type: 'tel_tap', institutionId: 'C1100005', page: 'detail', source: null });
+  });
+
+  test('stores the traffic source category (D72)', async () => {
+    expect((await post(JSON.stringify({ type: 'tel_tap', institutionId: 'A1', page: 'detail', source: 'share' }))).status).toBe(204);
+    expect(insertEvent).toHaveBeenCalledWith({}, { type: 'tel_tap', institutionId: 'A1', page: 'detail', source: 'share' });
   });
 
   test('null institution is allowed (search)', async () => {
@@ -33,6 +38,7 @@ describe('POST /api/events', () => {
     ['unknown type', JSON.stringify({ type: 'call_119_open', institutionId: 'A1', page: 'detail' })],
     ['bad id', JSON.stringify({ type: 'tel_tap', institutionId: "1'; drop", page: 'detail' })],
     ['bad page', JSON.stringify({ type: 'tel_tap', institutionId: 'A1', page: 'Detail Page!' })],
+    ['unknown source', JSON.stringify({ type: 'tel_tap', institutionId: 'A1', page: 'detail', source: 'https://search.naver.com/?query=x' })],
     ['not json', 'hello'],
     ['null body', 'null'],
     ['array body', '[1]'],

@@ -1,7 +1,8 @@
+import { isTrafficSource } from '@munyeon/core';
 import { EVENT_TYPES, insertEvent, type EventType } from '@munyeon/db';
 import { query } from '@/lib/db';
 
-// 자체 이벤트 수집(D15). 기관 ID·종류·페이지 종류만 저장하고 IP·UA·좌표는 받지 않는다.
+// 자체 이벤트 수집(D15). 기관 ID·종류·페이지 종류·유입 경로 큰 분류(D72)만 저장하고 IP·UA·좌표는 받지 않는다.
 export const dynamic = 'force-dynamic';
 
 const MAX_BODY = 1024;
@@ -41,14 +42,16 @@ export async function POST(req: Request) {
     return new Response(null, { status: 400 });
   }
   if (!body || typeof body !== 'object' || Array.isArray(body)) return new Response(null, { status: 400 });
-  const { type, institutionId, page } = body as { type?: unknown; institutionId?: unknown; page?: unknown };
+  const { type, institutionId, page, source } = body as { type?: unknown; institutionId?: unknown; page?: unknown; source?: unknown };
   const validType = typeof type === 'string' && (EVENT_TYPES as readonly string[]).includes(type);
   const validId = institutionId === null || (typeof institutionId === 'string' && ID_RE.test(institutionId));
   const validPage = typeof page === 'string' && PAGE_RE.test(page);
-  if (!validType || !validId || !validPage) return new Response(null, { status: 400 });
+  // 분류 값이 없으면(이 기능 전에 열어 둔 화면) 비워서 받는다
+  const validSource = source === undefined || isTrafficSource(source);
+  if (!validType || !validId || !validPage || !validSource) return new Response(null, { status: 400 });
   if (!allow()) return new Response(null, { status: 429 });
 
-  await query('events', (sql) => insertEvent(sql, { type: type as EventType, institutionId: institutionId as string | null, page: page as string }), {
+  await query('events', (sql) => insertEvent(sql, { type: type as EventType, institutionId: institutionId as string | null, page: page as string, source: source ?? null }), {
     tries: 1,
   });
   return new Response(null, { status: 204 });

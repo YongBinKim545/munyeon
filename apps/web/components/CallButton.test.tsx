@@ -25,7 +25,8 @@ describe('CallButton', () => {
     expect(link.getAttribute('href')).toBe('tel:027770000');
     fireEvent.click(link);
     const body = JSON.parse(String((navigator.sendBeacon as ReturnType<typeof vi.fn>).mock.calls[0]![1]));
-    expect(body).toEqual({ type: 'tel_tap', institutionId: 'C1100005', page: 'detail' });
+    // 유입 경로는 처음 들어온 페이지에서 정해 둔 값(D72). 꼬리표·출처 없는 테스트 환경은 직접
+    expect(body).toEqual({ type: 'tel_tap', institutionId: 'C1100005', page: 'detail', source: 'direct' });
   });
 
   test('CallButton shows copy on fine pointer', async () => {

@@ -1,4 +1,4 @@
-import type { Category, RawHours } from '@munyeon/core';
+import type { Category, RawHours, TrafficSource } from '@munyeon/core';
 import type { Sql } from './client.ts';
 
 export type Kind = 'hospital' | 'pharmacy';
@@ -229,9 +229,12 @@ export async function upsertHolidays(sql: Sql, rows: { ymd: string; name: string
 export const EVENT_TYPES = ['tel_tap', 'tel_copy', 'directions_tap', 'search_select', 'locate_ok', 'locate_fail', 'show_all'] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 
-/** IP·UA·좌표는 받지도 저장하지도 않는다. 시각은 DB 기본값(분 단위)으로만 남는다. */
-export async function insertEvent(sql: Sql, e: { type: EventType; institutionId: string | null; page: string }): Promise<void> {
-  await sql`insert into events (type, institution_id, page) values (${e.type}, ${e.institutionId}, ${e.page})`;
+/** IP·UA·좌표는 받지도 저장하지도 않는다. 시각은 DB 기본값(분 단위)으로만 남는다. 유입 경로는 큰 분류 값만(D72). */
+export async function insertEvent(
+  sql: Sql,
+  e: { type: EventType; institutionId: string | null; page: string; source: TrafficSource | null },
+): Promise<void> {
+  await sql`insert into events (type, institution_id, page, source) values (${e.type}, ${e.institutionId}, ${e.page}, ${e.source})`;
 }
 
 export interface FeedbackRow {
