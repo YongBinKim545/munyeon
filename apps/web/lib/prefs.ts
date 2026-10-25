@@ -20,8 +20,8 @@ const KIND_KEY = 'munyeon:kind';
 const AREAS_KEY = 'munyeon:areas';
 const CENTER_KEY = 'munyeon:lastCenter';
 const LAST_AREA_KEY = 'munyeon:lastArea';
-/** 검색에서 방금 고른 지역. 메인이 한 번 읽고 지운다(이 탭에만, D70) */
-const PICKED_KEY = 'munyeon:pickedArea';
+/** 이 탭에서 메인이 보던 지역(D73) */
+const VIEW_KEY = 'munyeon:viewArea';
 export const MAX_RECENT_AREAS = 3;
 
 function read(key: string): string | null {
@@ -106,23 +106,43 @@ export function readLastCenter(): { lat: number; lon: number } | null {
   }
 }
 
-/** 헤더 [검색]의 [지역] 탭에서 고른 지역(D70). 메인은 이것을 현재 위치보다 먼저 쓴다 */
-export function savePickedArea(a: Area): void {
+/** 메인이 보던 지역. gps면 현재 위치로 찾은 곳(이름은 받은 데이터로 다시 붙인다) */
+export interface ViewArea {
+  label: string | null;
+  lat: number;
+  lon: number;
+  sido?: string | null;
+  sigungu?: string | null;
+  gps: boolean;
+}
+
+/**
+ * 이 탭에서 메인이 보던 지역(D73). 상세에 다녀오거나(뒤로가기) 홈으로 돌아와도 여기서 이어 보고, 위치를 다시 잡지 않는다.
+ * 헤더 [검색]의 [지역] 탭에서 고른 지역도 여기에 넣어 메인이 현재 위치보다 먼저 쓴다(D70). 새 탭·새 방문은 처음 규칙(D38·D45).
+ */
+export function saveViewArea(a: ViewArea): void {
   try {
-    sessionStorage.setItem(PICKED_KEY, JSON.stringify(a));
+    sessionStorage.setItem(VIEW_KEY, JSON.stringify(a));
   } catch {
     // 저장 실패는 무시(그래도 마지막 지역으로는 남는다)
   }
 }
 
-/** 고른 지역을 꺼내고 지운다 */
-export function takePickedArea(): Area | null {
+export function readViewArea(): ViewArea | null {
   try {
-    const raw = sessionStorage.getItem(PICKED_KEY);
-    sessionStorage.removeItem(PICKED_KEY);
-    const a = JSON.parse(raw ?? 'null') as unknown;
-    return isArea(a) ? a : null;
+    const a = JSON.parse(sessionStorage.getItem(VIEW_KEY) ?? 'null') as ViewArea | null;
+    if (!a || !Number.isFinite(a.lat) || !Number.isFinite(a.lon)) return null;
+    return { label: typeof a.label === 'string' ? a.label : null, lat: a.lat, lon: a.lon, sido: a.sido ?? null, sigungu: a.sigungu ?? null, gps: a.gps === true };
   } catch {
     return null;
+  }
+}
+
+/** [내 동네 기준으로 보기]처럼 메인을 현재 위치로 열어야 할 때 */
+export function clearViewArea(): void {
+  try {
+    sessionStorage.removeItem(VIEW_KEY);
+  } catch {
+    // 무시
   }
 }

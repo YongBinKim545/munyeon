@@ -35,6 +35,7 @@ beforeEach(() => {
   vi.spyOn(history, 'back').mockImplementation(() => window.dispatchEvent(new PopStateEvent('popstate')));
   window.matchMedia = vi.fn(() => ({ matches: false, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
   localStorage.clear();
+  sessionStorage.clear();
 });
 afterEach(() => {
   cleanup();
@@ -153,7 +154,7 @@ describe('MainScreen', () => {
   });
 
   test('an area picked in header search comes before current location (D70)', async () => {
-    sessionStorage.setItem('munyeon:pickedArea', JSON.stringify({ label: '마포구 망원동', lat: 37.556, lon: 126.905 }));
+    sessionStorage.setItem('munyeon:viewArea', JSON.stringify({ label: '마포구 망원동', lat: 37.556, lon: 126.905, gps: false }));
     const s = server([], []);
     await act(async () => {
       render(<MainScreen fetchJson={s.fetchJson} />);
@@ -161,7 +162,38 @@ describe('MainScreen', () => {
     await flush();
     expect(screen.getByText('마포구 망원동')).toBeTruthy();
     expect(geoCalls).toBe(0);
-    expect(sessionStorage.getItem('munyeon:pickedArea')).toBeNull(); // 한 번만 쓴다
+  });
+
+  test('coming back to main in the same tab keeps the picked area, not current location (D73)', async () => {
+    sessionStorage.setItem('munyeon:viewArea', JSON.stringify({ label: '마포구 망원동', lat: 37.556, lon: 126.905, gps: false }));
+    const s = server([], []);
+    await act(async () => {
+      render(<MainScreen fetchJson={s.fetchJson} />);
+    });
+    await flush();
+    cleanup(); // 상세로 갔다가
+    await act(async () => {
+      render(<MainScreen fetchJson={s.fetchJson} />); // 뒤로가기
+    });
+    await flush();
+    expect(screen.getByText('마포구 망원동')).toBeTruthy();
+    expect(geoCalls).toBe(0);
+  });
+
+  test('current location is also kept for the tab, without asking the position again (D73)', async () => {
+    const s = server([], []);
+    await act(async () => {
+      render(<MainScreen fetchJson={s.fetchJson} />);
+    });
+    await flush();
+    expect(geoCalls).toBe(1);
+    expect(JSON.parse(sessionStorage.getItem('munyeon:viewArea')!)).toMatchObject({ lat: center.lat, lon: center.lon, gps: true });
+    cleanup();
+    await act(async () => {
+      render(<MainScreen fetchJson={s.fetchJson} />);
+    });
+    await flush();
+    expect(geoCalls).toBe(1);
   });
 
   test('holidays come with the page HTML, so a failed meta request still shows holiday rules', async () => {
