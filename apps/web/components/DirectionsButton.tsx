@@ -40,15 +40,18 @@ export function DirectionsButton({ institutionId, name, addr, lat, lon, page, co
         <Navigation aria-hidden="true" size={16} /> 길찾기
       </button>
       {open ? (
-        <div className="sheet" role="dialog" aria-label="길찾기 앱 선택">
-          {directionLinks(name, addr, lat, lon).map((l) => (
-            <a key={l.label} href={l.href} target="_blank" rel="noopener" onClick={() => track('directions_tap', institutionId, page)}>
-              {l.label}
-            </a>
-          ))}
-          <button type="button" className="btn btn-secondary" style={{ width: '100%', marginTop: 8 }} onClick={() => setOpen(false)}>
-            닫기
-          </button>
+        // 어두운 막으로 뒤 화면과 구분하고, 막을 누르면 닫는다
+        <div className="sheet-backdrop" onClick={() => setOpen(false)}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-label="길찾기 앱 선택" onClick={(e) => e.stopPropagation()}>
+            {directionLinks(name, addr, lat, lon).map((l) => (
+              <a key={l.label} href={l.href} target="_blank" rel="noopener" onClick={() => track('directions_tap', institutionId, page)}>
+                {l.label}
+              </a>
+            ))}
+            <button type="button" className="btn btn-secondary" style={{ width: '100%', marginTop: 8 }} onClick={() => setOpen(false)}>
+              닫기
+            </button>
+          </div>
         </div>
       ) : null}
     </>
