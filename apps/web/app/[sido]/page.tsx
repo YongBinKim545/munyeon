@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { RegionTable } from '@/components/RegionTable';
 import { loadRegions } from '@/lib/data';
-import { parseRegionParams, regionPath, sidoTitle } from '@/lib/seo';
+import { openGraphFor, parseRegionParams, regionPath, sidoTitle } from '@/lib/seo';
 
 export const revalidate = 86400;
 export const dynamicParams = true;
@@ -17,11 +17,9 @@ type Props = { params: Promise<{ sido: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const r = parseRegionParams(await params);
   if (!r) return { robots: { index: false } };
-  return {
-    title: `${sidoTitle(r.sido)} 문 여는 병원·약국 — 시군구별 진료시간`,
-    description: `${r.sido} 시군구별 약국·병원의 일요일·공휴일·야간 진료시간과 전화번호.`,
-    alternates: { canonical: regionPath(r.sido) },
-  };
+  const title = `${sidoTitle(r.sido)} 문 여는 병원·약국 — 시군구별 진료시간`;
+  const description = `${r.sido} 시군구별 약국·병원의 일요일·공휴일 진료시간과 전화번호.`;
+  return { title, description, alternates: { canonical: regionPath(r.sido) }, openGraph: openGraphFor(regionPath(r.sido), title, description) };
 }
 
 export default async function SidoPage({ params }: Props) {

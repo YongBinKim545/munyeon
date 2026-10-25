@@ -21,6 +21,8 @@ export const metadata: Metadata = {
   title: { default: `${SITE_NAME} — ${SITE_TAGLINE}`, template: `%s | ${SITE_NAME}` },
   description: '야간·휴일·명절에 지금 문 연 병원·약국을 찾고 원탭으로 전화해 확인하세요. 요일별·공휴일 진료시간 제공.',
   applicationName: SITE_NAME,
+  // 메인과 openGraph를 따로 두지 않은 페이지의 공유 카드(P0-5)
+  openGraph: { type: 'website', siteName: SITE_NAME, locale: 'ko_KR', url: '/', title: `${SITE_NAME} — ${SITE_TAGLINE}`, description: '지금 문 연 병원·약국을 찾고 한 번에 전화로 확인하세요. 요일별·공휴일 진료시간.' },
   formatDetection: { telephone: false },
   verification: {
     google: process.env.GOOGLE_SITE_VERIFICATION,

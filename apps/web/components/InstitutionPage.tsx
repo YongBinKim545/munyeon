@@ -3,7 +3,7 @@ import type { Kind } from '@munyeon/db';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { loadHolidays, loadInstitution, loadLastSync } from '@/lib/data';
-import { institutionPath, SITE_URL } from '@/lib/seo';
+import { institutionPath, openGraphFor, regionShortName, SITE_URL } from '@/lib/seo';
 import { InstitutionView } from './InstitutionView';
 
 /** 기관 상세 메타데이터: 제목·설명·canonical, 진료시간이 없거나 비활성이면 noindex(D6) */
@@ -14,7 +14,12 @@ export async function institutionMetadata(kind: Kind, id: string): Promise<Metad
   const label = kind === 'pharmacy' ? '영업시간' : '진료시간';
   const summary = `${DAY_LABELS[7]} ${formatRange(week[7])}, ${DAY_LABELS[8]} ${formatRange(week[8])}`;
   const indexable = rec.isActive && hasAnyHours(week);
+  // 공유 카드(P0-5): '○○약국 — 영업시간·전화' / '서울 마포구 망원동 · 일요일 영업'
+  const where = rec.sido && rec.sigungu ? [regionShortName(rec.sido, rec.sigungu), rec.dong].filter(Boolean).join(' ') : rec.addr;
+  const ogDesc = [where, week[7] ? '일요일 영업' : null, week[8] ? '공휴일 영업' : null].filter(Boolean).join(' · ');
+  const path = institutionPath(kind, rec.id);
   return {
+    openGraph: openGraphFor(path, `${rec.name} — ${label}·전화`, ogDesc),
     title: `${rec.name} ${label} · 일요일·공휴일`,
     description: `${rec.addr}. ${summary}.${rec.tel ? ` 전화 ${rec.tel}.` : ''} 방문 전 전화로 확인하세요.`,
     alternates: { canonical: institutionPath(kind, rec.id) },

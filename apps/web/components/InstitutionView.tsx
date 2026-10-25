@@ -1,5 +1,5 @@
 import type { InstitutionRecord } from '@munyeon/db';
-import { buildInstitutionJsonLd, serializeJsonLd } from '@/lib/jsonld';
+import { buildDetailPageJsonLd, buildInstitutionJsonLd, serializeJsonLd } from '@/lib/jsonld';
 import { KIND_LABEL, regionPath } from '@/lib/seo';
 import { Badges } from './Badges';
 import { Breadcrumbs, type Crumb } from './Breadcrumbs';
@@ -66,6 +66,7 @@ export function InstitutionView({ rec, holidays, lastSyncAt, url }: Props) {
   return (
     <main className="container">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildInstitutionJsonLd(rec, url)) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildDetailPageJsonLd(rec, url)) }} />
       {header}
       <LiveStatus hours={rec.hours} holidays={holidays} />
       {actions}

@@ -33,7 +33,11 @@ export function useMeta(): SiteMeta | null {
   return meta;
 }
 
-/** 'YYYY-MM-DD HH:mm' (KST) */
+/** '10월 25일 오후 2시 5분' (KST). 실제 마지막 갱신 시각 표시용(P0-13) */
 export function formatKst(d: Date): string {
-  return new Date(d.getTime() + 9 * 3_600_000).toISOString().slice(0, 16).replace('T', ' ');
+  const k = new Date(d.getTime() + 9 * 3_600_000);
+  const h = k.getUTCHours();
+  const m = k.getUTCMinutes();
+  const hour = h === 0 ? '밤 12시' : h < 12 ? `오전 ${h}시` : h === 12 ? '낮 12시' : `오후 ${h - 12}시`;
+  return `${k.getUTCMonth() + 1}월 ${k.getUTCDate()}일 ${hour}${m ? ` ${m}분` : ''}`;
 }

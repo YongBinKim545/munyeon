@@ -8,20 +8,18 @@ import { loadHolidays, loadLastSync, loadRegion, loadRegions, loadRegionStats } 
 import { encodeGrid } from '@/lib/grid';
 import { summarizeWeek } from '@/lib/weekSummary';
 import { regionCenter } from '@/lib/region';
-import { institutionPath, KIND_LABEL, regionPath, regionShortName, type Kind } from '@/lib/seo';
-
-const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
+import { regionSummary } from '@/lib/regionSummary';
+import { institutionPath, KIND_LABEL, openGraphFor, regionPath, regionShortName, type Kind } from '@/lib/seo';
 
 /** 지역 화면의 제목·설명(P0-2: 시도 약칭). 일요일·공휴일 검색어도 이 한 페이지가 받는다(D69) */
 export function regionMetadata(sido: string, sigungu: string, kind: Kind): Metadata {
   const area = regionShortName(sido, sigungu);
   const k = KIND_LABEL[kind];
   const hours = kind === 'pharmacy' ? '영업시간' : '진료시간';
-  return {
-    title: `${area} ${k} — 지금 문 연 곳·일요일·공휴일 ${hours}`,
-    description: `${sido} ${sigungu}에서 지금 문 연 ${k}과 일요일·공휴일 ${hours}, 전화번호. 방문 전 전화로 확인하세요.`,
-    alternates: { canonical: regionPath(sido, sigungu, kind) },
-  };
+  const title = `${area} ${k} — 지금 문 연 곳·일요일·공휴일 ${hours}`;
+  const description = `${sido} ${sigungu}에서 지금 문 연 ${k}과 일요일·공휴일 ${hours}, 전화번호. 방문 전 전화로 확인하세요.`;
+  const path = regionPath(sido, sigungu, kind);
+  return { title, description, alternates: { canonical: path }, openGraph: openGraphFor(path, title, description) };
 }
 
 /**
@@ -46,9 +44,8 @@ export async function RegionPage({ sido, sigungu, kind }: { sido: string; sigung
         ]}
       />
       <h1>{`${area} ${k}`}</h1>
-      <p className="muted">
-        {`등록 ${stats.total}곳 · 일요일 ${stats.withSunday}곳 · 공휴일 시간 등록 ${pct(stats.withHoliday, stats.total)}%`}
-      </p>
+      {/* 검색으로 처음 도착한 사람이 첫 화면에서 답을 얻는 요약(P0-3). 진료시간에서 나온 고정 정보만 */}
+      <p className="region-summary">{regionSummary({ area, kind, rows, stats, lastSync })}</p>
       <RegionScreen
         sido={sido}
         sigungu={sigungu}

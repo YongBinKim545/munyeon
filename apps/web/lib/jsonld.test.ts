@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { makeRecord } from './fixtures';
-import { buildInstitutionJsonLd, serializeJsonLd } from './jsonld';
+import { buildDetailPageJsonLd, buildInstitutionJsonLd, buildSiteJsonLd, serializeJsonLd } from './jsonld';
 
 const url = 'https://findmedi.co.kr/pharmacy/C1100005';
 
@@ -42,4 +42,24 @@ test('serializeJsonLd cannot close the script tag', () => {
   const out = serializeJsonLd({ name: '</script><script>alert(1)</script>' });
   expect(out).not.toContain('</script');
   expect(JSON.parse(out)).toEqual({ name: '</script><script>alert(1)</script>' });
+});
+
+type Node = { [k: string]: unknown };
+
+describe('page and site JSON-LD (P0-6)', () => {
+  test('detail page carries dateModified and points at the place', () => {
+    const j = buildDetailPageJsonLd(makeRecord(), url) as Node;
+    expect(j['@type']).toBe('WebPage');
+    expect(j.dateModified).toBe('2026-11-01T00:00:00.000Z');
+    expect(j.about).toEqual({ '@id': `${url}#place` });
+    expect((buildInstitutionJsonLd(makeRecord(), url) as Node)['@id']).toBe(`${url}#place`);
+  });
+
+  test('site: WebSite with alternate name, Organization without a personal name, email only when set', () => {
+    const [site, org] = (buildSiteJsonLd('https://findmedi.co.kr', '찾아줘 메디', 'contact@findmedi.co.kr') as { '@graph': Node[] })['@graph'];
+    expect(site).toMatchObject({ '@type': 'WebSite', name: '찾아줘 메디', alternateName: 'findmedi', url: 'https://findmedi.co.kr' });
+    expect(site!.potentialAction).toBeUndefined(); // 사이트 내 검색창은 구글이 없앰
+    expect(org).toMatchObject({ '@type': 'Organization', name: '찾아줘 메디', email: 'contact@findmedi.co.kr' });
+    expect((buildSiteJsonLd('https://x', 'n') as { '@graph': Node[] })['@graph'][1]!.email).toBeUndefined();
+  });
 });

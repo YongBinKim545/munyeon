@@ -79,3 +79,11 @@ export function parseRegionParams(p: { sido: string; sigungu?: string; kind?: st
   }
   return out;
 }
+
+/**
+ * 페이지별 공유 미리보기(P0-5). 카카오톡·SNS 카드의 제목·설명·주소·사이트 이름. 이미지는 공통 공유 이미지(app/opengraph-image).
+ * 현재 상태('지금 영업 중')는 넣지 않는다(D23). 페이지가 openGraph를 쓰면 상위 값이 통째로 바뀌므로 매번 전부 넣는다.
+ */
+export function openGraphFor(path: string, title: string, description: string) {
+  return { type: 'website' as const, siteName: SITE_NAME, locale: 'ko_KR', url: path, title: `${title} | ${SITE_NAME}`, description };
+}

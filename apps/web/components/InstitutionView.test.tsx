@@ -14,7 +14,7 @@ describe('InstitutionView', () => {
     expect(html).not.toMatch(/영업 중|영업 종료|곧 마감|영업 전/);
     expect(html).toContain('정보 없음');
     expect(html).toContain('방문 전 꼭 전화로 확인하세요');
-    expect(html).toContain('데이터 기준: 2026-11-20 14:07');
+    expect(html).toContain('국립중앙의료원 자료 · 11월 20일 오후 2시 7분 기준');
     expect(html).toContain('20:00~익일 03:00');
     expect(html).toContain('tel:027770000');
     expect(html).toContain('의식이 흐리거나 숨쉬기 어려우면');

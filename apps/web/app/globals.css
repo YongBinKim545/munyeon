@@ -263,9 +263,9 @@ p { margin: 0.25rem 0; }
 }
 /* 카드의 PC 전화번호가 길면(예: 031-111-2222~3) 넘치지 않게 */
 .card .actions { flex-wrap: wrap; }
-/* PC 카드: 번호 한 줄, 그 아래 [번호 복사] [길찾기] 나란히 */
+/* PC 카드: [전화번호] [번호 복사] [길찾기] 한 줄(D71). 번호가 아주 길면(예: 031-111-2222~3) 줄을 넘겨 다음 줄로 */
 .card .call-pc--compact { display: contents; }
-.card .call-pc--compact .tel-big { flex: 1 1 100%; overflow-wrap: anywhere; }
+.card .call-pc--compact .tel-big { flex: 0 1 auto; align-self: center; overflow-wrap: anywhere; }
 
 /* 목록 불러오기 실패: '문 연 곳 없음'과 구분한다 */
 .load-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; margin: 4px 0 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
@@ -366,12 +366,12 @@ button.chip[aria-pressed='true'] { border: 2px solid var(--call); color: var(--c
 .search-tabs__panel { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
 /*
- * 태블릿·PC 목록 두 열(D70, D52의 'PC 한 열 600px'을 바꿈). 메인·지역 화면만 본문을 960px로 넓히고,
+ * 태블릿·PC 목록 두 열(D70·D71, D52의 'PC 한 열 600px'을 바꿈). 메인·지역 화면만 본문을 800px로 넓히고,
  * 헤더는 내용·배치를 그대로 두고 폭만 본문에 맞춘다. 상세·소개 같은 글 페이지는 600px 한 열 그대로.
  */
 @media (min-width: 768px) {
-  .container--wide { max-width: 960px; }
-  body:has(.container--wide) .site-header__inner { max-width: 960px; }
+  .container--wide { max-width: 800px; }
+  body:has(.container--wide) .site-header__inner { max-width: 800px; }
   .container--wide .main-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 }
 
@@ -381,3 +381,6 @@ button.chip[aria-pressed='true'] { border: 2px solid var(--call); color: var(--c
 .detail-call > .call-pc .tel-big { flex: 1; }
 /* [정보 수정 요청]은 모든 화면에서 한 줄 전체 너비(D70) */
 .correction-btn { display: flex; justify-content: center; width: 100%; }
+
+/* 지역 화면 요약 한 문단(P0-3) */
+.region-summary { margin: 0 0 8px; font-size: var(--fs-small); color: var(--text-sub); line-height: 1.6; }

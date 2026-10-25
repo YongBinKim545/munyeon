@@ -2,12 +2,13 @@ import type { Metadata } from 'next';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { RegionTable } from '@/components/RegionTable';
 import { loadSidoCounts } from '@/lib/data';
-import { CURRENT_SIDO, regionPath } from '@/lib/seo';
+import { CURRENT_SIDO, openGraphFor, regionPath } from '@/lib/seo';
 
 export const metadata: Metadata = {
   title: '지역으로 찾기 — 시도·시군구별 문 여는 병원·약국',
   description: '시도를 고르면 시군구별 약국·병원의 요일별·공휴일 진료시간을 볼 수 있어요. 방문 전 전화로 확인하세요.',
   alternates: { canonical: '/regions' },
+  openGraph: openGraphFor('/regions', '지역으로 찾기 — 시도·시군구별 문 여는 병원·약국', '시도를 고르면 시군구별 약국·병원의 요일별·공휴일 진료시간을 볼 수 있어요.'),
 };
 
 // 하루 캐시. 기관 수만 DB에서 받고, 못 받아도 시도 이름으로 목록을 만든다(빌드 중 DB 실패 대비, D47·D52).
