@@ -30,6 +30,8 @@ function regionRedirects() {
 const nextConfig: NextConfig = {
   transpilePackages: ['@munyeon/core', '@munyeon/db'],
   poweredByHeader: false,
+  // 가이드 글 파일(D74). 요청 때 그리는 페이지(푸터·사이트맵)도 읽을 수 있게 함수에 함께 싣는다
+  outputFileTracingIncludes: { '/**': ['./content/guide/*.md'] },
   async redirects() {
     const sido = Object.entries(OLD_SIDO).flatMap(([from, to]) => {
       const dest = `/${encodeURIComponent(to)}`;
