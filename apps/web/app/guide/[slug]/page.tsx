@@ -34,7 +34,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
       <Breadcrumbs items={[{ name: '가이드', href: '/guide' }, { name: g.title, href: path }]} />
       <article>
         <h1>{g.title}</h1>
-        <p className="guide__answer">{g.answer}</p>
+        <p className="guide__answer" dangerouslySetInnerHTML={{ __html: g.answerHtml }} />
         <div dangerouslySetInnerHTML={{ __html: g.html }} />
         <h2>출처</h2>
         <ul className="guide__sources">

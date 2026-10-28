@@ -41,10 +41,15 @@ describe('parseGuide (P0-12, D74)', () => {
         { name: '응급의료포털 E-Gen', url: 'https://www.e-gen.or.kr/' },
       ],
     });
-    expect(g.answer).toBe('달빛어린이병원은 평일 밤과 휴일에 소아 경증 환자를 보는 병원이에요.');
+    expect(g.answerHtml).toBe('달빛어린이병원은 평일 밤과 휴일에 소아 경증 환자를 보는 병원이에요.');
     expect(g.html).toContain('<h2>어떻게 찾나</h2>');
     expect(g.html).toContain('<a href="https://example.com">전화</a>');
     expect(g.html).not.toContain('평일 밤과 휴일에'); // 답 문단은 따로 그린다
+  });
+
+  test('a link in the first paragraph is shown as a link', () => {
+    const g = parseGuide(POST.replace('달빛어린이병원은 평일', '[찾아줘 메디](/)에서 찾아요. 달빛어린이병원은 평일'), 'a.md');
+    expect(g.answerHtml).toBe('<a href="/">찾아줘 메디</a>에서 찾아요. 달빛어린이병원은 평일 밤과 휴일에 소아 경증 환자를 보는 병원이에요.');
   });
 
   test('raw HTML in a post is shown as text, not run', () => {
@@ -55,6 +60,11 @@ describe('parseGuide (P0-12, D74)', () => {
 
   test('draft: true is kept as a flag', () => {
     expect(parseGuide(draft('x'), 'x.md').draft).toBe(true);
+  });
+
+  test('HTML in the first paragraph is shown as text too', () => {
+    const g = parseGuide(POST.replace('달빛어린이병원은 평일', '달빛어린이병원은 <b>굵게</b> 평일'), 'a.md');
+    expect(g.answerHtml).toContain('&lt;b&gt;');
   });
 
   test.each([

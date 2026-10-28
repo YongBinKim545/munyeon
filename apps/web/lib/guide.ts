@@ -21,8 +21,8 @@ export interface Guide {
   updated: string;
   draft: boolean;
   sources: GuideSource[];
-  /** 본문 첫 문단(답) */
-  answer: string;
+  /** 본문 첫 문단(답)의 HTML. 링크·강조만 변환한다 */
+  answerHtml: string;
   /** 답 문단 뒤 본문 HTML */
   html: string;
 }
@@ -87,7 +87,7 @@ export function parseGuide(raw: string, file: string): Guide {
     updated,
     draft: fields.draft === 'true',
     sources,
-    answer: first.replace(/\s*\r?\n\s*/g, ' '),
+    answerHtml: marked.parseInline(first.replace(/\s*\r?\n\s*/g, ' '), { async: false }),
     html: marked.parse(blocks.slice(1).join('\n\n'), { async: false }),
   };
 }
