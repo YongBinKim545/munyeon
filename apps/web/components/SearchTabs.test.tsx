@@ -30,7 +30,7 @@ describe('SearchTabs (D70)', () => {
     await act(async () => fireEvent.click(screen.getByRole('button', { name: '검색' })));
     await act(async () => fireEvent.click(screen.getByRole('button', { name: /망원동/ })));
     expect(push).toHaveBeenCalledWith('/');
-    expect(JSON.parse(sessionStorage.getItem('munyeon:pickedArea')!).label).toBe('마포구 망원동');
+    expect(JSON.parse(sessionStorage.getItem('munyeon:viewArea')!)).toMatchObject({ label: '마포구 망원동', gps: false });
   });
 
   test('remembers the last tab; ?q= opens the name tab', async () => {

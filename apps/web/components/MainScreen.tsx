@@ -6,7 +6,7 @@ import { geoPermission, locate, startArea, type AreaSource } from '@/lib/locate'
 import { fetchMeta } from '@/lib/meta';
 import { areaLabel, areaRegion, buildView, kindOf, loadNearby, matcherOf, type CellCache, type FetchJson, type ListFilter } from '@/lib/nearby';
 import type { GridEntry } from '@/lib/grid';
-import { pushRecentArea, readFilter, readLastArea, readRecentAreas, saveFilter, saveLastArea, saveLastCenter, takePickedArea, type Area } from '@/lib/prefs';
+import { pushRecentArea, readFilter, readLastArea, readRecentAreas, readViewArea, saveFilter, saveLastArea, saveLastCenter, saveViewArea, type Area } from '@/lib/prefs';
 import type { Kind } from '@/lib/seo';
 import { track } from '@/lib/track';
 import { NOW, readWhen, saveWhen, type When } from '@/lib/when';
@@ -118,11 +118,12 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
     void fetchMeta().then((m) => {
       if (m) setHolidays(new Set(m.holidays)); // 실패하면 HTML에 담겨 온 목록을 그대로 쓴다
     });
-    // 헤더 [검색]의 [지역] 탭에서 방금 골랐으면 그 지역이 먼저(현재 위치보다, D70)
-    const picked = takePickedArea();
-    if (picked) {
+    // 이 탭에서 보던 지역(검색에서 고른 곳 포함)이 있으면 거기서 이어 본다(D70·D73). 위치를 다시 잡지 않는다
+    const viewed = readViewArea();
+    if (viewed) {
       locateReq.current += 1;
-      setCurrent({ center: { lat: picked.lat, lon: picked.lon }, label: picked.label, source: 'manual', region: { sido: picked.sido, sigungu: picked.sigungu } });
+      const c = { lat: viewed.lat, lon: viewed.lon };
+      setCurrent(viewed.gps ? { center: c, label: null, source: 'gps' } : { center: c, label: viewed.label, source: 'manual', region: { sido: viewed.sido, sigungu: viewed.sigungu } });
     } else chooseStartArea();
     const tick = () => withAnchor(() => setNow(new Date()));
     const id = setInterval(tick, 60_000);
@@ -179,6 +180,13 @@ export function MainScreen({ fetchJson, holidays: initialHolidays = [] }: { fetc
     () => current?.label ?? (current && view?.entries.length ? areaLabel(current.center, view.entries) : null),
     [current, view],
   );
+  // 이 탭에서 보던 지역(D73). 기본값(명동)은 고른 곳이 아니라 남기지 않는다
+  useEffect(() => {
+    if (!current || current.source === 'default') return;
+    const gps = current.source === 'gps';
+    saveViewArea({ label: gps ? null : current.label, lat: current.center.lat, lon: current.center.lon, sido: current.region?.sido ?? null, sigungu: current.region?.sigungu ?? null, gps });
+  }, [current]);
+
   // 이름이 정해진 지역은 마지막으로 보던 지역으로 저장해, 새로고침하면 여기서 시작한다(D45).
   // 기본값(명동)은 사용자가 고른 곳이 아니라 저장하지 않는다(최근 지역이 있으면 그쪽이 먼저).
   useEffect(() => {

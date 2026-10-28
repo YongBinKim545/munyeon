@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { hasPreviousPage } from '@/lib/navHistory';
-import { pushRecentArea, readRecentAreas, saveLastArea, savePickedArea, type Area } from '@/lib/prefs';
+import { pushRecentArea, readRecentAreas, saveLastArea, saveViewArea, type Area } from '@/lib/prefs';
 import { AreaSearch } from './LocationSearchModal';
 import { NameSearch } from './NameSearch';
 
@@ -52,7 +52,7 @@ export function SearchTabs() {
   const pick = (a: Area) => {
     pushRecentArea(a);
     saveLastArea(a);
-    savePickedArea(a);
+    saveViewArea({ ...a, gps: false });
     router.push('/');
   };
 
