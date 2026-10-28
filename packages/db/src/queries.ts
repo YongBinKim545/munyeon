@@ -137,6 +137,12 @@ export async function deactivateMissing(sql: Sql, kind: Kind, seenIds: string[],
  * since 이후 새로 생기거나 바뀌거나 비활성화된 기관이 속한 지역(시군구×유형). 워커가 그 지역 페이지 캐시도 갱신하게 한다(P0-10).
  * updated_at은 내용이 바뀐 시각이라(upsert·deactivate가 함께 기록) 이것 하나로 모두 잡힌다.
  */
+/** 실행 뒤 바뀐 기관 중 검색 색인 대상(사이트맵과 같은 기준: 운영 중·진료시간 있음). IndexNow로 알린다(P1-1, D75) */
+export async function listChangedIndexable(sql: Sql, since: Date): Promise<{ kind: Kind; id: string }[]> {
+  return sql<{ kind: Kind; id: string }[]>`
+    select kind, id from institutions where updated_at >= ${since} and is_active and has_hours order by id`;
+}
+
 export async function listChangedRegions(sql: Sql, since: Date): Promise<{ kind: Kind; sido: string; sigungu: string }[]> {
   return sql<{ kind: Kind; sido: string; sigungu: string }[]>`
     select distinct kind, sido, sigungu from institutions

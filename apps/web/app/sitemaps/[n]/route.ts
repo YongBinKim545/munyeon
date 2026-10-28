@@ -4,7 +4,7 @@ import { guidePath, publishedGuides } from '@/lib/guide';
 import { institutionPath, SITE_URL } from '@/lib/seo';
 import { buildUrlset, SITEMAP_CHUNK, landingUrls } from '@/lib/sitemap';
 
-// /sitemaps/0.xml = 지역 페이지·가이드(D74), /sitemaps/{n}.xml = 기관 상세 1만 개씩(색인 대상만). CDN 1시간 캐시.
+// /sitemaps/0.xml = 지역 페이지·가이드(D74), /sitemaps/{n}.xml = 기관 상세 2천 개씩(색인 대상만). CDN 1시간 캐시.
 export const dynamic = 'force-dynamic';
 
 const HEADERS = { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=3600' };

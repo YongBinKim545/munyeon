@@ -19,3 +19,15 @@ export async function assertFresh(
   }
   if (stale.length) throw new Error(`stale sync (> ${maxAgeHours}h): ${stale.join(', ')}`);
 }
+
+/**
+ * 두 종류 모두 minutes분 안에 성공했는지(D75). 외부 예약이 매시간 돌리는 동안 GitHub 보조 예약 실행은
+ * 이것이 참이면 수집을 건너뛴다(같은 시간에 두 번 수집하지 않게).
+ */
+export async function syncedWithin(lastSyncAt: (kind: Kind) => Promise<Date | null>, minutes: number, now = new Date()): Promise<boolean> {
+  for (const kind of ['hospital', 'pharmacy'] as const) {
+    const at = await lastSyncAt(kind);
+    if (!at || now.getTime() - at.getTime() > minutes * 60_000) return false;
+  }
+  return true;
+}

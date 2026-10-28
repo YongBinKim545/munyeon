@@ -72,6 +72,34 @@ describe('fetchFullDataPage', () => {
     expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
 
+  test('"fetch failed" carries the network cause code', async () => {
+    vi.stubEnv('DATA_GO_KR_KEY', KEY);
+    const fetchImpl = vi.fn(async () => {
+      throw new TypeError('fetch failed', { cause: Object.assign(new Error('read'), { code: 'ECONNRESET' }) });
+    });
+    const err = await fetchFullDataPage('pharmacy', 1, 10, { fetchImpl, retryDelayMs: 0, retries: 0 }).catch((e: Error) => e);
+    expect((err as Error).message).toContain('fetch failed (ECONNRESET)');
+  });
+
+  test('retry waits follow retryDelaysMs when given', async () => {
+    vi.useFakeTimers();
+    vi.stubEnv('DATA_GO_KR_KEY', KEY);
+    const fetchImpl = vi.fn(async () => { throw new Error('down'); });
+    const p = fetchFullDataPage('pharmacy', 1, 10, { fetchImpl, retryDelaysMs: [30_000, 60_000, 120_000] }).catch((e: Error) => e);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(29_999);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
+    await p;
+    vi.useRealTimers();
+  });
+
   test('quota error is not retried', async () => {
     vi.stubEnv('DATA_GO_KR_KEY', KEY);
     const fetchImpl = vi.fn(async () => new Response(fx('quota-error.xml'), { status: 200 }));

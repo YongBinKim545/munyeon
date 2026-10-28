@@ -1,9 +1,11 @@
 # 수집 워커: 공공 API → Supabase. 공공 API는 이 워크플로만 호출한다.
 # 실패(동기화 오류, 6시간 이상 미성공)하면 GitHub가 저장소 관리자에게 메일을 보낸다.
 name: sync
+# 매시간 수집은 외부 예약 서비스가 workflow_dispatch(command=all)로 부른다(D75, runbook/deploy.md).
+# GitHub 예약 실행은 몇 시간씩 밀려 보조로만 두고, 최근 50분 안에 성공했으면 건너뛴다.
 on:
   schedule:
-    - cron: '7 * * * *'    # 매시 7분: 병의원·약국 FullData
+    - cron: '7 * * * *'    # 보조: 병의원·약국 FullData
     - cron: '17 18 * * *'  # 매일 03:17 KST: 특일 API 공휴일
   workflow_dispatch:
     inputs:
@@ -38,6 +40,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           SCHEDULE: ${{ github.event.schedule }}
           CMD_INPUT: ${{ inputs.command }}
+          INDEXNOW_ENABLED: ${{ vars.INDEXNOW_ENABLED }}
         run: |
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             CMD="$CMD_INPUT"
@@ -45,6 +48,7 @@ jobs:
             CMD=holidays
           else
             CMD=all
+            export SKIP_IF_SYNCED_MIN=50
           fi
           case "$CMD" in all|hospital|pharmacy|holidays|probe|migrate) ;; *) echo "unknown command"; exit 1 ;; esac
           # migrate: DB 테이블 만들기·바꾸기(수동 실행 전용, 이미 적용된 파일은 건너뛴다)

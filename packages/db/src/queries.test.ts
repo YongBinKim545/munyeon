@@ -4,7 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import type { Sql } from './client.ts';
 import {
   countSitemapEntries, deactivateMissing, finishRun, getHolidays, getInstitution, getLastSyncAt, getNearby,
-  getRegionStats, insertEvent, listChangedRegions, insertFeedback, listGridCell, listLandingCounts, listNeighborhoods, listRegion, listRegions, listSido, listSitemapEntries,
+  getRegionStats, insertEvent, listChangedIndexable, listChangedRegions, insertFeedback, listGridCell, listLandingCounts, listNeighborhoods, listRegion, listRegions, listSido, listSitemapEntries,
   refreshNeighborhoods, searchInstitutions, startRun, upsertHolidays, upsertInstitutions, type InstitutionRow,
 } from './queries.ts';
 import { MIGRATIONS_DIR } from './migrate.ts';
@@ -88,6 +88,14 @@ describe('sido merge (P0-1)', () => {
       ['H1', JG, '고흥군'], ['P1', JG, '북구'], ['P2', '서울특별시', '성동구'], ['P3', null, null], ['P4', '서울특별시', '중구'],
     ]);
     expect((await listNeighborhoods(sql)).some((n) => n.sido === JG && n.sigungu === '고흥군')).toBe(true);
+  });
+});
+
+describe('listChangedIndexable (P1-1, D75)', () => {
+  test('only pages that are in the sitemap: changed since the run, active, with hours', async () => {
+    await upsertInstitutions(sql, [row({ id: 'A' }), row({ id: 'B' }), row({ id: 'N', hasHours: false, hours: {} })], t1);
+    await upsertInstitutions(sql, [row({ id: 'B', contentHash: 'h2' }), row({ id: 'N', hasHours: false, hours: {}, contentHash: 'h2' })], t2);
+    expect(await listChangedIndexable(sql, t2)).toEqual([{ kind: 'pharmacy', id: 'B' }]);
   });
 });
 
