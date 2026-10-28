@@ -6,11 +6,12 @@
 import { writeFile } from 'node:fs/promises';
 import { kstParts } from '@munyeon/core';
 import {
-  deactivateMissing, finishRun, getLastSyncAt, getSql, listChangedRegions, refreshNeighborhoods, startRun, upsertHolidays,
+  deactivateMissing, finishRun, getLastSyncAt, getSql, listChangedIndexable, listChangedRegions, refreshNeighborhoods, startRun, upsertHolidays,
   upsertInstitutions, type Kind,
 } from '@munyeon/db';
-import { assertFresh } from './health.ts';
+import { assertFresh, syncedWithin } from './health.ts';
 import { fetchKasiYear, holidayFailureIsFatal, syncHolidays } from './holidays.ts';
+import { indexNowUrls, submitIndexNow } from './indexnow.ts';
 import { fetchFullDataPage, redactKey } from './portal.ts';
 import { requestRevalidate } from './revalidate.ts';
 import { syncSource } from './sync.ts';
@@ -20,9 +21,17 @@ const KINDS: Kind[] = ['hospital', 'pharmacy'];
 /** 워크플로 제한(40분) 안에 끝내도록 페이지 수집을 멈추는 시각. 남은 페이지는 실패로 기록된다. */
 const SYNC_BUDGET_MS = 25 * 60_000;
 const startedAt = Date.now();
+/** 첫 페이지 재시도 대기(2026-10 실패 3건은 모두 첫 페이지 연결 실패였다) */
+const FIRST_PAGE_RETRY_MS = [30_000, 60_000, 120_000];
 
 async function runSync(kinds: Kind[]): Promise<boolean> {
   const sql = getSql();
+  // GitHub 보조 예약 실행: 외부 예약(매시간)이 최근에 성공했으면 건너뛴다(D75)
+  const skipMin = Number(process.env.SKIP_IF_SYNCED_MIN ?? 0);
+  if (skipMin > 0 && (await syncedWithin((k) => getLastSyncAt(sql, k), skipMin))) {
+    console.log(`skip: both kinds synced within ${skipMin}m`);
+    return true;
+  }
   const runStartedAt = new Date();
   let ok = true;
   const changed: { kind: Kind; id: string }[] = [];
@@ -30,9 +39,9 @@ async function runSync(kinds: Kind[]): Promise<boolean> {
     const t0 = Date.now();
     try {
       const r = await syncSource(kind, {
-        // 첫 페이지는 넉넉히, 이후 페이지는 짧게 재시도(전체 시간 상한은 deadlineAt)
+        // 첫 페이지는 포털이 몇 분 끊겨도 넘기도록 30초·1분·2분 뒤 재시도, 이후 페이지는 짧게(전체 시간 상한은 deadlineAt)
         fetchPage: (k, pageNo, size) =>
-          fetchFullDataPage(k, pageNo, size, pageNo === 1 ? {} : { timeoutMs: 150_000, retries: 2 }),
+          fetchFullDataPage(k, pageNo, size, pageNo === 1 ? { retryDelaysMs: FIRST_PAGE_RETRY_MS } : { timeoutMs: 150_000, retries: 2 }),
         upsert: (rows, at) => upsertInstitutions(sql, rows, at),
         deactivate: (k, seen, at) => deactivateMissing(sql, k, seen, at),
         startRun: (source, at) => startRun(sql, source, at),
@@ -62,6 +71,14 @@ async function runSync(kinds: Kind[]): Promise<boolean> {
       return [];
     });
     console.log(`revalidate: ${await requestRevalidate(changed, { baseUrl, secret }, regions)} (${changed.length} changed, ${regions.length} regions)`);
+
+    // 페이지 갱신을 요청한 뒤 검색엔진에 알린다. 색인 대상(사이트맵에 있는 상세)만(P1-1, D75)
+    const indexable = await listChangedIndexable(sql, runStartedAt).catch((e: unknown) => {
+      console.error(`changed indexable: FAILED ${e instanceof Error ? e.message : String(e)}`);
+      return [];
+    });
+    const urls = indexNowUrls(indexable, regions, baseUrl);
+    console.log(`indexnow: ${await submitIndexNow(urls, { baseUrl, enabled: process.env.INDEXNOW_ENABLED })} (${urls.length} urls)`);
   }
 
   try {

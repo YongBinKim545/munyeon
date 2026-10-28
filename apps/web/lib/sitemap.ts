@@ -1,8 +1,10 @@
 import type { LandingCount } from '@munyeon/db';
 import { regionPath } from './seo';
 
-/** 파일 하나에 넣는 기관 수(네이버·구글 한도 5만보다 작게) */
-export const SITEMAP_CHUNK = 10000;
+/**
+ * 파일 하나에 넣는 기관 수. 1만 개(약 1MB)는 네이버가 "본문 크기를 줄여주세요"로 거부해(2026-10-28) 2천 개(약 210KB)로 둔다(D75)
+ */
+export const SITEMAP_CHUNK = 2000;
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 

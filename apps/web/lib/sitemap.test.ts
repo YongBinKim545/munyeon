@@ -22,10 +22,11 @@ describe('sitemap xml', () => {
     expect((xml.match(/<sitemap>/g) ?? []).length).toBe(2);
   });
 
-  test('file count = region file + ceil(institutions / 10000)', () => {
+  test('file count = region file + ceil(institutions / 2000) (Naver rejects ~1MB files, D75)', () => {
     expect(sitemapFileCount(0)).toBe(1);
-    expect(sitemapFileCount(10000)).toBe(2);
-    expect(sitemapFileCount(10001)).toBe(3);
+    expect(sitemapFileCount(2000)).toBe(2);
+    expect(sitemapFileCount(2001)).toBe(3);
+    expect(sitemapFileCount(104153)).toBe(54);
   });
 });
 

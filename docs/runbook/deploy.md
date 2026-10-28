@@ -40,7 +40,8 @@ node scripts/check-routes.mjs https://findmedi.co.kr
 | 항목 | 주기 | 방법 |
 |---|---|---|
 | 동기화 실패 | 수시 | GitHub Actions 실패 메일(동기화 오류 또는 6시간 이상 미성공) → Actions 로그의 건수·오류 확인. 공휴일(`holidays`)은 7일 안에 성공이 있으면 실패해도 `holidays: WARN`만 남고 메일이 오지 않는다(D46) |
-| 예약 실행 간격 | 매일(10월 말까지) | Actions → sync의 schedule 실행 시각과 `/api/meta`의 `lastSync`. 3~5시간 넘게 벌어지는 일이 잦으면 외부 예약 서비스나 국내 VM 이전을 결정(D46) |
+| 매시간 수집 | 매일 | 외부 예약 서비스(cron-job.org)가 매시 5분 `sync`를 `all`로 실행한다(D75, 아래 '외부 예약 실행'). Actions → sync 실행 목록에 `workflow_dispatch`가 매시간 있는지, `/api/meta`의 `lastSync`. GitHub 예약 실행은 보조로 남아 최근 50분 안에 성공했으면 `skip:`만 남기고 끝난다. 소프트 런칭 기간 실패가 잦으면 국내 무료 서버 이전 검토(D13) |
+| IndexNow | 주 1회 | sync 로그의 `indexnow: sent (N urls)`. `failed 4xx`가 이어지면 키 파일(`/83ab9c56d3495635cd3cc87d937cc191.txt`)이 열리는지 확인. `too-many`는 한 번에 1,000개 넘게 바뀐 경우로 정상(사이트맵에 맡김). 끄려면 저장소 변수 `INDEXNOW_ENABLED`=`false`(D75) |
 | Vercel 사용량 | 주 1회 | Usage 화면의 Active CPU(한도 월 4시간), Fast Origin Transfer(10GB). 80%에 가까우면 Pro 검토(D13) |
 | Supabase 용량 | 주 1회 | Database size(한도 500MB). 400MB면 Pro 검토 |
 | 배포 횟수 | 배포마다 | 공개 후 배포는 하루 한 번 이하, 이용이 적은 시간대(새벽)에 묶는다. 배포마다 상세 페이지 캐시가 지워지기 때문이다(P0-10) |
@@ -49,6 +50,24 @@ node scripts/check-routes.mjs https://findmedi.co.kr
 | 카카오톡 미리보기 | 제목·설명·이미지를 바꾼 뒤 | 카카오톡은 링크 미리보기를 캐시한다. 카카오 개발자 사이트의 공유 디버거(developers.kakao.com/tool/debugger/sharing)에 주소를 넣고 '캐시 초기화'를 누른다(로그인 필요, 사용자) |
 | 색인 현황 | 주 1회 | 서치어드바이저·Search Console 색인 페이지 수(KPI) |
 | 공개 저장소 Actions | 60일 | 저장소에 60일간 커밋이 없으면 GitHub가 예약 실행을 멈춘다. 멈추면 Actions 화면에서 다시 켠다 |
+
+### 외부 예약 실행 (U-4, D75)
+
+GitHub 예약 실행은 3~5시간씩 밀려(D46) 외부 무료 예약 서비스가 GitHub API로 `sync`를 매시간 실행한다. 설정은 사용자가 한다.
+
+1. GitHub → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token
+   - Repository access: **Only select repositories** → 이 저장소 하나
+   - Permissions → Repository permissions → **Actions: Read and write** (나머지는 모두 No access)
+   - 만료: 1년. 만료일을 달력에 적어 둔다
+2. cron-job.org 가입 → Create cronjob
+   - URL: `https://api.github.com/repos/YongBinKim545/munyeon/actions/workflows/sync.yml/dispatches`
+   - 실행 주기: 매시 5분(Every hour at minute 5), 시간대 Asia/Seoul
+   - Advanced → Request method **POST**, Headers: `Accept: application/vnd.github+json`, `Authorization: Bearer <토큰>`, `X-GitHub-Api-Version: 2022-11-28`
+   - Request body: `{"ref":"main","inputs":{"command":"all"}}`
+   - 실패 알림(이메일) 켜기
+3. Test run → 응답 204, Actions에 `workflow_dispatch` 실행이 생기는지 확인
+
+토큰은 이 서비스에만 둔다(저장소·채팅에 쓰지 않는다). 교체할 때는 새 토큰을 만들어 cron-job.org 헤더만 바꾸고 옛 토큰을 지운다. 외부 서비스가 멈춰도 GitHub 보조 예약 실행이 계속 돈다.
 
 ## 4. 키 교체
 

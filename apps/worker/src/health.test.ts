@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { assertFresh } from './health.ts';
+import { assertFresh, syncedWithin } from './health.ts';
 
 const now = new Date('2026-11-20T12:00:00Z');
 const hoursAgo = (h: number) => new Date(now.getTime() - h * 3_600_000);
@@ -14,4 +14,11 @@ test('stale when one kind is older than 6h', async () => {
 
 test('stale when never synced', async () => {
   await expect(assertFresh(async () => null, now)).rejects.toThrow(/never/);
+});
+
+test('backup schedule skips when both kinds synced within 50 minutes (D75)', async () => {
+  const at = (h: number, p: number) => async (k: string) => (k === 'hospital' ? hoursAgo(h) : hoursAgo(p));
+  expect(await syncedWithin(at(0.5, 0.7), 50, now)).toBe(true);
+  expect(await syncedWithin(at(0.5, 0.9), 50, now)).toBe(false);
+  expect(await syncedWithin(async () => null, 50, now)).toBe(false);
 });

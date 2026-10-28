@@ -66,6 +66,8 @@ export interface FetchOptions {
   retries?: number;
   timeoutMs?: number;
   retryDelayMs?: number;
+  /** 재시도마다 기다릴 시간(앞에서부터). 주면 retryDelayMs 대신 쓴다 */
+  retryDelaysMs?: number[];
   fetchImpl?: (url: string, init?: RequestInit) => Promise<Response>;
 }
 
@@ -76,12 +78,14 @@ export interface FetchOptions {
 export async function fetchPortal(baseUrl: string, params: Record<string, string | number>, label: string, opts: FetchOptions = {}): Promise<Page> {
   const key = process.env.DATA_GO_KR_KEY;
   if (!key) throw new Error('DATA_GO_KR_KEY is not set');
-  const { retries = 3, timeoutMs = 180_000, retryDelayMs = 5_000, fetchImpl = fetch } = opts;
+  const { timeoutMs = 180_000, retryDelayMs = 5_000, retryDelaysMs, fetchImpl = fetch } = opts;
+  const retries = opts.retries ?? retryDelaysMs?.length ?? 3;
   const query = Object.entries(params).map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&');
   const url = `${baseUrl}?serviceKey=${encodeURIComponent(key)}&${query}`;
   let lastError: unknown;
   for (let attempt = 0; attempt <= retries; attempt++) {
-    if (attempt > 0 && retryDelayMs > 0) await new Promise((r) => setTimeout(r, retryDelayMs * attempt));
+    const wait = attempt === 0 ? 0 : (retryDelaysMs?.[attempt - 1] ?? retryDelayMs * attempt);
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
     try {
       const res = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -91,7 +95,9 @@ export async function fetchPortal(baseUrl: string, params: Record<string, string
       lastError = e;
     }
   }
-  const msg = lastError instanceof Error ? lastError.message : String(lastError);
+  // "fetch failed"만으로는 원인을 알 수 없어 연결 오류 코드(ECONNRESET 등)를 붙인다
+  const code = (lastError as { cause?: { code?: unknown } } | undefined)?.cause?.code;
+  const msg = (lastError instanceof Error ? lastError.message : String(lastError)) + (typeof code === 'string' ? ` (${code})` : '');
   throw new Error(redactKey(`${label} failed after ${retries + 1} attempts: ${msg}`));
 }
 
