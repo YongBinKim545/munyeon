@@ -26,7 +26,7 @@ export default function GuideIndex() {
       <ul className="guide-list">
         {guides.map((g) => (
           <li key={g.slug}>
-            <Link href={guidePath(g.slug)}>{g.title}</Link>
+            <Link href={guidePath(g.slug)}>{g.heading}</Link>
             <p className="muted">{g.description}</p>
           </li>
         ))}

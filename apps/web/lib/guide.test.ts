@@ -58,6 +58,12 @@ describe('parseGuide (P0-12, D74)', () => {
     expect(g.html).toContain('&lt;script&gt;');
   });
 
+  test('heading is the H1; without it the H1 is the page title', () => {
+    expect(parseGuide(POST, 'a.md').heading).toBe('달빛어린이병원이란');
+    const g = parseGuide(POST.replace('title: 달빛어린이병원이란', 'title: 달빛어린이병원이란? 찾는 법\nheading: 달빛어린이병원이란'), 'a.md');
+    expect([g.title, g.heading]).toEqual(['달빛어린이병원이란? 찾는 법', '달빛어린이병원이란']);
+  });
+
   test('draft: true is kept as a flag', () => {
     expect(parseGuide(draft('x'), 'x.md').draft).toBe(true);
   });

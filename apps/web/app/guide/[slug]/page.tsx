@@ -31,9 +31,9 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
   const path = guidePath(g.slug);
   return (
     <main className="container guide">
-      <Breadcrumbs items={[{ name: '가이드', href: '/guide' }, { name: g.title, href: path }]} />
+      <Breadcrumbs items={[{ name: '가이드', href: '/guide' }, { name: g.heading, href: path }]} />
       <article>
-        <h1>{g.title}</h1>
+        <h1>{g.heading}</h1>
         <p className="guide__answer" dangerouslySetInnerHTML={{ __html: g.answerHtml }} />
         <div dangerouslySetInnerHTML={{ __html: g.html }} />
         <h2>출처</h2>

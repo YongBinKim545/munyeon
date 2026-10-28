@@ -15,7 +15,10 @@ export interface GuideSource {
 
 export interface Guide {
   slug: string;
+  /** 페이지 제목(검색 결과·브라우저 탭·공유 카드) */
   title: string;
+  /** 본문 맨 위 제목(H1)·목록·경로 안내. 머리말에 없으면 title과 같다 */
+  heading: string;
   description: string;
   /** 기준일 YYYY-MM-DD */
   updated: string;
@@ -83,6 +86,7 @@ export function parseGuide(raw: string, file: string): Guide {
   return {
     slug,
     title: need('title'),
+    heading: fields.heading || need('title'),
     description: need('description'),
     updated,
     draft: fields.draft === 'true',
@@ -131,7 +135,7 @@ export function buildGuideJsonLd(g: Guide, url: string, siteUrl: string): object
   return {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: g.title,
+    headline: g.heading,
     description: g.description,
     url,
     inLanguage: 'ko-KR',
