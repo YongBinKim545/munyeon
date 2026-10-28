@@ -7,6 +7,7 @@ import { Header } from '@/components/Header';
 import { InstantDetailLayer } from '@/components/InstantDetailLayer';
 import { NavProgress } from '@/components/NavProgress';
 import { SourceInit } from '@/components/SourceInit';
+import { publishedGuides } from '@/lib/guide';
 import { SITE_NAME, SITE_TAGLINE, SITE_URL } from '@/lib/seo';
 import './globals.css';
 
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <p>
             {/* 메인 하단 시도 목록을 옮긴 뒤에도 검색 로봇이 지역 페이지로 들어가는 길(D52) */}
             <Link href="/regions">지역으로 찾기</Link>
+            {publishedGuides().length > 0 ? <Link href="/guide">가이드</Link> : null}
             <Link href="/about">소개</Link>
             <Link href="/privacy">개인정보처리방침</Link>
             <Link href="/terms">이용약관</Link>
