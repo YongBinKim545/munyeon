@@ -6,6 +6,7 @@ import { FeedbackFooter } from '@/components/FeedbackFooter';
 import { Header } from '@/components/Header';
 import { InstantDetailLayer } from '@/components/InstantDetailLayer';
 import { NavProgress } from '@/components/NavProgress';
+import { SourceInit } from '@/components/SourceInit';
 import { SITE_NAME, SITE_TAGLINE, SITE_URL } from '@/lib/seo';
 import './globals.css';
 
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Header />
         <NavProgress />
+        <SourceInit />
         <InstantDetailLayer />
         {children}
         <FeedbackFooter />

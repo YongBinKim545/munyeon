@@ -149,9 +149,11 @@ describe('reads', () => {
   });
 
   test('events store no client identifiers', async () => {
-    await insertEvent(sql, { type: 'tel_tap', institutionId: 'A', page: '/pharmacy/A' });
+    await insertEvent(sql, { type: 'tel_tap', institutionId: 'A', page: '/pharmacy/A', source: 'share' });
     const cols = await sql<{ column_name: string }[]>`select column_name from information_schema.columns where table_name = 'events'`;
-    expect(cols.map((c) => c.column_name).sort()).toEqual(['created_minute', 'id', 'institution_id', 'page', 'type']);
+    expect(cols.map((c) => c.column_name).sort()).toEqual(['created_minute', 'id', 'institution_id', 'page', 'source', 'type']);
+    const [row] = await sql<{ source: string | null }[]>`select source from events`;
+    expect(row?.source).toBe('share');
     const [e] = await sql<{ s: number }[]>`select extract(second from created_minute)::int as s from events`;
     expect(e?.s).toBe(0);
   });
