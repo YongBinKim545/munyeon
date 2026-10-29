@@ -307,24 +307,35 @@ export interface SearchHit extends InstitutionSummary {
  * near는 브라우저가 보낸 격자 칸의 중심점이다(사용자 좌표가 아니다, D21).
  */
 export async function searchInstitutions(sql: Sql, q: string, limit = 10, near?: { lat: number; lon: number }): Promise<SearchHit[]> {
-  const term = q.trim().replace(/[\\%_]/g, (c) => `\\${c}`);
+  const raw = q.trim();
+  const term = raw.replace(/[\\%_]/g, (c) => `\\${c}`);
   if (!term) return [];
+  // 2글자는 이름 색인(3글자 단위)을 못 쓰므로 2글자 색인으로 후보를 고른다(0011)
+  const match = [...raw].length === 2
+    ? sql`i.name_bi @> array[${raw.toLowerCase()}]::text[] and i.name ilike ${'%' + term + '%'}`
+    : sql`i.name ilike ${'%' + term + '%'}`;
   if (!near) {
     return sql<SearchHit[]>`
       select ${summaryCols(sql)}, i.sido, i.sigungu from institutions i
-      where i.is_active and i.dup_of is null and i.name ilike ${'%' + term + '%'}
+      where i.is_active and i.dup_of is null and ${match}
       order by (i.name ilike ${term + '%'}) desc, length(i.name), i.name
       limit ${limit}`;
   }
-  const rows = await sql<(SearchHit & { distanceM: number | null })[]>`
+  // 주변(약 20km)부터 공간 색인으로 찾고, 모자라면 전국에서 거리순
+  const nearby = (within: boolean) => sql<(SearchHit & { distanceM: number | null })[]>`
     with p as (select ST_SetSRID(ST_MakePoint(${near.lon}::float8, ${near.lat}::float8), 4326)::geography as g)
     select ${summaryCols(sql)}, i.sido, i.sigungu, round(ST_Distance(i.geom, p.g))::int as "distanceM"
     from institutions i, p
-    where i.is_active and i.dup_of is null and i.name ilike ${'%' + term + '%'}
+    where i.is_active and i.dup_of is null and ${match} ${within ? sql`and ST_DWithin(i.geom, p.g, ${SEARCH_NEAR_M})` : sql``}
     order by i.geom is null, i.geom <-> p.g, i.name, i.id
     limit ${limit}`;
+  let rows = await nearby(true);
+  if (rows.length < limit) rows = await nearby(false);
   return rows.map(({ distanceM, ...r }) => (distanceM === null ? r : { ...r, distanceM }));
 }
+
+/** 위치가 있는 이름 검색에서 먼저 찾는 반경(m) */
+const SEARCH_NEAR_M = 20_000;
 
 export interface GridRow extends InstitutionSummary {
   sido: string | null;

@@ -232,6 +232,31 @@ describe('search and regions', () => {
     expect(await searchInstitutions(sql, '시청', 1)).toHaveLength(1);
   });
 
+  test('a two-letter term matches anywhere in the name (2-letter index, not trigram)', async () => {
+    await upsertInstitutions(sql, [
+      row({ id: 'M1', kind: 'hospital', name: '국립정신건강센터' }),
+      row({ id: 'M2', kind: 'hospital', name: '마음정신과의원' }),
+      row({ id: 'M3', kind: 'hospital', name: '정형외과의원' }),
+      row({ id: 'M4', name: 'ABC약국' }),
+    ], t1);
+    expect((await searchInstitutions(sql, '정신', 10)).map((h) => h.id).sort()).toEqual(['M1', 'M2']);
+    expect((await searchInstitutions(sql, '건강', 10)).map((h) => h.id)).toEqual(['M1']);
+    expect((await searchInstitutions(sql, 'bc', 10)).map((h) => h.id)).toEqual(['M4']);
+  });
+
+  test('near search: nearby first; widens to the whole country when fewer than the limit nearby', async () => {
+    await upsertInstitutions(sql, [
+      row({ id: 'P1', name: '정신약국', lat: 37.5665, lon: 126.978 }), // 서울시청
+      row({ id: 'P2', name: '정신건강약국', lat: 37.57, lon: 126.98 }), // 약 0.5km
+      row({ id: 'P3', name: '부산정신약국', lat: 35.1796, lon: 129.0756 }), // 부산, 약 325km
+    ], t1);
+    const near = { lat: 37.5665, lon: 126.978 };
+    expect((await searchInstitutions(sql, '정신', 2, near)).map((h) => h.id)).toEqual(['P1', 'P2']);
+    const all = await searchInstitutions(sql, '정신', 10, near);
+    expect(all.map((h) => h.id)).toEqual(['P1', 'P2', 'P3']);
+    expect(all[2]!.distanceM).toBeGreaterThan(300_000);
+  });
+
   test('search treats LIKE wildcards literally', async () => {
     await upsertInstitutions(sql, [row({ id: 'W1', name: '백퍼센트약국' })], t1);
     expect(await searchInstitutions(sql, '%%', 10)).toEqual([]);
