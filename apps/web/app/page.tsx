@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { MainScreen } from '@/components/MainScreen';
 import { DataStamp } from '@/components/DataStamp';
 import { loadHome } from '@/lib/data';
@@ -7,6 +8,9 @@ import { SITE_NAME, SITE_URL } from '@/lib/seo';
 // 서버 HTML에는 헤더 틀·소개만 넣는다(1시간 캐시). 목록과 영업 상태는 브라우저에서만 그린다(D31·D35).
 // 지역으로 찾기(시도 목록)는 /regions로 옮겼다(D52).
 export const revalidate = 3600;
+
+// 제목·설명·공유 카드는 layout 기본값을 쓰고, 대표 주소만 둔다(P0-8, D76)
+export const metadata: Metadata = { alternates: { canonical: '/' } };
 
 export default async function Home() {
   // 빌드 환경에 DB가 없거나 조회가 실패하면 공휴일 없이 만들고, 브라우저가 /api/meta로 받는다(D47)

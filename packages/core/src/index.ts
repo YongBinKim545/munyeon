@@ -12,3 +12,4 @@ export * from './list.ts';
 export * from './day.ts';
 export * from './geo.ts';
 export * from './source.ts';
+export * from './dedup.ts';

@@ -13,7 +13,8 @@ export async function institutionMetadata(kind: Kind, id: string): Promise<Metad
   const week = parseWeeklyHours(rec.hours);
   const label = kind === 'pharmacy' ? '영업시간' : '진료시간';
   const summary = `${DAY_LABELS[7]} ${formatRange(week[7])}, ${DAY_LABELS[8]} ${formatRange(week[8])}`;
-  const indexable = rec.isActive && hasAnyHours(week);
+  // 원본 중복 기관의 다른 ID로 들어오면 대표 기관 내용을 보여 주고, 대표 주소를 가리키며 검색에서 뺀다(D76)
+  const indexable = rec.isActive && hasAnyHours(week) && rec.id === id;
   // 공유 카드(P0-5): '○○약국 — 영업시간·전화' / '서울 마포구 망원동 · 일요일 영업'
   const where = rec.sido && rec.sigungu ? [regionShortName(rec.sido, rec.sigungu), rec.dong].filter(Boolean).join(' ') : rec.addr;
   const ogDesc = [where, week[7] ? '일요일 영업' : null, week[8] ? '공휴일 영업' : null].filter(Boolean).join(' · ');

@@ -1,4 +1,4 @@
-import type { Category, RawHours, TrafficSource } from '@munyeon/core';
+import { mergeDuplicateHours, pickRepresentative, type Category, type RawHours, type TrafficSource } from '@munyeon/core';
 import type { Sql } from './client.ts';
 
 export type Kind = 'hospital' | 'pharmacy';
@@ -140,7 +140,7 @@ export async function deactivateMissing(sql: Sql, kind: Kind, seenIds: string[],
 /** 실행 뒤 바뀐 기관 중 검색 색인 대상(사이트맵과 같은 기준: 운영 중·진료시간 있음). IndexNow로 알린다(P1-1, D75) */
 export async function listChangedIndexable(sql: Sql, since: Date): Promise<{ kind: Kind; id: string }[]> {
   return sql<{ kind: Kind; id: string }[]>`
-    select kind, id from institutions where updated_at >= ${since} and is_active and has_hours order by id`;
+    select kind, id from institutions where updated_at >= ${since} and is_active and has_hours and dup_of is null order by id`;
 }
 
 export async function listChangedRegions(sql: Sql, since: Date): Promise<{ kind: Kind; sido: string; sigungu: string }[]> {
@@ -151,14 +151,15 @@ export async function listChangedRegions(sql: Sql, since: Date): Promise<{ kind:
 }
 
 const summaryCols = (sql: Sql) => sql`
-  i.id, i.kind, i.name, i.div_name as "divName", i.addr, i.tel, i.hours, i.has_hours as "hasHours",
+  i.id, i.kind, i.name, i.div_name as "divName", i.addr, i.tel, coalesce(i.merged_hours, i.hours) as hours, i.has_hours as "hasHours",
   i.category, i.specialty, i.pediatric_name as "pediatricName", i.dong, i.lat, i.lon`;
 
 export async function getInstitution(sql: Sql, kind: Kind, id: string): Promise<InstitutionRecord | null> {
   const [row] = await sql<InstitutionRecord[]>`
     select ${summaryCols(sql)}, i.sido, i.sigungu, (i.geom is not null) as "hasGeom",
            i.is_active as "isActive", i.updated_at as "updatedAt"
-    from institutions i where i.id = ${id} and i.kind = ${kind}`;
+    from institutions t join institutions i on i.kind = t.kind and i.id = coalesce(t.dup_of, t.id)
+    where t.id = ${id} and t.kind = ${kind}`;
   return row ?? null;
 }
 
@@ -167,7 +168,7 @@ export async function getNearby(sql: Sql, kind: Kind, id: string, limit = 5, rad
   const rows = await sql<InstitutionSummary[]>`
     select ${summaryCols(sql)}, round(ST_Distance(i.geom, t.geom))::int as "distanceM"
     from institutions t
-    join institutions i on i.kind = t.kind and i.id <> t.id and i.is_active and i.geom is not null
+    join institutions i on i.kind = t.kind and i.id <> t.id and i.is_active and i.dup_of is null and i.geom is not null
       and ST_DWithin(i.geom, t.geom, ${radiusM})
     where t.id = ${id} and t.kind = ${kind} and t.geom is not null
     order by ST_Distance(i.geom, t.geom)
@@ -179,7 +180,7 @@ export async function getNearby(sql: Sql, kind: Kind, id: string, limit = 5, rad
 export async function listRegion(sql: Sql, sido: string, sigungu: string, kind: Kind): Promise<GridRow[]> {
   return sql<GridRow[]>`
     select ${summaryCols(sql)}, i.sido, i.sigungu from institutions i
-    where i.sido = ${sido} and i.sigungu = ${sigungu} and i.kind = ${kind} and i.is_active
+    where i.sido = ${sido} and i.sigungu = ${sigungu} and i.kind = ${kind} and i.is_active and i.dup_of is null
     order by i.name, i.id`;
 }
 
@@ -195,7 +196,7 @@ export async function listRegions(sql: Sql): Promise<RegionCount[]> {
     select sido, sigungu,
       count(*) filter (where kind = 'hospital')::int as hospital,
       count(*) filter (where kind = 'pharmacy')::int as pharmacy
-    from institutions where is_active and sido is not null and sigungu is not null
+    from institutions where is_active and dup_of is null and sido is not null and sigungu is not null
     group by sido, sigungu order by sido, sigungu`;
 }
 
@@ -207,14 +208,14 @@ export interface SitemapEntry {
 
 /** 색인 대상: 활성이고 진료시간 정보가 있는 기관 */
 export async function countSitemapEntries(sql: Sql): Promise<number> {
-  const [r] = await sql<{ n: number }[]>`select count(*)::int as n from institutions where is_active and has_hours`;
+  const [r] = await sql<{ n: number }[]>`select count(*)::int as n from institutions where is_active and has_hours and dup_of is null`;
   return r?.n ?? 0;
 }
 
 export async function listSitemapEntries(sql: Sql, offset: number, limit: number): Promise<SitemapEntry[]> {
   return sql<SitemapEntry[]>`
     select kind, id, updated_at as "updatedAt" from institutions
-    where is_active and has_hours order by id offset ${offset} limit ${limit}`;
+    where is_active and has_hours and dup_of is null order by id offset ${offset} limit ${limit}`;
 }
 
 export async function getHolidays(sql: Sql, fromYmd: string, toYmd: string): Promise<string[]> {
@@ -311,7 +312,7 @@ export async function searchInstitutions(sql: Sql, q: string, limit = 10, near?:
   if (!near) {
     return sql<SearchHit[]>`
       select ${summaryCols(sql)}, i.sido, i.sigungu from institutions i
-      where i.is_active and i.name ilike ${'%' + term + '%'}
+      where i.is_active and i.dup_of is null and i.name ilike ${'%' + term + '%'}
       order by (i.name ilike ${term + '%'}) desc, length(i.name), i.name
       limit ${limit}`;
   }
@@ -319,7 +320,7 @@ export async function searchInstitutions(sql: Sql, q: string, limit = 10, near?:
     with p as (select ST_SetSRID(ST_MakePoint(${near.lon}::float8, ${near.lat}::float8), 4326)::geography as g)
     select ${summaryCols(sql)}, i.sido, i.sigungu, round(ST_Distance(i.geom, p.g))::int as "distanceM"
     from institutions i, p
-    where i.is_active and i.name ilike ${'%' + term + '%'}
+    where i.is_active and i.dup_of is null and i.name ilike ${'%' + term + '%'}
     order by i.geom is null, i.geom <-> p.g, i.name, i.id
     limit ${limit}`;
   return rows.map(({ distanceM, ...r }) => (distanceM === null ? r : { ...r, distanceM }));
@@ -340,8 +341,62 @@ export async function listGridCell(sql: Sql, kind: Kind, gy: number, gx: number,
     : sql`i.grid_y = ${gy} and i.grid_x = ${gx}`;
   return sql<GridRow[]>`
     select ${summaryCols(sql)}, i.sido, i.sigungu from institutions i
-    where i.kind = ${kind} and ${cond} and i.is_active
+    where i.kind = ${kind} and ${cond} and i.is_active and i.dup_of is null
     order by i.name, i.id`;
+}
+
+/** 이름·전화·주소를 정규화한 묶음 키(SQL). 띄어쓰기·기호·대소문자 차이는 같게 본다 */
+const DUP_KEY = (sql: Sql) => sql`
+  regexp_replace(lower(name), '[^0-9a-z가-힣]', '', 'g'),
+  regexp_replace(coalesce(tel, ''), '[^0-9]', '', 'g'),
+  regexp_replace(lower(coalesce(addr, '')), '[^0-9a-z가-힣]', '', 'g')`;
+
+/**
+ * 원본 중복 기관을 다시 묶는다(D76, 수집 끝마다). 같은 종류에서 정규화한 이름·전화·주소가 모두 같으면 한 묶음이다
+ * (전화·주소만 같고 이름이 다르면 같은 건물의 다른 기관일 수 있어 묶지 않는다).
+ * 대표가 아닌 행에 dup_of, 대표 행에 합친 진료시간(merged_hours, 자기 원본과 같으면 비움). 값이 바뀐 행만 updated_at을 올려
+ * 페이지 갱신·IndexNow 대상이 되게 한다. 반환값은 묶음 수와 바뀐 행(페이지 갱신 요청에 더한다).
+ */
+export async function refreshDuplicates(sql: Sql): Promise<{ groups: number; changed: number; changedIds: { kind: Kind; id: string }[] }> {
+  const rows = await sql<{ kind: Kind; id: string; hours: RawHours; updatedAt: Date; g: string }[]>`
+    with k as (
+      select kind, id, hours, updated_at, dense_rank() over (order by kind, ${DUP_KEY(sql)}) as g,
+             count(*) over (partition by kind, ${DUP_KEY(sql)}) as n
+      from institutions where is_active and name <> '' and coalesce(addr, '') <> '')
+    select kind, id, hours, updated_at as "updatedAt", g::text as g from k where n > 1 order by g, id`;
+  const groups = new Map<string, (typeof rows)[number][]>();
+  for (const r of rows) groups.set(r.g, [...(groups.get(r.g) ?? []), r]);
+  const plan: { kind: Kind; id: string; dupOf: string | null; merged: Record<string, string> | null }[] = [];
+  const sameHours = (a: object, b: object) => JSON.stringify(Object.entries(a).sort()) === JSON.stringify(Object.entries(b).sort());
+  for (const list of groups.values()) {
+    const repr = pickRepresentative(list.map((r) => ({ id: r.id, hours: (r.hours ?? {}) as Record<string, string> })));
+    const merged = mergeDuplicateHours(list.map((r) => (r.hours ?? {}) as Record<string, string>));
+    for (const r of list) {
+      plan.push(
+        r.id === repr.id
+          ? { kind: r.kind, id: r.id, dupOf: null, merged: sameHours(merged, repr.hours) ? null : merged }
+          : { kind: r.kind, id: r.id, dupOf: repr.id, merged: null },
+      );
+    }
+  }
+  return sql.begin(async (tx) => {
+    // 묶음에서 빠진 행(원본에서 고쳐졌거나 사라진 경우)은 풀어 준다
+    const cleared = await tx`
+      update institutions t set dup_of = null, merged_hours = null, updated_at = now()
+      where (t.dup_of is not null or t.merged_hours is not null)
+        and not exists (select 1 from jsonb_to_recordset(${tx.json(plan)}::jsonb) as p(kind text, id text) where p.kind = t.kind and p.id = t.id)
+      returning t.kind, t.id`;
+    const set = plan.length
+      ? await tx`
+          update institutions t set dup_of = p."dupOf", merged_hours = p.merged, updated_at = now()
+          from jsonb_to_recordset(${tx.json(plan)}::jsonb) as p(kind text, id text, "dupOf" text, merged jsonb)
+          where t.kind = p.kind and t.id = p.id
+            and (t.dup_of is distinct from p."dupOf" or t.merged_hours is distinct from p.merged)
+          returning t.kind, t.id`
+      : [];
+    const changedIds = [...cleared, ...set].map((x) => ({ kind: x.kind as Kind, id: x.id as string }));
+    return { groups: groups.size, changed: changedIds.length, changedIds };
+  });
 }
 
 /** 동네 목록을 다시 계산한다(동기화 끝마다). 반환값은 행 수. */
@@ -354,10 +409,10 @@ export async function refreshNeighborhoods(sql: Sql): Promise<number> {
              percentile_cont(0.5) within group (order by lat), percentile_cont(0.5) within group (order by lon), count(*)
       from (
         select dong as name, sido, sigungu, lat, lon from institutions
-        where is_active and dong is not null and sido is not null and sigungu is not null
+        where is_active and dup_of is null and dong is not null and sido is not null and sigungu is not null
         union all
         select sigungu as name, sido, sigungu, lat, lon from institutions
-        where is_active and sido is not null and sigungu is not null
+        where is_active and dup_of is null and sido is not null and sigungu is not null
       ) x
       group by name, sido, sigungu`;
     return res.count;
@@ -384,7 +439,7 @@ export async function listSido(sql: Sql): Promise<{ sido: string; hospital: numb
     select sido,
       count(*) filter (where kind = 'hospital')::int as hospital,
       count(*) filter (where kind = 'pharmacy')::int as pharmacy
-    from institutions where is_active and sido is not null
+    from institutions where is_active and dup_of is null and sido is not null
     group by sido order by sido`;
 }
 
@@ -394,9 +449,9 @@ export async function getRegionStats(
 ): Promise<{ total: number; withHoliday: number; withSunday: number }> {
   const [r] = await sql<{ total: number; withHoliday: number; withSunday: number }[]>`
     select count(*)::int as total,
-      count(*) filter (where hours ? 'dutyTime8s')::int as "withHoliday",
-      count(*) filter (where hours ? 'dutyTime7s')::int as "withSunday"
-    from institutions where is_active and sido = ${sido} and sigungu = ${sigungu} and kind = ${kind}`;
+      count(*) filter (where coalesce(merged_hours, hours) ? 'dutyTime8s')::int as "withHoliday",
+      count(*) filter (where coalesce(merged_hours, hours) ? 'dutyTime7s')::int as "withSunday"
+    from institutions where is_active and dup_of is null and sido = ${sido} and sigungu = ${sigungu} and kind = ${kind}`;
   return r ?? { total: 0, withHoliday: 0, withSunday: 0 };
 }
 
@@ -420,6 +475,6 @@ export async function listLandingCounts(sql: Sql): Promise<LandingCount[]> {
       count(*) filter (where has_sunday)::int as sunday,
       count(*) filter (where has_holiday)::int as holiday,
       count(*) filter (where has_night)::int as night
-    from institutions where is_active and sido is not null and sigungu is not null
+    from institutions where is_active and dup_of is null and sido is not null and sigungu is not null
     group by sido, sigungu, kind order by sido, sigungu, kind`;
 }
