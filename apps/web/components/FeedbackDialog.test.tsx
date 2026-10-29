@@ -38,7 +38,7 @@ describe('FeedbackDialog (D49)', () => {
     });
     expect(fetchMock.mock.calls[0]![0]).toBe('/api/feedback');
     expect(sent()).toEqual({ type: 'opinion', text: '글씨를 키워 주세요', path: '/about' });
-    expect(screen.getByText('고마워요')).toBeTruthy();
+    expect(screen.getByText('감사합니다')).toBeTruthy();
   });
 
   test('correction: chips with hospital wording, at least one chip, 기타 needs text', async () => {

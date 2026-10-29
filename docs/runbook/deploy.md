@@ -34,6 +34,7 @@ node scripts/check-routes.mjs https://findmedi.co.kr
 - 휴대폰·태블릿·PC 폭에서 상세·지역·메인 화면, PC에서 [번호 복사]
 - 모바일 Lighthouse 성능 80 이상
 - 개인정보처리방침의 문의 연락처(`NEXT_PUBLIC_CONTACT_EMAIL`)가 채워져 있음
+- 의견 메일 알림(D79): Vercel Production에 `RESEND_API_KEY`(Resend 계정은 받는 Gmail로 가입)와 `FEEDBACK_MAIL_TO`(그 Gmail 주소)가 있고, 운영에서 [개선의견]을 하나 보내면 메일이 온다. 실패는 함수 로그에 `[feedback-mail] 실패`로 남는다
 
 ## 3. 운영
 
