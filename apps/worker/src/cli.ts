@@ -6,7 +6,7 @@
 import { writeFile } from 'node:fs/promises';
 import { kstParts } from '@munyeon/core';
 import {
-  deactivateMissing, finishRun, getLastSyncAt, getSql, listChangedIndexable, listChangedRegions, refreshNeighborhoods, startRun, upsertHolidays,
+  deactivateMissing, finishRun, getLastSyncAt, getSql, listChangedIndexable, listChangedRegions, refreshDuplicates, refreshNeighborhoods, startRun, upsertHolidays,
   upsertInstitutions, type Kind,
 } from '@munyeon/db';
 import { assertFresh, syncedWithin } from './health.ts';
@@ -54,6 +54,16 @@ async function runSync(kinds: Kind[]): Promise<boolean> {
       ok = false;
       console.error(`${kind}: FAILED ${redactKey(e instanceof Error ? e.message : String(e))}`);
     }
+  }
+  // 원본 중복 기관 묶기(D76). 동네 목록·갱신 요청보다 먼저(바뀐 묶음도 이번 갱신 대상이 되게)
+  try {
+    const d = await refreshDuplicates(sql);
+    console.log(`duplicates: groups=${d.groups} changed=${d.changed}`);
+    // 묶음이 바뀐 기관의 상세(대표·중복 ID 모두)도 캐시를 지운다
+    for (const c of d.changedIds) if (!changed.some((x) => x.kind === c.kind && x.id === c.id)) changed.push(c);
+  } catch (e) {
+    ok = false;
+    console.error(`duplicates: FAILED ${e instanceof Error ? e.message : String(e)}`);
   }
   try {
     console.log(`neighborhoods: ${await refreshNeighborhoods(sql)}`);

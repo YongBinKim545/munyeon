@@ -5,7 +5,7 @@ import type { Sql } from './client.ts';
 import {
   countSitemapEntries, deactivateMissing, finishRun, getHolidays, getInstitution, getLastSyncAt, getNearby,
   getRegionStats, insertEvent, listChangedIndexable, listChangedRegions, insertFeedback, listGridCell, listLandingCounts, listNeighborhoods, listRegion, listRegions, listSido, listSitemapEntries,
-  refreshNeighborhoods, searchInstitutions, startRun, upsertHolidays, upsertInstitutions, type InstitutionRow,
+  refreshDuplicates, refreshNeighborhoods, searchInstitutions, startRun, upsertHolidays, upsertInstitutions, type InstitutionRow,
 } from './queries.ts';
 import { MIGRATIONS_DIR } from './migrate.ts';
 import { startTestDb } from './test-db.ts';
@@ -88,6 +88,49 @@ describe('sido merge (P0-1)', () => {
       ['H1', JG, '고흥군'], ['P1', JG, '북구'], ['P2', '서울특별시', '성동구'], ['P3', null, null], ['P4', '서울특별시', '중구'],
     ]);
     expect((await listNeighborhoods(sql)).some((n) => n.sido === JG && n.sigungu === '고흥군')).toBe(true);
+  });
+});
+
+describe('refreshDuplicates (D76)', () => {
+  // 실데이터 꼴: 같은 이름·전화·주소, 한쪽만 토요일
+  const SAT = { dutyTime1s: '0900', dutyTime1c: '1800', dutyTime6s: '0900', dutyTime6c: '1300' };
+  const WEEKDAY = { dutyTime1s: '0900', dutyTime1c: '1800' };
+  const H = (id: string, over: Partial<InstitutionRow> = {}) =>
+    row({ id, kind: 'hospital', name: '수내봄산부인과의원', tel: '031-712-2204', addr: '경기도 성남시 분당구 백현로101번길 29', category: 'general', ...over });
+
+  test('one listed per group; the other id shows the representative', async () => {
+    await upsertInstitutions(sql, [H('A2121617', { hours: SAT }), H('A2121621', { hours: WEEKDAY }), H('Z', { name: '다른의원' })], t1);
+    expect(await refreshDuplicates(sql)).toEqual({ groups: 1, changed: 1, changedIds: [{ kind: 'hospital', id: 'A2121621' }] });
+    const cell = await listRegion(sql, '서울특별시', '중구', 'hospital');
+    expect(cell.map((r) => r.id).sort()).toEqual(['A2121617', 'Z']);
+    const viaDup = await getInstitution(sql, 'hospital', 'A2121621');
+    expect(viaDup?.id).toBe('A2121617');
+    expect(viaDup?.hours).toEqual(SAT);
+    expect((await listSitemapEntries(sql, 0, 10)).map((r) => r.id).sort()).toEqual(['A2121617', 'Z']);
+    expect((await searchInstitutions(sql, '수내봄')).map((r) => r.id)).toEqual(['A2121617']);
+  });
+
+  test('a day only the duplicate has is merged into what the representative shows', async () => {
+    await upsertInstitutions(sql, [H('A', { hours: { ...WEEKDAY, dutyTime2s: '0900', dutyTime2c: '1800' } }), H('B', { hours: SAT })], t1);
+    await refreshDuplicates(sql);
+    const [r] = await listRegion(sql, '서울특별시', '중구', 'hospital');
+    expect(r?.id).toBe('A');
+    expect(r?.hours).toEqual({ ...SAT, dutyTime2s: '0900', dutyTime2c: '1800' });
+  });
+
+  test('spacing and symbols are ignored; a different name at the same tel/addr is not merged', async () => {
+    await upsertInstitutions(sql, [H('A'), H('B', { name: '수내봄 산부인과의원', tel: '031 712 2204' }), H('C', { name: '수내봄내과의원' })], t1);
+    expect((await refreshDuplicates(sql)).groups).toBe(1);
+    expect((await listRegion(sql, '서울특별시', '중구', 'hospital')).map((r) => r.id).sort()).toEqual(['A', 'C']);
+  });
+
+  test('rerun without changes touches nothing; a fixed source releases the group', async () => {
+    await upsertInstitutions(sql, [H('A', { hours: SAT }), H('B', { hours: WEEKDAY })], t1);
+    await refreshDuplicates(sql);
+    expect((await refreshDuplicates(sql)).changed).toBe(0);
+    await upsertInstitutions(sql, [H('B', { name: '새이름의원', hours: WEEKDAY, contentHash: 'h2' })], t2);
+    expect(await refreshDuplicates(sql)).toMatchObject({ groups: 0, changed: 1 });
+    expect((await listRegion(sql, '서울특별시', '중구', 'hospital')).map((r) => r.id).sort()).toEqual(['A', 'B']);
   });
 });
 
