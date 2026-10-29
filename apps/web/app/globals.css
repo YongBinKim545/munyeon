@@ -373,7 +373,7 @@ button.chip[aria-pressed='true'] { border: 2px solid var(--call); color: var(--c
 .region-directory { margin: 24px 0 8px; font-size: var(--fs-small); }
 .region-directory summary { cursor: pointer; min-height: var(--tap); display: flex; align-items: center; font-weight: 600; }
 .region-directory ul { margin: 8px 0; padding-left: 18px; }
-.region-directory li { margin: 4px 0; }
+.region-directory li { margin: 4px 0; color: var(--text-sub); }
 
 /* 헤더 [검색]의 탭(D70): [지역] [기관 이름] */
 /* 고른 탭은 밑줄 대신 옅은 파란 배경. 탭 줄과 그 아래 검색창 줄은 스크롤해도 위에 붙어 있다 */

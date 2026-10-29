@@ -3,8 +3,8 @@ import { notFound } from 'next/navigation';
 import { RegionPage, regionMetadata } from '@/components/RegionPage';
 import { parseRegionParams } from '@/lib/seo';
 
-// 하루 캐시(D23). 워커가 이 지역 기관의 변경을 알리면 바로 갱신하고(D68), 배포 직후 미리 만든다(D68)
-export const revalidate = 86400;
+// 7일 캐시(D80). 서버 HTML은 요약·이름순 목록뿐이고 목록·상태는 브라우저가 /api/region에서 받는다
+export const revalidate = 604800;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {

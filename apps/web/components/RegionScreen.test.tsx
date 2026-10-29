@@ -3,7 +3,7 @@ import { act, cleanup, render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { makeRecord } from '@/lib/fixtures';
-import { encodeGrid } from '@/lib/grid';
+import { encodeGrid, type GridPayload } from '@/lib/grid';
 import { RegionScreen } from './RegionScreen';
 
 const push = vi.fn();
@@ -14,9 +14,16 @@ const payload = encodeGrid([
   makeRecord({ id: 'A', name: '가약국', hours: { dutyTime1s: '0900', dutyTime1c: '2300', dutyTime7s: '1000', dutyTime7c: '1400' }, lat: 37.561, lon: 126.9 }),
   makeRecord({ id: 'B', name: '나약국', hours: { dutyTime1s: '0900', dutyTime1c: '1800' }, lat: 37.562, lon: 126.9 }),
 ]);
+const regionUrls: string[] = [];
+/** 지역 목록은 /api/region에서 받는다(D80) */
+const fetchFor = (p: GridPayload) => async (url: string) => {
+  regionUrls.push(url);
+  return p;
+};
 const props = {
-  sido: '서울특별시', sigungu: '마포구', kind: 'pharmacy' as const, payload, center, holidays: [],
+  sido: '서울특별시', sigungu: '마포구', kind: 'pharmacy' as const, center, holidays: [],
   paths: { pharmacy: '/서울특별시/마포구', hospital: '/서울특별시/마포구/병원' },
+  fetchJson: fetchFor(payload),
 };
 
 beforeEach(() => {
@@ -44,6 +51,20 @@ describe('RegionScreen (D69)', () => {
     expect(cards).toHaveLength(1);
     expect(cards[0]!.textContent).toContain('가약국');
     expect(screen.getByText(/거리는 마포구 중심 기준이에요/)).toBeTruthy();
+    expect(regionUrls.at(-1)).toBe(`/api/region/pharmacy?sido=${encodeURIComponent('서울특별시')}&sigungu=${encodeURIComponent('마포구')}`);
+  });
+
+  test('a failed region list shows retry, which loads again', async () => {
+    let fail = true;
+    const fetchJson = async () => {
+      if (fail) throw new Error('down');
+      return payload;
+    };
+    await act(async () => render(<RegionScreen {...props} fetchJson={fetchJson} />));
+    expect(screen.getByText('목록을 불러오지 못했어요')).toBeTruthy();
+    fail = false;
+    await act(async () => screen.getByRole('button', { name: '다시 시도' }).click());
+    expect(screen.getAllByRole('listitem')).toHaveLength(1);
   });
 
   test('an old ?날짜= link opens the now list (date removed, D78)', async () => {
@@ -59,7 +80,7 @@ describe('RegionScreen (D69)', () => {
       makeRecord({ id: 'H', kind: 'hospital', category: 'general', name: '봄내과의원', hours: { dutyTime1s: '0900', dutyTime1c: '2300' }, lat: 37.561, lon: 126.9 }),
     ]);
     window.history.replaceState(null, '', '/x#%EC%82%B0%EB%B6%80%EC%9D%B8%EA%B3%BC');
-    await act(async () => render(<RegionScreen {...props} kind="hospital" payload={hp} />));
+    await act(async () => render(<RegionScreen {...props} kind="hospital" fetchJson={fetchFor(hp)} />));
     expect(screen.getByRole('combobox', { name: '진료과' })).toHaveProperty('value', 'obgyn');
     expect(screen.getAllByRole('listitem').map((li) => li.getAttribute('data-id'))).toEqual(['OB']);
     act(() => screen.getByRole('button', { name: '약국' }).click());
