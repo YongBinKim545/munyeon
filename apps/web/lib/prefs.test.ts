@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { pushRecentArea, readFilter, readLastArea, readLastCenter, readRecentAreas, saveFilter, saveLastArea, saveLastCenter } from './prefs';
+import { pushRecentArea, readFilter, readHospitalFilter, readLastArea, readLastCenter, readRecentAreas, saveFilter, saveLastArea, saveLastCenter } from './prefs';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -10,14 +10,23 @@ afterEach(() => {
 const area = (label: string) => ({ label, lat: 37.5, lon: 127 });
 
 describe('prefs', () => {
-  test('filter defaults to pharmacy and remembers the last choice (pharmacy, hospital, pediatric)', () => {
+  test('filter defaults to pharmacy and remembers the last choice', () => {
     expect(readFilter()).toBe('pharmacy');
     saveFilter('hospital');
     expect(readFilter()).toBe('hospital');
-    saveFilter('pediatric');
-    expect(readFilter()).toBe('pediatric');
+    saveFilter('obgyn');
+    expect(readFilter()).toBe('obgyn');
     localStorage.setItem('munyeon:kind', 'dental');
     expect(readFilter()).toBe('pharmacy');
+  });
+
+  test('hospital department starts at 전체 and survives a trip to pharmacy (D78)', () => {
+    expect(readHospitalFilter()).toBe('hospital');
+    saveFilter('emergency');
+    saveFilter('pharmacy');
+    expect(readHospitalFilter()).toBe('emergency');
+    localStorage.setItem('munyeon:dept', 'pharmacy');
+    expect(readHospitalFilter()).toBe('hospital');
   });
 
   test('recent areas keep 3, newest first, no duplicates', () => {

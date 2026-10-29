@@ -1,15 +1,14 @@
 'use client';
 
-import { dateLabel, dayLabel, describeStatus, parseWeeklyHours, soonLabel, usualLabel, type StatusContext } from '@munyeon/core';
+import { describeStatus, parseWeeklyHours, soonLabel, usualLabel, type StatusContext } from '@munyeon/core';
 import { formatArea, type ViewItem } from '@/lib/nearby';
-import { NOW, type When } from '@/lib/when';
 import { CallButton } from './CallButton';
 import { DirectionsButton } from './DirectionsButton';
 import { formatDistance } from './InstitutionCard';
 import { PreviewLink } from './PreviewLink';
 
 /** 메인 목록 카드(D32): 이름·거리 / 배지 / 상태 / [전화하기] [길찾기]. 상태는 브라우저 계산이다. */
-export function ListCard({ item, now, ctx, when = NOW, page = 'home' }: { item: ViewItem; now: Date; ctx: StatusContext; when?: When; page?: string }) {
+export function ListCard({ item, now, ctx, page = 'home' }: { item: ViewItem; now: Date; ctx: StatusContext; page?: string }) {
   return (
     <li className="card" data-id={item.id}>
       <div className="card__head">
@@ -32,7 +31,7 @@ export function ListCard({ item, now, ctx, when = NOW, page = 'home' }: { item: 
           {item.pediatric ? <span className="badge">소아 전문</span> : null}
         </span>
       </div>
-      {when.kind === 'date' ? <DayStatus item={item} ymd={when.ymd} /> : <CardStatus item={item} now={now} ctx={ctx} />}
+      <CardStatus item={item} now={now} ctx={ctx} />
       <div className="actions">
         <CallButton tel={item.tel} institutionId={item.id} page={page} compact />
         <DirectionsButton
@@ -49,22 +48,9 @@ export function ListCard({ item, now, ctx, when = NOW, page = 'home' }: { item: 
   );
 }
 
-/** 날짜를 고른 목록: '10/25(일) 09:00~18:00' / 공휴일 '전화 확인 필요 · 평소 금요일 09:00~18:00' / '그날 정보 없음' */
-function DayStatus({ item, ymd }: { item: ViewItem; ymd: string }) {
-  if (item.tier === 'open' && item.range) {
-    return <p className="card__status"><span className="pill pill--open">{dateLabel(ymd)} {dayLabel(item.range)}</span></p>;
-  }
-  if (item.tier === 'holidayUsual' && item.range) {
-    return (
-      <p className="card__status">
-        <span className="pill pill--holiday">전화 확인 필요</span> <span className="muted">평소 {item.weekdayLabel} {dayLabel(item.range)}</span>
-      </p>
-    );
-  }
-  return <p className="card__status"><span className="pill pill--unknown">{dateLabel(ymd)} 정보 없음 — 전화로 확인</span></p>;
-}
-
 function CardStatus({ item, now, ctx }: { item: ViewItem; now: Date; ctx: StatusContext }) {
+  // 응급실 목록은 외래 진료시간으로 판정하지 않는다(D78)
+  if (item.emergency) return <p className="card__status"><span className="pill pill--open">응급실 24시간</span></p>;
   if (item.tier === 'soon' && item.opensAt) {
     return <p className="card__status"><span className="pill pill--soon">{soonLabel(item.opensAt, now)}</span></p>;
   }

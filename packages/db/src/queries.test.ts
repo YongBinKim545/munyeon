@@ -5,7 +5,7 @@ import type { Sql } from './client.ts';
 import {
   countSitemapEntries, deactivateMissing, finishRun, getHolidays, getInstitution, getLastSyncAt, getNearby,
   getRegionStats, insertEvent, listChangedIndexable, listChangedRegions, insertFeedback, listGridCell, listLandingCounts, listNeighborhoods, listRegion, listRegions, listSido, listSitemapEntries,
-  refreshDuplicates, refreshNeighborhoods, searchInstitutions, startRun, upsertHolidays, upsertInstitutions, type InstitutionRow,
+  listEmergency, refreshDuplicates, refreshNeighborhoods, searchInstitutions, startRun, upsertHolidays, upsertInstitutions, type InstitutionRow,
 } from './queries.ts';
 import { MIGRATIONS_DIR } from './migrate.ts';
 import { startTestDb } from './test-db.ts';
@@ -131,6 +131,20 @@ describe('refreshDuplicates (D76)', () => {
     await upsertInstitutions(sql, [H('B', { name: '새이름의원', hours: WEEKDAY, contentHash: 'h2' })], t2);
     expect(await refreshDuplicates(sql)).toMatchObject({ groups: 0, changed: 1 });
     expect((await listRegion(sql, '서울특별시', '중구', 'hospital')).map((r) => r.id).sort()).toEqual(['A', 'B']);
+  });
+});
+
+describe('listEmergency (D78)', () => {
+  test('active ER hospitals with coordinates, ER phone when the source has one', async () => {
+    await upsertInstitutions(sql, [
+      row({ id: 'E1', kind: 'hospital', category: 'general', name: '가병원', raw: { dutyEryn: '1', dutyTel3: '02-111-0119' } }),
+      row({ id: 'E2', kind: 'hospital', category: 'general', name: '나병원', raw: { dutyEryn: '1' } }),
+      row({ id: 'E3', kind: 'hospital', category: 'general', name: '다병원', raw: { dutyEryn: '2' } }),
+      row({ id: 'E4', kind: 'hospital', category: 'general', name: '라병원', raw: { dutyEryn: '1' }, lat: null, lon: null }),
+    ], t1);
+    const list = await listEmergency(sql);
+    expect(list.map((r) => [r.id, r.erTel])).toEqual([['E1', '02-111-0119'], ['E2', null]]);
+    expect(list[0]).toMatchObject({ tel: '02-123-4567', sido: '서울특별시', sigungu: '중구' });
   });
 });
 

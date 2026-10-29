@@ -1,22 +1,38 @@
 import {
-  cellsWithin, distanceM, gridKey, orderList, parseWeeklyHours, sidoShort, tierOf, tierOnDate,
-  type DayRange, type GridLevel, type LatLon, type ListTier, type StatusContext,
+  cellsWithin, distanceM, gridKey, orderList, parseWeeklyHours, sidoShort, tierOf,
+  type GridLevel, type LatLon, type ListTier, type StatusContext,
 } from '@munyeon/core';
 import { decodeGrid, type GridEntry, type GridPayload } from './grid';
 import type { Kind } from './seo';
-import type { When } from './when';
 
-/** 메인 유형(D41): 약국 / 병원(소아과 포함) / 소아과 */
-export type ListFilter = 'pharmacy' | 'hospital' | 'pediatric';
+/**
+ * 목록 필터(D41·D78): 약국 / 병원 전체 / 소아과 / 산부인과 / 응급실.
+ * 화면에서는 [병원 | 약국]과 병원일 때만 진료과 드롭다운 두 개로 나뉜다.
+ */
+export type ListFilter = 'pharmacy' | 'hospital' | 'pediatric' | 'obgyn' | 'emergency';
+export type HospitalFilter = Exclude<ListFilter, 'pharmacy'>;
+export const HOSPITAL_FILTERS: readonly HospitalFilter[] = ['hospital', 'pediatric', 'obgyn', 'emergency'];
+/** 진료과 드롭다운 이름 */
+export const FILTER_LABEL: Record<HospitalFilter, string> = { hospital: '전체', pediatric: '소아과', obgyn: '산부인과', emergency: '응급실' };
 
-/** 소아과·병원은 병원 격자를 받는다(같은 칸을 다시 받지 않는다) */
+export function isListFilter(v: unknown): v is ListFilter {
+  return v === 'pharmacy' || (HOSPITAL_FILTERS as readonly unknown[]).includes(v);
+}
+
+/** 약국 외에는 병원 격자를 받는다(같은 칸을 다시 받지 않는다). 응급실은 격자 대신 전국 응급실 목록을 쓴다 */
 export function kindOf(filter: ListFilter): Kind {
   return filter === 'pharmacy' ? 'pharmacy' : 'hospital';
 }
 
-/** 소아과: 이름에 소아청소년과·소아과 또는 소아·아동·어린이·키즈가 들어간 일반 병·의원(격자의 pediatric 표시). 나머지는 거르지 않는다. */
+/**
+ * 진료과 거르기. 나머지(약국·병원 전체)는 거르지 않는다.
+ * - 소아과: 이름에 소아청소년과·소아과 또는 소아·아동·어린이·키즈가 들어간 일반 병·의원(격자의 pediatric 표시)
+ * - 산부인과: 이름에 산부인과·여성의원이 들어가거나 주 진료과(배지)가 산부인과인 일반 병·의원
+ */
 export function matcherOf(filter: ListFilter): ((e: GridEntry) => boolean) | undefined {
-  return filter === 'pediatric' ? (e) => e.pediatric : undefined;
+  if (filter === 'pediatric') return (e) => e.pediatric;
+  if (filter === 'obgyn') return (e) => e.category === 'general' && (e.badge === '산부인과' || /산부인과|여성의원/.test(e.name));
+  return undefined;
 }
 
 /** 메인 목록 한 줄. 상태는 브라우저에서만 계산한다. */
@@ -25,8 +41,8 @@ export interface ViewItem extends GridEntry {
   tier: ListTier;
   opensAt?: Date;
   weekdayLabel?: string;
-  /** 날짜를 고른 목록에서 그날(또는 평소 그 요일) 시간 */
-  range?: DayRange;
+  /** 응급실 목록(D78): 진료시간 대신 '응급실 24시간'으로 보인다 */
+  emergency?: boolean;
 }
 
 /** 반경 단계(D36·기능 정의서 4.4): 1km(약 1km 칸)를 먼저, 이어서 3km → 부족하면 10km → 25km */
@@ -83,12 +99,9 @@ export async function loadCells(
   return { entries: [...byId.values()], failed };
 }
 
-/**
- * 거리·상태를 계산하고 반경 안만 순서 규칙(D32)대로 정렬한다.
- * 날짜를 골랐으면 그날 기준으로 판정한다('지금'과 같은 규칙: 그날 여는 곳 → 공휴일 전화 확인 필요 → [전체 보기]에 정보 없음).
- */
+/** 거리·상태를 계산하고 반경 안만 순서 규칙(D32)대로 정렬한다. */
 export function buildView(
-  entries: GridEntry[], center: LatLon, radiusKm: number, at: Date, ctx: StatusContext, mode: 'open' | 'all', when: When = { kind: 'now' },
+  entries: GridEntry[], center: LatLon, radiusKm: number, at: Date, ctx: StatusContext, mode: 'open' | 'all',
 ): ViewItem[] {
   const limit = radiusKm * 1000;
   const items: ViewItem[] = [];
@@ -96,15 +109,39 @@ export function buildView(
     const d = distanceM(center, e);
     if (d > limit) continue;
     const hours = parseWeeklyHours(e.hours);
-    items.push({ ...e, distanceM: d, ...(when.kind === 'date' ? tierOnDate(hours, when.ymd, ctx) : tierOf(hours, at, ctx)) });
+    items.push({ ...e, distanceM: d, ...tierOf(hours, at, ctx) });
   }
   return orderList(items, mode);
 }
 
 export function visibleCount(
-  entries: GridEntry[], center: LatLon, radiusKm: number, at: Date, ctx: StatusContext, match?: (e: GridEntry) => boolean, when?: When,
+  entries: GridEntry[], center: LatLon, radiusKm: number, at: Date, ctx: StatusContext, match?: (e: GridEntry) => boolean,
 ): number {
-  return buildView(match ? entries.filter(match) : entries, center, radiusKm, at, ctx, 'open', when).length;
+  return buildView(match ? entries.filter(match) : entries, center, radiusKm, at, ctx, 'open').length;
+}
+
+/** 응급실 목록에 보여 줄 수(D78). 거리 제한 없이 가까운 순(시골에서도 가장 가까운 곳이 나오게) */
+export const EMERGENCY_LIMIT = 20;
+
+/** 응급실 목록(D78): 진료시간(외래)으로 판정하지 않고 모두 '응급실 24시간', 가까운 순 */
+export function buildEmergencyView(entries: GridEntry[], center: LatLon): ViewItem[] {
+  return entries
+    .map((e): ViewItem => ({ ...e, distanceM: distanceM(center, e), tier: 'open', emergency: true }))
+    .sort((a, b) => a.distanceM - b.distanceM || a.id.localeCompare(b.id))
+    .slice(0, EMERGENCY_LIMIT);
+}
+
+let emergencyList: Promise<GridEntry[]> | null = null;
+
+/** 전국 응급실 목록을 한 번만 받는다. 실패하면 다음에 다시 시도한다 */
+export function loadEmergency(fetchJson: FetchJson = defaultFetchJson): Promise<GridEntry[]> {
+  emergencyList ??= fetchJson('/api/emergency')
+    .then((p) => decodeGrid(p, 'hospital'))
+    .catch((e: unknown) => {
+      emergencyList = null;
+      throw e;
+    });
+  return emergencyList;
 }
 
 export interface NearbyStep {
@@ -118,7 +155,7 @@ export interface NearbyStep {
 /**
  * 2단계 불러오기(D36): 1km 칸을 먼저 받아 알리고, 3km를 받아 알리고, 보여줄 곳이 5곳 미만이면 10km·25km로 넓힌다.
  * 서버로는 격자 번호만 간다(좌표 없음). isCurrent()가 false가 되면(지역·유형이 바뀜) 멈춘다.
- * match가 있으면(소아과) 그 조건에 맞는 곳만 세어 넓힐지 정한다(D41).
+ * match가 있으면(소아과·산부인과) 그 조건에 맞는 곳만 세어 넓힐지 정한다(D41).
  * 칸을 받지 못하면 더 넓히지 않고 멈춘다(실패한 채 넓히면 요청만 늘고, 빈 결과를 '없음'으로 오해하게 된다).
  */
 export async function loadNearby(opts: {
@@ -127,8 +164,6 @@ export async function loadNearby(opts: {
   center: LatLon;
   at: () => Date;
   ctx: StatusContext;
-  /** 날짜를 골랐으면 그날 여는 곳으로 넓힐지 센다 */
-  when?: When;
   cache: CellCache;
   fetchJson?: FetchJson;
   isCurrent?: () => boolean;
@@ -142,7 +177,7 @@ export async function loadNearby(opts: {
   for (const [i, r] of RADII_KM.entries()) {
     const { entries, failed } = await loadCells(kind, cellUrls(kind, center, r, 'coarse'), cache, fetchJson);
     if (!current()) return;
-    const last = failed > 0 || i === RADII_KM.length - 1 || visibleCount(entries, center, r, opts.at(), opts.ctx, opts.match, opts.when) >= MIN_VISIBLE;
+    const last = failed > 0 || i === RADII_KM.length - 1 || visibleCount(entries, center, r, opts.at(), opts.ctx, opts.match) >= MIN_VISIBLE;
     onStep({ entries, radiusKm: r, done: last, failed });
     if (last) return;
   }

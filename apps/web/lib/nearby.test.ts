@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { makeRecord } from './fixtures';
 import { decodeGrid, encodeGrid, type GridPayload } from './grid';
 import {
-  areaLabel, buildView, cellUrls, formatArea, kindOf, loadCells, loadNearby, matcherOf, type CellCache, type ListFilter, type NearbyStep,
+  areaLabel, buildEmergencyView, cellUrls, EMERGENCY_LIMIT, loadEmergency, formatArea, kindOf, loadCells, loadNearby, matcherOf, type CellCache, type ListFilter, type NearbyStep,
 } from './nearby';
 
 const center = { lat: 37.5637, lon: 126.9838 }; // 명동
@@ -21,13 +21,22 @@ function server(rows: ReturnType<typeof makeRecord>[]) {
   return { urls, fetchJson };
 }
 
-describe('list filter (D41)', () => {
+describe('list filter (D41·D78)', () => {
   const entry = (kind: 'pharmacy' | 'hospital', pediatric: boolean) => decodeGrid(encodeGrid([makeRecord({ kind, category: kind === 'pharmacy' ? 'pharmacy' : 'general', pediatricName: pediatric })]), kind)[0]!;
+  const hosp = (over: Parameters<typeof makeRecord>[0]) => decodeGrid(encodeGrid([makeRecord({ kind: 'hospital', category: 'general', ...over })]), 'hospital')[0]!;
 
-  test('pediatric and hospital read hospital cells', () => {
+  test('every hospital department reads hospital cells', () => {
     expect(kindOf('pharmacy')).toBe('pharmacy');
-    expect(kindOf('hospital')).toBe('hospital');
-    expect(kindOf('pediatric')).toBe('hospital');
+    for (const f of ['hospital', 'pediatric', 'obgyn', 'emergency'] as const) expect(kindOf(f)).toBe('hospital');
+  });
+
+  test('obgyn: general hospitals named 산부인과·여성의원 or with 산부인과 as main department', () => {
+    const ob = matcherOf('obgyn')!;
+    expect(ob(hosp({ name: '수내봄산부인과의원' }))).toBe(true);
+    expect(ob(hosp({ name: '봄여성의원' }))).toBe(true);
+    expect(ob(hosp({ name: '봄의원', specialty: '산부인과' }))).toBe(true);
+    expect(ob(hosp({ name: '봄내과의원', specialty: '내과' }))).toBe(false);
+    expect(ob(hosp({ name: '산부인과한의원', category: 'oriental' }))).toBe(false);
   });
 
   test('hospital includes pediatric; pediatric keeps only pediatric names', () => {
@@ -141,28 +150,26 @@ describe('area names', () => {
   });
 });
 
-describe('buildView with a picked date (부모님 대신 일요일·공휴일)', () => {
-  const rows = [
-    makeRecord({ id: 'SUN', name: '일요약국', hours: { dutyTime7s: '0900', dutyTime7c: '1800' }, lat: 37.5640, lon: 126.9840 }),
-    makeRecord({ id: 'NOSUN', name: '평일약국', hours: { dutyTime1s: '0900', dutyTime1c: '1800' }, lat: 37.5638, lon: 126.9839 }),
-    makeRecord({ id: 'FRI', name: '금요약국', hours: { dutyTime5s: '0900', dutyTime5c: '1800' }, lat: 37.5639, lon: 126.9839 }),
-  ];
-  const entries = decodeGrid(encodeGrid(rows), 'pharmacy');
-  const hol = { holidays: new Set(['2026-12-25']) }; // 금요일 공휴일
-
-  test('a Sunday: only places registered for Sunday; no-Sunday-hours are behind 전체 보기', () => {
-    const v = buildView(entries, center, 3, at, ctx, 'open', { kind: 'date', ymd: '2026-10-25' });
-    expect(v.map((i) => [i.id, i.tier])).toEqual([['SUN', 'open']]);
-    expect(v[0]!.range).toEqual({ open: 540, close: 1080 });
-    const all = buildView(entries, center, 3, at, ctx, 'all', { kind: 'date', ymd: '2026-10-25' });
-    expect(all.map((i) => i.tier)).toEqual(['open', 'unknown', 'unknown']);
+describe('emergency list (D78)', () => {
+  test('all as 24h, nearest first, at most 20, no distance limit', () => {
+    const far = makeRecord({ id: 'FAR', kind: 'hospital', category: 'general', hours: closed, lat: 35.18, lon: 129.08 }); // 부산
+    const rows = [far, ...Array.from({ length: 25 }, (_, i) => makeRecord({ id: `N${String(i).padStart(2, '0')}`, kind: 'hospital', category: 'general', hours: closed, lat: center.lat + i * 0.001, lon: center.lon }))];
+    const v = buildEmergencyView(decodeGrid(encodeGrid(rows), 'hospital'), center);
+    expect(v).toHaveLength(EMERGENCY_LIMIT);
+    expect(v[0]).toMatchObject({ id: 'N00', tier: 'open', emergency: true });
+    expect(v.map((i) => i.id)).not.toContain('FAR');
+    expect(buildEmergencyView(decodeGrid(encodeGrid([far]), 'hospital'), center).map((i) => i.id)).toEqual(['FAR']);
   });
 
-  test('a holiday without code 8: usual weekday hours as call-to-confirm, like now (D32)', () => {
-    const v = buildView(entries, center, 3, at, hol, 'open', { kind: 'date', ymd: '2026-12-25' });
-    expect(v.map((i) => [i.id, i.tier, i.weekdayLabel])).toEqual([['FRI', 'holidayUsual', '금요일']]);
+  test('fetched once; a failure is retried next time', async () => {
+    const bad = vi.fn(async () => {
+      throw new Error('x');
+    });
+    await expect(loadEmergency(bad)).rejects.toThrow();
+    const ok = vi.fn(async () => encodeGrid([makeRecord({ id: 'E1', kind: 'hospital', category: 'general' })]));
+    expect((await loadEmergency(ok)).map((e) => e.id)).toEqual(['E1']);
+    await loadEmergency(ok);
+    expect(ok).toHaveBeenCalledTimes(1);
+    expect(ok).toHaveBeenCalledWith('/api/emergency');
   });
-
-  test('now mode is unchanged', () =>
-    expect(buildView(entries, center, 3, at, ctx, 'open').map((i) => i.id)).toEqual(['NOSUN']));
 });

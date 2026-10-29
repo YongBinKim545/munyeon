@@ -1,5 +1,5 @@
 import { normalizeSido } from '@munyeon/core';
-import type { ListFilter } from './nearby';
+import { HOSPITAL_FILTERS, isListFilter, type HospitalFilter, type ListFilter } from './nearby';
 
 /**
  * 브라우저에만 저장하는 값(D34). 서버로 보내지 않는다.
@@ -17,6 +17,8 @@ export interface Area {
 }
 
 const KIND_KEY = 'munyeon:kind';
+/** 병원 진료과의 마지막 선택(약국에 다녀와도 유지, D78) */
+const DEPT_KEY = 'munyeon:dept';
 const AREAS_KEY = 'munyeon:areas';
 const CENTER_KEY = 'munyeon:lastCenter';
 const LAST_AREA_KEY = 'munyeon:lastArea';
@@ -40,14 +42,21 @@ function write(key: string, value: string): void {
   }
 }
 
-/** 메인 유형(D41). 처음은 약국, 이후 마지막 선택 */
+/** 메인 유형(D41·D78). 처음은 약국, 이후 마지막 선택 */
 export function readFilter(): ListFilter {
   const v = read(KIND_KEY);
-  return v === 'hospital' || v === 'pediatric' ? v : 'pharmacy';
+  return isListFilter(v) ? v : 'pharmacy';
+}
+
+/** [병원]을 눌렀을 때의 진료과: 처음은 전체, 이후 마지막 선택 */
+export function readHospitalFilter(): HospitalFilter {
+  const v = read(DEPT_KEY);
+  return (HOSPITAL_FILTERS as readonly (string | null)[]).includes(v) ? (v as HospitalFilter) : 'hospital';
 }
 
 export function saveFilter(f: ListFilter): void {
   write(KIND_KEY, f);
+  if (f !== 'pharmacy') write(DEPT_KEY, f);
 }
 
 function isArea(a: unknown): a is Area {

@@ -11,37 +11,14 @@ const props = (over = {}) => ({
   filter: 'pharmacy' as const,
   onFilter: vi.fn(),
   onCurrentLocation: vi.fn(),
-  when: { kind: 'now' } as const,
-  onWhen: vi.fn(),
   ...over,
 });
 
 describe('MainHeader', () => {
-  test('when select: now / pick a date; a picked date shows as 10/25(일) (부모님 대신 찾기)', () => {
-    const onWhen = vi.fn();
-    const { rerender } = render(<MainHeader {...props({ onWhen })} />);
-    const when = screen.getByRole('combobox', { name: '언제' });
-    expect([...when.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['지금 문 연', '날짜']);
-    fireEvent.change(when, { target: { value: 'pick' } });
-    const date = screen.getByLabelText('날짜');
-    expect(date.getAttribute('type')).toBe('date');
-    fireEvent.change(date, { target: { value: '2026-12-25' } });
-    expect(onWhen).toHaveBeenCalledWith({ kind: 'date', ymd: '2026-12-25' });
-    rerender(<MainHeader {...props({ onWhen, when: { kind: 'date', ymd: '2026-10-25' } })} />);
-    const again = screen.getByRole('combobox', { name: '언제' });
-    expect(again).toHaveProperty('value', '2026-10-25');
-    expect([...again.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['지금 문 연', '10/25(일)', '날짜']);
-    fireEvent.change(again, { target: { value: 'now' } });
-    expect(onWhen).toHaveBeenLastCalledWith({ kind: 'now' });
-  });
-
-
-  test('one type select (pharmacy / hospital / pediatric) and a when select; names are for screen readers', () => {
+  test('second row is the filter bar (D78); no when select; names are for screen readers', () => {
     render(<MainHeader {...props()} />);
-    const select = screen.getByRole('combobox', { name: '유형' });
-    expect(select).toHaveProperty('value', 'pharmacy');
-    expect([...select.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['약국', '병원', '소아과']);
-    expect(screen.getAllByRole('combobox')).toHaveLength(2);
+    expect(screen.getByRole('group', { name: '유형' })).toBeTruthy();
+    expect(screen.queryByRole('combobox')).toBeNull(); // 약국은 진료과가 없다
     expect(screen.queryByText('유형')).toBeNull();
     expect(screen.queryByRole('link', { name: '검색' })).toBeNull(); // 사이트 헤더로 옮김(D69)
   });
@@ -73,10 +50,10 @@ describe('MainHeader', () => {
     expect(document.activeElement).toBe(btn);
   });
 
-  test('type change', () => {
-    const p = props();
+  test('department change', () => {
+    const p = props({ filter: 'hospital' as const });
     render(<MainHeader {...p} />);
-    fireEvent.change(screen.getByRole('combobox', { name: '유형' }), { target: { value: 'pediatric' } });
+    fireEvent.change(screen.getByRole('combobox', { name: '진료과' }), { target: { value: 'pediatric' } });
     expect(p.onFilter).toHaveBeenCalledWith('pediatric');
   });
 

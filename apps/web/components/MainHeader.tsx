@@ -4,8 +4,7 @@ import { ChevronDown, List, LocateFixed, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import type { ListFilter } from '@/lib/nearby';
-import type { When } from '@/lib/when';
-import { WhenSelect } from './WhenSelect';
+import { FilterBar } from './FilterBar';
 
 interface Props {
   /** null이면 위치를 찾는 중 */
@@ -14,8 +13,6 @@ interface Props {
   pcLocationNote: boolean;
   filter: ListFilter;
   onFilter: (f: ListFilter) => void;
-  when: When;
-  onWhen: (w: When) => void;
   onCurrentLocation: () => void;
 }
 
@@ -36,8 +33,7 @@ export function nextHeaderState(s: { hidden: boolean; base: number }, y: number)
 }
 
 /**
- * 메인 전용 헤더(D31·D38·D41·D52): 1줄 📍 지역 이름 + [위치 찾기 ▾](현재 위치 / 지역별 보기, 지역 검색은 헤더 [검색]의 [지역] 탭 — D70), 2줄 [약국 ▾] [언제 ▾]. 이름 검색은 사이트 헤더 오른쪽 위(D69).
- * 유형은 약국 / 병원 / 소아과. '유형' 글자는 화면에 보이지 않고 화면 낭독기용 이름으로만 둔다.
+ * 메인 전용 헤더(D31·D38·D41·D52): 1줄 📍 지역 이름 + [위치 찾기 ▾](현재 위치 / 지역별 보기, 지역 검색은 헤더 [검색]의 [지역] 탭 — D70), 2줄 [병원 | 약국] [진료과 ▾](D78). 이름 검색은 사이트 헤더 오른쪽 위(D69).
  * 사이트 헤더 바로 아래에 붙어 있고, 아래로 스크롤하면 숨었다가 위로 올리면 다시 나온다(메뉴가 열려 있으면 숨지 않음).
  */
 export function MainHeader(p: Props) {
@@ -118,17 +114,7 @@ export function MainHeader(p: Props) {
         ) : null}
       </div>
       {p.pcLocationNote ? <p className="muted area__note">PC는 위치가 부정확할 수 있어요</p> : null}
-      <div className="filters">
-        <span className="select-wrap">
-          <select aria-label="유형" className="select" value={p.filter} onChange={(e) => p.onFilter(e.target.value as ListFilter)}>
-            <option value="pharmacy">약국</option>
-            <option value="hospital">병원</option>
-            <option value="pediatric">소아과</option>
-          </select>
-          <ChevronDown aria-hidden="true" size={16} className="select-wrap__icon" />
-        </span>
-        <WhenSelect when={p.when} onChange={p.onWhen} />
-      </div>
+      <FilterBar filter={p.filter} onFilter={p.onFilter} />
     </div>
   );
 }

@@ -1,9 +1,8 @@
 'use client';
 
-import { dateLabel, type StatusContext } from '@munyeon/core';
+import type { StatusContext } from '@munyeon/core';
 import { useEffect, useRef, useState } from 'react';
-import { MIN_VISIBLE, type ListFilter, type ViewItem } from '@/lib/nearby';
-import { NOW, type When } from '@/lib/when';
+import { FILTER_LABEL, MIN_VISIBLE, type ListFilter, type ViewItem } from '@/lib/nearby';
 import { EmergencyNote } from './EmergencyNote';
 import { ListCard } from './ListCard';
 
@@ -15,8 +14,6 @@ interface Props {
   mode: 'open' | 'all';
   now: Date;
   ctx: StatusContext;
-  /** 날짜를 골랐으면 그날 기준 목록 */
-  when?: When;
   holidayToday: boolean;
   /** 아직 더 받는 중(3km 이상) */
   loadingMore: boolean;
@@ -24,7 +21,7 @@ interface Props {
   /** 받지 못한 칸이 있음(있으면 안내와 [다시 시도]) */
   failed: boolean;
   onRetry: () => void;
-  /** 소아과면 문구가 바뀌고, 영업 중인 곳이 적을 때 [가까운 병원 보기](D41) */
+  /** 소아과·산부인과면 문구가 바뀌고, 영업 중인 곳이 적을 때 [가까운 병원 보기](D41·D78). 응급실은 [전체 보기]가 없다 */
   filter?: ListFilter;
   onNearbyHospitals?: () => void;
   /** 이벤트에 남길 화면 이름(메인 'home', 지역 화면 'region') */
@@ -32,7 +29,7 @@ interface Props {
 }
 
 /** 메인 목록(D32): 구역 제목 없이 한 줄, 끝에 [전체 보기]. 지역·유형이 바뀌면 부모가 key로 새로 그린다. */
-export function MainList({ items, mode, now, ctx, when = NOW, holidayToday, loadingMore, onShowAll, failed, onRetry, filter, onNearbyHospitals, page }: Props) {
+export function MainList({ items, mode, now, ctx, holidayToday, loadingMore, onShowAll, failed, onRetry, filter, onNearbyHospitals, page }: Props) {
   const [limit, setLimit] = useState(PAGE_SIZE);
   /** [더 보기]로 새로 나온 첫 카드. 그 카드의 이름 링크로 포커스를 옮긴다 */
   const focusFrom = useRef<number | null>(null);
@@ -67,10 +64,12 @@ export function MainList({ items, mode, now, ctx, when = NOW, holidayToday, load
   }
 
   const shown = items.slice(0, limit);
-  const pediatric = filter === 'pediatric';
-  // 다 넓힌 뒤에도(25km) 소아과 영업 중(영업 중·곧 영업·전화 확인 필요)이 적으면 병원으로 넘어갈 수 있게 한다
+  const emergency = filter === 'emergency';
+  /** 소아과·산부인과 */
+  const dept = filter === 'pediatric' || filter === 'obgyn' ? FILTER_LABEL[filter] : null;
+  // 다 넓힌 뒤에도(25km) 그 과의 영업 중(영업 중·곧 영업·전화 확인 필요)이 적으면 병원으로 넘어갈 수 있게 한다
   const openCount = items.filter((i) => i.tier !== 'closed' && i.tier !== 'unknown').length;
-  const fewPediatric = pediatric && !loadingMore && !failed && openCount < MIN_VISIBLE && !!onNearbyHospitals;
+  const fewDept = !!dept && !loadingMore && !failed && openCount < MIN_VISIBLE && !!onNearbyHospitals;
   return (
     <section aria-label="가까운 곳 목록">
       {failed ? (
@@ -81,25 +80,19 @@ export function MainList({ items, mode, now, ctx, when = NOW, holidayToday, load
           </button>
         </div>
       ) : null}
-      {when.kind === 'date' ? (
-        ctx.holidays.has(when.ymd) ? <p className="holiday-strip">{dateLabel(when.ymd)} 공휴일 · 공휴일 진료시간 기준</p> : null
-      ) : holidayToday ? (
-        <p className="holiday-strip">오늘은 공휴일 · 공휴일 진료시간 기준</p>
+      {holidayToday && !emergency ? <p className="holiday-strip">오늘은 공휴일 · 공휴일 진료시간 기준</p> : null}
+      {total > 0 ? (
+        <p className="muted list-basis">{emergency ? '응급실 운영 병원이에요' : '영업시간은 등록 기준이에요'} · 방문 전 전화로 확인하세요</p>
       ) : null}
-      {total > 0 ? <p className="muted list-basis">영업시간은 등록 기준이에요 · 방문 전 전화로 확인하세요</p> : null}
       {total === 0 && mode === 'open' && !loadingMore ? (
         <div className="empty">
-          <p>
-            {when.kind === 'date'
-              ? `등록 기준으로 ${dateLabel(when.ymd)}에 여는 ${pediatric ? '소아과' : '곳'}이 없어요`
-              : pediatric ? '등록 기준으로 지금 문 연 소아과가 없어요' : '등록 기준으로 지금 문 연 곳이 없어요'}
-          </p>
-          {when.kind === 'now' ? <EmergencyNote /> : null}
+          <p>{dept ? `등록 기준으로 지금 문 연 ${dept}가 없어요` : '등록 기준으로 지금 문 연 곳이 없어요'}</p>
+          <EmergencyNote />
         </div>
       ) : null}
       <ul ref={listRef} className="cards main-list">
         {shown.map((item) => (
-          <ListCard key={item.id} item={item} now={now} ctx={ctx} when={when} page={page} />
+          <ListCard key={item.id} item={item} now={now} ctx={ctx} page={page} />
         ))}
       </ul>
       {limit < total ? (
@@ -117,15 +110,15 @@ export function MainList({ items, mode, now, ctx, when = NOW, holidayToday, load
         </div>
       ) : null}
       {loadingMore ? <p className="muted list-loading" role="status">더 찾는 중…</p> : null}
-      {fewPediatric && limit >= total ? (
+      {fewDept && limit >= total ? (
         <div className="list-more list-switch">
-          <p className="muted">가까운 곳에 지금 문 연 소아과가 적어요</p>
+          <p className="muted">가까운 곳에 지금 문 연 {dept}가 적어요</p>
           <button type="button" className="btn btn-secondary btn-wide" onClick={onNearbyHospitals}>
             가까운 병원 보기
           </button>
         </div>
       ) : null}
-      {mode === 'open' && limit >= total ? (
+      {mode === 'open' && !emergency && limit >= total ? (
         <div className="list-more">
           <button type="button" className="btn btn-secondary btn-wide" onClick={onShowAll}>
             전체 보기
