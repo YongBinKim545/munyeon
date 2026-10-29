@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation';
 import { RegionPage, regionMetadata } from '@/components/RegionPage';
 import { parseRegionParams } from '@/lib/seo';
 
-export const revalidate = 86400;
+// 7일 캐시(D80). 약국 지역 화면과 같다
+export const revalidate = 604800;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {

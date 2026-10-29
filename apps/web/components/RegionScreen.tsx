@@ -3,10 +3,13 @@
 import { kstParts, type LatLon } from '@munyeon/core';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { decodeGrid, type GridEntry, type GridPayload } from '@/lib/grid';
+import { decodeGrid, type GridEntry } from '@/lib/grid';
 import { geoPermission } from '@/lib/locate';
 import { fetchMeta } from '@/lib/meta';
-import { buildEmergencyView, buildView, FILTER_LABEL, HOSPITAL_FILTERS, loadEmergency, matcherOf, type HospitalFilter, type ListFilter } from '@/lib/nearby';
+import {
+  buildEmergencyView, buildView, defaultFetchJson, FILTER_LABEL, HOSPITAL_FILTERS, loadEmergency, matcherOf,
+  type FetchJson, type HospitalFilter, type ListFilter,
+} from '@/lib/nearby';
 import { clearViewArea, pushRecentArea, saveFilter, saveLastArea, saveViewArea, type Area } from '@/lib/prefs';
 import type { Kind } from '@/lib/seo';
 import { track } from '@/lib/track';
@@ -25,23 +28,28 @@ interface Props {
   sido: string;
   sigungu: string;
   kind: Kind;
-  payload: GridPayload;
+  /** 시군구 기관 좌표의 가운데값(서버가 계산해 넣는다) */
   center: LatLon | null;
   holidays: string[];
   /** 약국 화면·병원 화면 주소 */
   paths: Record<Kind, string>;
+  fetchJson?: FetchJson;
 }
 
 /**
  * 지역 화면(D69): 메인과 같은 목록에 지역만 시군구로 고정. 거리는 그 시군구 중심 기준이고 위치는 묻지 않는다(D56).
- * 목록·상태는 브라우저에서만 그린다(D23). 서버 HTML의 검색엔진용 목록은 페이지가 따로 둔다(RegionDirectory).
+ * 목록·상태는 브라우저에서만 그린다(D23). 목록 데이터는 페이지에 넣지 않고 /api/region에서 받는다(D80: 페이지가 수백 KB가 되어
+ * Vercel ISR 쓰기·DB 전송량을 키웠다). 서버 HTML의 검색엔진용 목록은 페이지가 따로 둔다.
  * 응급실은 전국 응급실 목록에서 시군구 중심에 가까운 순(D78).
  */
-export function RegionScreen({ sido, sigungu, kind, payload, center, holidays: initialHolidays, paths }: Props) {
+export function RegionScreen({ sido, sigungu, kind, center, holidays: initialHolidays, paths, fetchJson = defaultFetchJson }: Props) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [filter, setFilter] = useState<ListFilter>(kind);
   const [emergency, setEmergency] = useState<GridEntry[] | null>(null);
+  /** 이 시군구 기관(받기 전 null). failed면 [다시 시도] */
+  const [list, setList] = useState<{ entries: GridEntry[]; failed: boolean } | null>(null);
+  const [retry, setRetry] = useState(0);
   const [showAll, setShowAll] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const [holidays, setHolidays] = useState<ReadonlySet<string>>(() => new Set(initialHolidays));
@@ -72,7 +80,18 @@ export function RegionScreen({ sido, sigungu, kind, payload, center, holidays: i
     };
   }, [filter, emergency]);
 
-  const entries = useMemo(() => decodeGrid(payload, kind), [payload, kind]);
+  useEffect(() => {
+    let alive = true;
+    const url = `/api/region/${kind}?sido=${encodeURIComponent(sido)}&sigungu=${encodeURIComponent(sigungu)}`;
+    fetchJson(url)
+      .then((p) => alive && setList({ entries: decodeGrid(p, kind), failed: false }))
+      .catch(() => alive && setList({ entries: [], failed: true }));
+    return () => {
+      alive = false;
+    };
+  }, [kind, sido, sigungu, fetchJson, retry]);
+
+  const entries = list?.entries;
   const ctx = useMemo(() => ({ holidays }), [holidays]);
   const match = useMemo(() => matcherOf(filter), [filter]);
   const items = useMemo(
@@ -81,7 +100,7 @@ export function RegionScreen({ sido, sigungu, kind, payload, center, holidays: i
         ? null
         : filter === 'emergency'
           ? emergency && buildEmergencyView(emergency, center)
-          : buildView(match ? entries.filter(match) : entries, center, WHOLE_REGION_KM, now, ctx, showAll ? 'all' : 'open'),
+          : entries ? buildView(match ? entries.filter(match) : entries, center, WHOLE_REGION_KM, now, ctx, showAll ? 'all' : 'open') : null,
     [mounted, center, entries, match, now, ctx, showAll, filter, emergency],
   );
 
@@ -135,8 +154,11 @@ export function RegionScreen({ sido, sigungu, kind, payload, center, holidays: i
           ctx={ctx}
           holidayToday={ctx.holidays.has(kstParts(now).ymd)}
           loadingMore={false}
-          failed={false}
-          onRetry={() => {}}
+          failed={filter !== 'emergency' && !!list?.failed}
+          onRetry={() => {
+            setList(null);
+            setRetry((n) => n + 1);
+          }}
           onShowAll={() => {
             track('show_all', null, 'region');
             setShowAll(true);

@@ -6,7 +6,7 @@
 import { writeFile } from 'node:fs/promises';
 import { kstParts } from '@munyeon/core';
 import {
-  deactivateMissing, finishRun, getLastSyncAt, getSql, listChangedIndexable, listChangedRegions, refreshDuplicates, refreshNeighborhoods, startRun, upsertHolidays,
+  deactivateMissing, finishRun, getLastSyncAt, getSql, listChangedIndexable, refreshDuplicates, refreshNeighborhoods, startRun, upsertHolidays,
   upsertInstitutions, type Kind,
 } from '@munyeon/db';
 import { assertFresh, syncedWithin } from './health.ts';
@@ -75,19 +75,15 @@ async function runSync(kinds: Kind[]): Promise<boolean> {
   const baseUrl = process.env.WEB_BASE_URL;
   const secret = process.env.REVALIDATE_SECRET;
   if (baseUrl && secret) {
-    // 바뀐 기관이 속한 지역 페이지도 함께(P0-10). 조회가 실패해도 상세 갱신은 보낸다
-    const regions = await listChangedRegions(sql, runStartedAt).catch((e: unknown) => {
-      console.error(`changed regions: FAILED ${e instanceof Error ? e.message : String(e)}`);
-      return [];
-    });
-    console.log(`revalidate: ${await requestRevalidate(changed, { baseUrl, secret }, regions)} (${changed.length} changed, ${regions.length} regions)`);
+    // 기관 상세만 갱신한다. 지역 화면은 7일 캐시 만료로만 새로 만든다(D80: 매시 지역 재작성이 Vercel ISR 쓰기·DB 전송량의 대부분이었다)
+    console.log(`revalidate: ${await requestRevalidate(changed, { baseUrl, secret })} (${changed.length} changed)`);
 
     // 페이지 갱신을 요청한 뒤 검색엔진에 알린다. 색인 대상(사이트맵에 있는 상세)만(P1-1, D75)
     const indexable = await listChangedIndexable(sql, runStartedAt).catch((e: unknown) => {
       console.error(`changed indexable: FAILED ${e instanceof Error ? e.message : String(e)}`);
       return [];
     });
-    const urls = indexNowUrls(indexable, regions, baseUrl);
+    const urls = indexNowUrls(indexable, [], baseUrl);
     console.log(`indexnow: ${await submitIndexNow(urls, { baseUrl, enabled: process.env.INDEXNOW_ENABLED })} (${urls.length} urls)`);
   }
 

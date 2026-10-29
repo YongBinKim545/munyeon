@@ -5,8 +5,6 @@ import { Breadcrumbs } from './Breadcrumbs';
 import { DataStamp } from './DataStamp';
 import { RegionScreen } from './RegionScreen';
 import { loadHolidays, loadLastSync, loadRegion, loadRegions, loadRegionStats } from '@/lib/data';
-import { encodeGrid } from '@/lib/grid';
-import { summarizeWeek } from '@/lib/weekSummary';
 import { regionCenter } from '@/lib/region';
 import { regionSummary } from '@/lib/regionSummary';
 import { institutionPath, KIND_LABEL, openGraphFor, regionPath, regionShortName, type Kind } from '@/lib/seo';
@@ -24,7 +22,8 @@ export function regionMetadata(sido: string, sigungu: string, kind: Kind): Metad
 
 /**
  * 지역 화면(D69): /시도/시군구(약국), /시도/시군구/병원. 위는 메인과 같은 목록(브라우저), 아래는 검색엔진·글자 화면용
- * 이름순 전체 목록(서버 HTML, 진료시간 요약과 상세 링크). 현재 상태는 서버 HTML에 넣지 않는다(D23).
+ * 이름순 전체 목록(서버 HTML, 이름·동과 상세 링크). 현재 상태는 서버 HTML에 넣지 않는다(D23).
+ * 페이지를 작게 유지한다(D80): 목록 데이터는 브라우저가 따로 받고, 전체 목록에는 진료시간 요약을 넣지 않는다.
  */
 export async function RegionPage({ sido, sigungu, kind }: { sido: string; sigungu: string; kind: Kind }) {
   const [rows, regions] = await Promise.all([loadRegion(sido, sigungu, kind), loadRegions()]);
@@ -50,7 +49,6 @@ export async function RegionPage({ sido, sigungu, kind }: { sido: string; sigung
         sido={sido}
         sigungu={sigungu}
         kind={kind}
-        payload={encodeGrid(rows)}
         center={regionCenter(rows)}
         holidays={holidays}
         paths={{ pharmacy: regionPath(sido, sigungu, 'pharmacy'), hospital: regionPath(sido, sigungu, 'hospital') }}
@@ -59,11 +57,10 @@ export async function RegionPage({ sido, sigungu, kind }: { sido: string; sigung
         <summary>{`${area} ${k} 전체 ${rows.length}곳 (이름순)`}</summary>
         <ul>
           {rows.map((r) => (
+            // 가벼운 <a>와 글자만(D80): 1천 곳이 넘는 지역은 Link·span만으로 페이지 데이터가 수백 KB가 됐다
             <li key={r.id}>
-              <Link href={institutionPath(r.kind, r.id)} prefetch={false}>
-                {r.name}
-              </Link>
-              <span className="muted">{` · ${r.dong ?? sigungu} · ${summarizeWeek(r.hours)}`}</span>
+              <a href={institutionPath(r.kind, r.id)}>{r.name}</a>
+              {` · ${r.dong ?? sigungu}`}
             </li>
           ))}
         </ul>

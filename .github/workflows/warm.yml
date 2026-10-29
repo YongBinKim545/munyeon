@@ -1,10 +1,8 @@
-# 배포 직후 지역 페이지 미리 만들기(P0-10·D68). main에 push되면 시작해, 운영이 그 커밋으로 바뀔 때까지(/api/version)
-# 기다린 뒤 사이트맵 0번 파일의 주소를 동시에 4개씩 한 번씩 연다. 비밀값을 쓰지 않는다.
+# 지역 페이지 미리 만들기(P0-10·D68). 사이트맵 0번 파일의 주소를 동시에 4개씩 한 번씩 연다. 비밀값을 쓰지 않는다.
+# D80: 배포마다 543곳을 다시 만들어 Vercel ISR 쓰기 한도를 넘겨, push 자동 실행을 끄고 수동 실행만 둔다.
 # (Vercel이 이 저장소에 GitHub 배포 기록을 남기지 않아 deployment_status로는 시작되지 않았다, 2026-10-25)
 name: warm
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
@@ -21,5 +19,5 @@ jobs:
         with:
           node-version: 24
       - name: Warm region pages
-        # 수동 실행은 기다리지 않고 지금 배포를 바로 데운다
-        run: node scripts/warm.mjs https://findmedi.co.kr "${{ github.event_name == 'push' && github.sha || '' }}"
+        # 기다리지 않고 지금 배포를 바로 데운다
+        run: node scripts/warm.mjs https://findmedi.co.kr ""
