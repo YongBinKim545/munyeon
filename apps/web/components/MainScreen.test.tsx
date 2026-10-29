@@ -76,8 +76,8 @@ describe('MainScreen', () => {
       render(<MainScreen fetchJson={s.fetchJson} />);
     });
     await flush();
-    expect(screen.getByRole('combobox', { name: '유형' })).toHaveProperty('value', 'hospital');
-    expect(screen.queryByRole('combobox', { name: '상태' })).toBeNull();
+    expect(screen.getByRole('button', { name: '병원' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('combobox', { name: '진료과' })).toHaveProperty('value', 'hospital');
     expect(s.urls[0]).toMatch(/^\/api\/grid\/hospital\/f\d+_\d+$/);
     expect(ids()).toEqual(['A']);
     expect(screen.getByText('중구 태평로1가')).toBeTruthy();
@@ -266,10 +266,10 @@ describe('MainScreen', () => {
     expect(ids().at(-1)).toBe('X');
     expect(ids()[0]).toBe('O');
     await act(async () => {
-      fireEvent.change(screen.getByRole('combobox', { name: '유형' }), { target: { value: 'hospital' } });
+      fireEvent.click(screen.getByRole('button', { name: '병원' }));
     });
     await act(async () => {
-      fireEvent.change(screen.getByRole('combobox', { name: '유형' }), { target: { value: 'pharmacy' } });
+      fireEvent.click(screen.getByRole('button', { name: '약국' }));
     });
     await flush();
     expect(ids()).not.toContain('X');
@@ -287,15 +287,55 @@ describe('MainScreen', () => {
       render(<MainScreen fetchJson={s.fetchJson} />);
     });
     await flush();
-    expect(screen.getByRole('combobox', { name: '유형' })).toHaveProperty('value', 'pediatric');
+    expect(screen.getByRole('combobox', { name: '진료과' })).toHaveProperty('value', 'pediatric');
     expect(ids()).toEqual(['P']);
     expect(s.urls.every((u) => u.includes('/hospital/'))).toBe(true);
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /가까운 병원 보기/ }));
     });
     await flush();
-    expect(screen.getByRole('combobox', { name: '유형' })).toHaveProperty('value', 'hospital');
+    expect(screen.getByRole('combobox', { name: '진료과' })).toHaveProperty('value', 'hospital');
     expect(ids()).toEqual(['H1', 'H2', 'P']);
     expect(localStorage.getItem('munyeon:kind')).toBe('hospital');
+  });
+
+  test('obgyn: obgyn hospitals only (D78)', async () => {
+    const rows = [
+      makeRecord({ id: 'OB', kind: 'hospital', category: 'general', name: '봄산부인과의원', hours: OPEN, ...near(0.4) }),
+      makeRecord({ id: 'H', kind: 'hospital', category: 'general', name: '봄내과의원', hours: OPEN, ...near(0.2) }),
+    ];
+    const s = server(rows, rows);
+    s.release();
+    localStorage.setItem('munyeon:kind', 'obgyn');
+    await act(async () => {
+      render(<MainScreen fetchJson={s.fetchJson} />);
+    });
+    await flush();
+    expect(ids()).toEqual(['OB']);
+    expect(screen.getByText('가까운 곳에 지금 문 연 산부인과가 적어요')).toBeTruthy();
+  });
+
+  test('emergency: nationwide ER list nearest first as 24h, no show-all; area name from nearby cells (D78)', async () => {
+    const closedNow = { dutyTime1s: '0900', dutyTime1c: '1700' };
+    const er = [
+      makeRecord({ id: 'E2', kind: 'hospital', category: 'general', name: '먼병원', hours: closedNow, ...near(30) }),
+      makeRecord({ id: 'E1', kind: 'hospital', category: 'general', name: '가까운병원', hours: closedNow, ...near(2) }),
+    ];
+    const urls: string[] = [];
+    const fetchJson = async (url: string): Promise<GridPayload> => {
+      urls.push(url);
+      if (url === '/api/emergency') return encodeGrid(er);
+      return encodeGrid([makeRecord({ id: 'N', kind: 'hospital', category: 'general', ...near(0.1) })]);
+    };
+    localStorage.setItem('munyeon:kind', 'emergency');
+    await act(async () => {
+      render(<MainScreen fetchJson={fetchJson} />);
+    });
+    await flush();
+    expect(ids()).toEqual(['E1', 'E2']);
+    expect(screen.getAllByText('응급실 24시간')).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: '전체 보기' })).toBeNull();
+    expect(screen.getByText('중구 태평로1가')).toBeTruthy();
+    expect(urls.filter((u) => u.startsWith('/api/grid/')).every((u) => u.includes('/hospital/f'))).toBe(true);
   });
 });

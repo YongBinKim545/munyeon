@@ -356,6 +356,17 @@ export async function listGridCell(sql: Sql, kind: Kind, gy: number, gx: number,
     order by i.name, i.id`;
 }
 
+/**
+ * 응급실 운영 병원 전국(D78, 원본 응급실 운영 여부 dutyEryn=1, 좌표 있는 곳만). 약 520곳이라 한 번에 보낸다.
+ * erTel은 응급실 전용 번호(dutyTel3). 진료시간은 외래 시간이라 응급실 목록에서는 판정에 쓰지 않는다.
+ */
+export async function listEmergency(sql: Sql): Promise<(GridRow & { erTel: string | null })[]> {
+  return sql<(GridRow & { erTel: string | null })[]>`
+    select ${summaryCols(sql)}, i.sido, i.sigungu, nullif(i.raw->>'dutyTel3', '') as "erTel" from institutions i
+    where i.kind = 'hospital' and i.is_active and i.dup_of is null and i.raw->>'dutyEryn' = '1' and i.geom is not null
+    order by i.name, i.id`;
+}
+
 /** 이름·전화·주소를 정규화한 묶음 키(SQL). 띄어쓰기·기호·대소문자 차이는 같게 본다 */
 const DUP_KEY = (sql: Sql) => sql`
   regexp_replace(lower(name), '[^0-9a-z가-힣]', '', 'g'),
