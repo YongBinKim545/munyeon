@@ -376,8 +376,10 @@ button.chip[aria-pressed='true'] { border: 2px solid var(--call); color: var(--c
 .region-directory li { margin: 4px 0; }
 
 /* 헤더 [검색]의 탭(D70): [지역] [기관 이름] */
-/* 고른 탭은 밑줄 대신 옅은 파란 배경 */
-.search-tabs { display: flex; gap: 4px; margin: 0 0 8px; }
+/* 고른 탭은 밑줄 대신 옅은 파란 배경. 탭 줄과 그 아래 검색창 줄은 스크롤해도 위에 붙어 있다 */
+.search-tabs { display: flex; gap: 4px; margin: 0; padding-bottom: 8px; position: sticky; top: 0; z-index: 2; background: var(--bg); }
+.search-tabs ~ .search-tabs__panel .search-panel__head { top: calc(var(--tap) + 8px); }
+.search-tabs ~ .search-tabs__panel .search-panel__close-top { top: calc(var(--tap) + 8px + 60px); }
 .search-tabs__tab { flex: 1; min-height: var(--tap); background: none; border: 0; border-radius: var(--radius); color: var(--text-sub); font: inherit; font-weight: 600; cursor: pointer; }
 .search-tabs__tab[aria-selected="true"] { color: var(--text); font-weight: 700; background: color-mix(in srgb, var(--call) 12%, transparent); }
 .search-tabs__panel { display: flex; flex-direction: column; flex: 1; min-height: 0; }
