@@ -16,7 +16,7 @@ describe('prefs', () => {
     expect(readFilter()).toBe('hospital');
     saveFilter('obgyn');
     expect(readFilter()).toBe('obgyn');
-    localStorage.setItem('munyeon:kind', 'dental');
+    localStorage.setItem('munyeon:kind', 'clinic');
     expect(readFilter()).toBe('pharmacy');
   });
 

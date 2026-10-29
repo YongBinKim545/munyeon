@@ -213,10 +213,13 @@ p { margin: 0.25rem 0; }
 .area__note { margin: 0 4px; }
 .filters { display: flex; flex-wrap: wrap; gap: 8px; }
 .filters > * { flex: 1; }
-/* [병원 | 약국] 두 칸(D78). 고른 칸만 진하게 */
-.seg { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
-.seg button { flex: 1; min-height: var(--tap); border: 0; background: none; color: var(--text-sub); font: inherit; font-weight: 600; cursor: pointer; }
-.seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+/* [병원 | 약국] 두 칸과 진료과(D78): 같은 높이·테두리, 고른 칸은 전화 버튼과 같은 파란색. 약국만 있어도 줄의 절반 폭 */
+.filters > .seg, .filters > .select-wrap { flex: 0 0 calc(50% - 4px); }
+.seg { display: flex; border: 1px solid var(--call); border-radius: var(--radius); overflow: hidden; background: var(--bg); }
+.seg button { flex: 1; min-height: var(--tap); border: 0; background: none; color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--call); }
+.seg button[aria-pressed="true"] { background: var(--call); color: var(--call-text); }
+.filters .select-wrap .select { border-color: var(--call); background: var(--bg); text-align: center; text-align-last: center; padding-left: 32px; }
 .select {
   min-height: var(--tap); padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius);
   background: var(--surface); color: var(--text); font: inherit; font-weight: 600;
@@ -373,9 +376,10 @@ button.chip[aria-pressed='true'] { border: 2px solid var(--call); color: var(--c
 .region-directory li { margin: 4px 0; }
 
 /* 헤더 [검색]의 탭(D70): [지역] [기관 이름] */
-.search-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: 0 0 8px; }
-.search-tabs__tab { flex: 1; min-height: var(--tap); background: none; border: 0; border-bottom: 2px solid transparent; color: var(--text-sub); font: inherit; font-weight: 600; cursor: pointer; }
-.search-tabs__tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--call); }
+/* 고른 탭은 밑줄 대신 옅은 파란 배경 */
+.search-tabs { display: flex; gap: 4px; margin: 0 0 8px; }
+.search-tabs__tab { flex: 1; min-height: var(--tap); background: none; border: 0; border-radius: var(--radius); color: var(--text-sub); font: inherit; font-weight: 600; cursor: pointer; }
+.search-tabs__tab[aria-selected="true"] { color: var(--text); font-weight: 700; background: color-mix(in srgb, var(--call) 12%, transparent); }
 .search-tabs__panel { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
 /*

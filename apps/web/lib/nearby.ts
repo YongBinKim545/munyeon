@@ -6,14 +6,14 @@ import { decodeGrid, type GridEntry, type GridPayload } from './grid';
 import type { Kind } from './seo';
 
 /**
- * 목록 필터(D41·D78): 약국 / 병원 전체 / 소아과 / 산부인과 / 응급실.
+ * 목록 필터(D41·D78): 약국 / 병원 전체 / 소아과 / 산부인과 / 치과 / 응급실.
  * 화면에서는 [병원 | 약국]과 병원일 때만 진료과 드롭다운 두 개로 나뉜다.
  */
-export type ListFilter = 'pharmacy' | 'hospital' | 'pediatric' | 'obgyn' | 'emergency';
+export type ListFilter = 'pharmacy' | 'hospital' | 'pediatric' | 'obgyn' | 'dental' | 'emergency';
 export type HospitalFilter = Exclude<ListFilter, 'pharmacy'>;
-export const HOSPITAL_FILTERS: readonly HospitalFilter[] = ['hospital', 'pediatric', 'obgyn', 'emergency'];
+export const HOSPITAL_FILTERS: readonly HospitalFilter[] = ['hospital', 'pediatric', 'obgyn', 'dental', 'emergency'];
 /** 진료과 드롭다운 이름 */
-export const FILTER_LABEL: Record<HospitalFilter, string> = { hospital: '전체', pediatric: '소아과', obgyn: '산부인과', emergency: '응급실' };
+export const FILTER_LABEL: Record<HospitalFilter, string> = { hospital: '전체', pediatric: '소아과', obgyn: '산부인과', dental: '치과', emergency: '응급실' };
 
 export function isListFilter(v: unknown): v is ListFilter {
   return v === 'pharmacy' || (HOSPITAL_FILTERS as readonly unknown[]).includes(v);
@@ -28,10 +28,12 @@ export function kindOf(filter: ListFilter): Kind {
  * 진료과 거르기. 나머지(약국·병원 전체)는 거르지 않는다.
  * - 소아과: 이름에 소아청소년과·소아과 또는 소아·아동·어린이·키즈가 들어간 일반 병·의원(격자의 pediatric 표시)
  * - 산부인과: 이름에 산부인과·여성의원이 들어가거나 주 진료과(배지)가 산부인과인 일반 병·의원
+ * - 치과: 종별이 치과(치과의원·치과병원)
  */
 export function matcherOf(filter: ListFilter): ((e: GridEntry) => boolean) | undefined {
   if (filter === 'pediatric') return (e) => e.pediatric;
   if (filter === 'obgyn') return (e) => e.category === 'general' && (e.badge === '산부인과' || /산부인과|여성의원/.test(e.name));
+  if (filter === 'dental') return (e) => e.category === 'dental';
   return undefined;
 }
 

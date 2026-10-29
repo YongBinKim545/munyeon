@@ -16,11 +16,11 @@ describe('FilterBar (D78)', () => {
     expect(screen.queryByRole('combobox')).toBeNull();
   });
 
-  test('hospital: department select 전체 / 소아과 / 산부인과 / 응급실', () => {
+  test('hospital: department select 전체 / 소아과 / 산부인과 / 치과 / 응급실', () => {
     const onFilter = vi.fn();
     render(<FilterBar filter="hospital" onFilter={onFilter} />);
     const select = screen.getByRole('combobox', { name: '진료과' });
-    expect([...select.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['전체', '소아과', '산부인과', '응급실']);
+    expect([...select.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['전체', '소아과', '산부인과', '치과', '응급실']);
     fireEvent.change(select, { target: { value: 'emergency' } });
     expect(onFilter).toHaveBeenCalledWith('emergency');
     fireEvent.click(screen.getByRole('button', { name: '약국' }));

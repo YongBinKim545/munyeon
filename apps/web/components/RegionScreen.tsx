@@ -16,7 +16,7 @@ import { MainList } from './MainList';
 
 /** 시군구 안 전부를 한 번에 본다(메인처럼 반경을 넓히지 않는다) */
 const WHOLE_REGION_KM = 1000;
-/** 병원 화면의 진료과 주소(#소아과·#산부인과·#응급실, D78). 서버는 읽지 않는다(캐시가 갈라지지 않게) */
+/** 병원 화면의 진료과 주소(#소아과·#산부인과·#치과·#응급실, D78). 서버는 읽지 않는다(캐시가 갈라지지 않게) */
 const hashOf = (f: ListFilter) => (f === 'pharmacy' || f === 'hospital' ? '' : `#${FILTER_LABEL[f]}`);
 const filterOfHash = (hash: string): HospitalFilter | null =>
   HOSPITAL_FILTERS.find((f) => f !== 'hospital' && hashOf(f) === decodeURIComponent(hash)) ?? null;

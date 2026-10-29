@@ -5,7 +5,7 @@ import { FILTER_LABEL, HOSPITAL_FILTERS, type HospitalFilter, type ListFilter } 
 import { readHospitalFilter } from '@/lib/prefs';
 
 /**
- * 목록 필터(D78): [병원 | 약국] 두 칸, 병원일 때만 진료과 [전체 ▾ / 소아과 / 산부인과 / 응급실].
+ * 목록 필터(D78): [병원 | 약국] 두 칸, 병원일 때만 진료과 [전체 ▾ / 소아과 / 산부인과 / 치과 / 응급실].
  * [병원]을 누르면 마지막으로 고른 진료과(처음은 전체)로 연다. 메인·지역 화면이 같이 쓴다.
  */
 export function FilterBar({ filter, onFilter }: { filter: ListFilter; onFilter: (f: ListFilter) => void }) {

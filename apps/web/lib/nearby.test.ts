@@ -27,7 +27,7 @@ describe('list filter (D41·D78)', () => {
 
   test('every hospital department reads hospital cells', () => {
     expect(kindOf('pharmacy')).toBe('pharmacy');
-    for (const f of ['hospital', 'pediatric', 'obgyn', 'emergency'] as const) expect(kindOf(f)).toBe('hospital');
+    for (const f of ['hospital', 'pediatric', 'obgyn', 'dental', 'emergency'] as const) expect(kindOf(f)).toBe('hospital');
   });
 
   test('obgyn: general hospitals named 산부인과·여성의원 or with 산부인과 as main department', () => {
@@ -37,6 +37,12 @@ describe('list filter (D41·D78)', () => {
     expect(ob(hosp({ name: '봄의원', specialty: '산부인과' }))).toBe(true);
     expect(ob(hosp({ name: '봄내과의원', specialty: '내과' }))).toBe(false);
     expect(ob(hosp({ name: '산부인과한의원', category: 'oriental' }))).toBe(false);
+  });
+
+  test('dental: by kind (치과의원·치과병원)', () => {
+    const d = matcherOf('dental')!;
+    expect(d(hosp({ name: '봄치과의원', category: 'dental' }))).toBe(true);
+    expect(d(hosp({ name: '치과옆내과의원' }))).toBe(false);
   });
 
   test('hospital includes pediatric; pediatric keeps only pediatric names', () => {

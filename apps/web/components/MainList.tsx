@@ -21,7 +21,7 @@ interface Props {
   /** 받지 못한 칸이 있음(있으면 안내와 [다시 시도]) */
   failed: boolean;
   onRetry: () => void;
-  /** 소아과·산부인과면 문구가 바뀌고, 영업 중인 곳이 적을 때 [가까운 병원 보기](D41·D78). 응급실은 [전체 보기]가 없다 */
+  /** 소아과·산부인과·치과면 문구가 바뀌고, 영업 중인 곳이 적을 때 [가까운 병원 보기](D41·D78). 응급실은 [전체 보기]가 없다 */
   filter?: ListFilter;
   onNearbyHospitals?: () => void;
   /** 이벤트에 남길 화면 이름(메인 'home', 지역 화면 'region') */
@@ -65,8 +65,8 @@ export function MainList({ items, mode, now, ctx, holidayToday, loadingMore, onS
 
   const shown = items.slice(0, limit);
   const emergency = filter === 'emergency';
-  /** 소아과·산부인과 */
-  const dept = filter === 'pediatric' || filter === 'obgyn' ? FILTER_LABEL[filter] : null;
+  /** 소아과·산부인과·치과 */
+  const dept = filter === 'pediatric' || filter === 'obgyn' || filter === 'dental' ? FILTER_LABEL[filter] : null;
   // 다 넓힌 뒤에도(25km) 그 과의 영업 중(영업 중·곧 영업·전화 확인 필요)이 적으면 병원으로 넘어갈 수 있게 한다
   const openCount = items.filter((i) => i.tier !== 'closed' && i.tier !== 'unknown').length;
   const fewDept = !!dept && !loadingMore && !failed && openCount < MIN_VISIBLE && !!onNearbyHospitals;
