@@ -107,7 +107,7 @@ export function FeedbackDialog({ target, path, onClose }: { target: FeedbackTarg
           <>
             <div className="sheet-body sheet-done" role="status">
               <CircleCheck aria-hidden="true" size={40} className="sheet-done__icon" />
-              <p className="sheet-done__title">고마워요</p>
+              <p className="sheet-done__title">감사합니다</p>
               <p className="muted">보내주신 내용은 확인해서 서비스를 고치는 데 쓸게요.</p>
             </div>
             <div className="sheet-foot">
